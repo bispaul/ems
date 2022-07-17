@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Flask-DataTables</title>
+    <meta name="description" content="This is a Flask (Python microframework) use Datatables.js Ajax source application.">
+    <meta name="author" content="rosickey">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery-ui.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-tagsinput.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/nv.d3.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/c3.css') }}">
+    <style>
+        .ui-autocomplete-loading {
+            background: white url("/static/images/ui-anim_basic_16x16.gif") right center no-repeat;
+        }
+        .ui-autocomplete {
+            max-height: 100px;
+            overflow-y: auto;
+            /* prevent horizontal scrollbar */
+            overflow-x: hidden;
+        }
+        /*nvd3j*/
+
+        body {
+          overflow-y:scroll;
+        }
+
+        text {
+          font: 12px sans-serif;
+        }
+
+        #chart2 svg {
+          height: 500px;
+          margin: 10px;
+          min-width: 100px;
+          min-height: 100px;
+        /*
+          Minimum height and width is a good idea to prevent negative SVG dimensions...
+          For example width should be =< margin.left + margin.right + 1,
+          of course 1 pixel for the entire chart would not be very useful, BUT should not have errors
+        */
+        }
+
+        #chart1 svg {
+          height: 500px;
+          margin: 10px;
+          min-width: 100px;
+          min-height: 100px;
+        /*
+          Minimum height and width is a good idea to prevent negative SVG dimensions...
+          For example width should be =< margin.left + margin.right + 1,
+          of course 1 pixel for the entire chart would not be very useful, BUT should not have errors
+        */
+        }
+    </style>
+    <script src="{{ url_for('static', filename='js/jquery-2.0.3.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery.dataTables.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery-ui.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap-tagsinput.min.js') }}"></script>
+    <!--script src="{{ url_for('static', filename='js/bootstrap-tagsinput-angular.js') }}"></script-->
+    <script src="{{ url_for('static', filename='js/d3.v3.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/nv.d3.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/stream_layers.js') }}"></script>
+    <script>
+      /*$(function() {
+        var cache = {};
+        $( "#tags" ).autocomplete({
+          minLength: 2,
+          source: function( request, response ) {
+            var term = request.term;
+            if ( term in cache ) {
+              response( cache[ term ] );
+              return;
+            }
+
+            $.getJSON( "{{ url_for('quick_search') }}", request, function( data, status, xhr ) {
+              cache[ term ] = data;
+              response( data );
+            });
+          }
+        });
+      });*/
+      var pos_data = [];
+      $(function() {
+
+        function log( message ) {
+          $.ajax( {url: "/fulldata/" + message ,
+                   dataType: "json",
+                   //data: "FD_16-11-2009",
+                   //type: "GET",
+                   contentType: "application/json; charset=utf-8",
+                   dataFilter: function(data) { return data; },
+                   success: function(data) {
+                                            console.log(data);
+                                            console.log("success");
+                                            pos_data.push({'key':message, 'values':data, type:"line", yAxis:1});
+                                            myd3graph();
+                                            console.log(pos_data);
+                    },
+                   error: function(XMLHttpRequest, textStatus, errorThrown) {
+                    alert(textStatus);
+                    }
+               });
+          $( "<div>" ).text( message ).prependTo( "#log" );
+          $( "#log" ).scrollTop( 0 );
+          $( "#log" ).hide();
+          //$( "<option selected value =" + "'" + message + "'" + ">").text(message).prependTo( "#newtag" );
+          $( "#newtag" ).tagsinput( 'add', message );
+          //$( "#newtag" ).scrollTop( 0 );
+        }
+        function split( val ) {
+          return val.split( /,\s*/ );
+        }
+        function extractLast( term ) {
+          return split( term ).pop();
+        }
+        $( "#tags" )
+          // don't navigate away from the field on tab when selecting an item
+          .bind( "keydown", function( event ) {
+            if ( event.keyCode === $.ui.keyCode.TAB &&
+                $( this ).autocomplete( "instance" ).menu.active ) {
+              event.preventDefault();
+            }
+          })
+          .autocomplete({
+            source: function( request, response ) {
+              $.getJSON( "{{ url_for('quick_search') }}", {
+                term: extractLast( request.term )
+              }, response );
+            },
+            search: function() {
+              // custom minLength
+              var term = extractLast( this.value );
+              if ( term.length < 2 ) {
+                return false;
+              }
+            },
+            focus: function() {
+              // prevent value inserted on focus
+              return false;
+            },
+            select: function( event, ui ) {
+              /*log( ui.item ?
+                  "Selected: " + ui.item.value + " aka " + ui.item.id :
+                  "Nothing selected, input was " + this.value );*/
+              log( ui.item ? ui.item.value :
+                  "Nothing selected, input was " + this.value );
+              var terms = split( this.value );
+              // remove the current input
+              terms.pop();
+              // add the selected item
+              terms.push( ui.item.value );
+              // add placeholder to get the comma-and-space at the end
+              terms.push( "" );
+              this.value = terms.join( ", " );
+              return false;
+            }
+          });
+      });
+
+    function myd3graph(){
+        /*pos_data[0].type = "line";
+        pos_data[0].yAxis = 1;
+        pos_data[0].type = "line";
+        pos_data[0].yAxis = 1;*/
+
+        nv.addGraph(function() {
+            var chart = nv.models.multiChart()
+                .margin({top: 30, right: 60, bottom: 50, left: 70})
+                //.x(function(d, i) { return d['block_no']})
+                //.y(function(d) { return d['demand_forecast']})
+                //.useInteractiveGuideline(true)
+                .color(d3.scale.category10().range())
+                //.clipEdge(true)
+                ;
+                
+            chart.xAxis
+                .axisLabel('Block No')
+                .tickFormat(d3.format(',f'));
+
+            chart.yAxis1
+                 .axisLabel('Mega Watt (MW)')
+                 .tickFormat(d3.format(',f'));
+            /*
+            chart.yAxis2
+                .tickFormat(d3.format(',.1f'));
+            */
+            
+            d3.select('#chart2 svg')
+                .datum(pos_data)
+              .transition().duration(500).call(chart);
+
+            nv.utils.windowResize(chart.update);
+            return chart;
+        });
+    }
+        var testdata = stream_layers(7,10+Math.random()*100,.1).map(function(data, i) {
+          return {
+            key: 'Stream' + i,
+            values: data.map(function(a){a.y = a.y * (i <= 1 ? -1 : 1); a.x = a.x + 1; return a})
+          };
+        });
+      
+        testdata[0].type = "area"
+        testdata[0].yAxis = 1
+        testdata[1].type = "area"
+        testdata[1].yAxis = 1
+        testdata[2].type = "line"
+        testdata[2].yAxis = 1
+        testdata[3].type = "line"
+        testdata[3].yAxis = 2
+        testdata[4].type = "bar"
+        testdata[4].yAxis = 2
+        testdata[5].type = "bar"
+        testdata[5].yAxis = 2
+        testdata[6].type = "bar"
+        testdata[6].yAxis = 2
+
+
+        nv.addGraph(function() {
+            var chart = nv.models.multiChart()
+                .margin({top: 30, right: 60, bottom: 50, left: 70})
+                //.useInteractiveGuideline(true)
+                .color(d3.scale.category10().range())
+                //.clipEdge(true)
+                ;
+                /*
+            var options = {
+                            showControls: true,
+                            showLegend: true
+                        }
+            chart.options(options);*/
+
+            chart.xAxis
+                .tickFormat(d3.format(',f'));
+
+            chart.yAxis1
+                .tickFormat(d3.format(',.1f'));
+
+            //chart.yAxis2
+            //    .tickFormat(d3.format(',.1f'));
+
+
+            d3.select('#chart1 svg')
+                .datum(testdata)
+              .transition().duration(500).call(chart);
+            nv.utils.windowResize(chart.update);
+            nv.log(testdata)
+            return chart;
+        });
+
+    </script>
+</head>
+<body data-twttr-rendered="true">
+    <div class="ui-widget">
+      <label for="tags">Tags: </label>
+      <input id="tags" size="50">
+    </div>
+    <div class="ui-widget" style="margin-top:2em; font-family:Arial; display: none;">
+      Result:
+    <div id="log" style="height: 200px; width: 300px; overflow: auto;"  class="ui-widget-content"></div>
+    </div>
+    <div class="ui-widget" style="margin-top:2em; font-family:Arial;">
+        <!--<input id = "newtag" type="text" data-role="tagsinput" placeholder="Add tags" />-->
+        <select id = "newtag" multiple data-role="tagsinput">
+        </select>
+    </div>
+    <div id="chart" >
+    </div>
+    <div id="chart2" >
+        <svg> </svg>
+    </div>
+    <div id="chart1" >
+        <svg> </svg>
+    </div>
+</body>
+
+<footer class="footer">
+    <div class="container">
+    <ul class="footer-links">
+        <li>© 2013</li>
+        <li><a href='https://github.com/imwilsonxu/flask-datatables'>About</a></li>
+    </ul>
+    </div>
+</footer>
+
+</html>

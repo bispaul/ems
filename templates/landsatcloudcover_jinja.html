@@ -1,0 +1,23 @@
+{% extends "basetemplate.html" %}
+{% block title %}Real Time Demand and Forecast{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-xs-4">
+        <img src="{{ url_for('static', filename='images/landsat/nov3.png') }}" id="picture1" class="img-responsive" />
+    </div>
+    <div class="col-xs-4">
+        <img src="{{ url_for('static', filename='images/landsat/nov1.png') }}" id="picture2" class="img-responsive" />
+    </div>
+    <div class="col-xs-4">
+        <img src="{{ url_for('static', filename='images/landsat/nov thermal.png') }}" id="picture3" class="img-responsive" />
+    </div>
+    <div class="col-xs-4">
+        <img src="{{ url_for('static', filename='images/landsat/july cloud.png') }}" id="picture4" class="img-responsive" />
+    </div>
+    <div class="col-xs-4">
+        <img src="{{ url_for('static', filename='images/landsat/july thermal.png') }}" id="picture5" class="img-responsive" />
+    </div>         
+  </div>
+</div>
+{% endblock %}

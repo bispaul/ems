@@ -1,0 +1,5 @@
+# my cool SQL parameters
+{ "user":"root",
+  "passwd”:””,
+  "host":"",
+  "db":"power"}

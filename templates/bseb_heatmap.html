@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="description" content="Navigation Page.">
+    <meta name="author" content="">
+    <!-- <link rel="icon" href="../../favicon.ico"> -->
+    <title>Zeerone Landing</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/minisubmenu.css') }}"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sticky-footer-navbar.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.css') }}"> -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/c3.css') }}"> -->
+    <style>
+      .bars {
+                display: block;
+                width: 20px;
+                height: 3px;    
+                background-color: #333;
+                box-shadow: 0 5px 0 #333, 0 10px 0 #333;
+            }
+      .nav>li>a:hover, .nav>li>a:focus {
+                text-decoration: none;
+                background-color: #fff;
+            }
+      .nav .open>a, .nav .open>a:hover, .nav .open>a:focus {
+                background-color: #fff;
+                border-color: #428bca;
+            } 
+
+      /* disable text selection */
+      svg *::selection {
+         background : transparent;
+      }
+     
+      svg *::-moz-selection {
+         background:transparent;
+      } 
+     
+      svg *::-webkit-selection {
+         background:transparent;
+      }
+      rect.selection {
+        stroke          : #333;
+        stroke-dasharray: 4px;
+        stroke-opacity  : 0.5;
+        fill            : transparent;
+      }
+ 
+      rect.cell-border {
+        stroke: #eee;
+        stroke-width:0.3px;   
+      }
+ 
+      rect.cell-selected {
+        stroke: rgb(51,102,153);
+        stroke-width:0.5px;   
+      }
+ 
+      rect.cell-hover {
+        stroke: #F00;
+        stroke-width:0.3px;   
+      }
+ 
+      text.mono {
+        font-size: 9pt;
+        font-family: Consolas, courier;
+        fill: #aaa;
+      }
+ 
+      text.text-selected {
+        fill: #000;
+      }
+ 
+      text.text-highlight {
+        fill: #c00;
+      }
+      text.text-hover {
+        fill: #00C;
+      }
+      #tooltip {
+        position: absolute;
+        width: 200px;
+        height: auto;
+        padding: 10px;
+        background-color: white;
+        -webkit-border-radius: 10px;
+        -moz-border-radius: 10px;
+        border-radius: 10px;
+        -webkit-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        -moz-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        pointer-events: none;
+      }
+ 
+      #tooltip.hidden {
+        display: none;
+      }
+ 
+      #tooltip p {
+        margin: 0;
+        font-family: sans-serif;
+        font-size: 12px;
+        line-height: 20px;
+      }
+/*      body {
+        font: 10px sans-serif;
+      }*/  
+      .axis path,
+      .axis line {
+        fill: none;
+        stroke: #000;
+        shape-rendering: crispEdges;
+      }          
+    </style>        
+    <script src="{{ url_for('static', filename='js/jquery-2.1.3.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/d3.min.js') }}"></script>
+    <!-- // <script src="{{ url_for('static', filename='js/require.js') }}"></script> -->
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+<!--   <div id="tooltip" class="hidden">
+        <p><span id="value"></p>
+  </div> -->
+  <body>
+    <header class="top" role="header">
+      <div class="container">
+        <nav class="navbar" role="navigation">
+          <div class="container-fluid">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              <a href="#" class="navbar-brand">
+                <img style="margin-top:-20px;" src="/static/images/logo.png" alt="Z-matics">
+              </a>
+            </div>
+
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+            {% include "menu.html" %}
+<!--               <ul class="nav navbar-nav">
+                <li class="dropdown">
+                  <a href="#" class="dropdown-toggle" data-toggle="dropdown">Menu <b class="caret"></b></a>
+                  <ul class="dropdown-menu">
+                    <li><a href="{{ url_for('index') }}">NR Gen</a></li>
+                    <li><a href="{{ url_for('nrmarket') }}">NR Market</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('tenisgs') }}">ISGS Tentative Data</a></li>
+                    <li><a href="{{ url_for('tenint') }}">Internal Tentative Data</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('rajmislive') }}">Live MIS Data</a></li>
+                    <li><a href="{{ url_for('rajlive') }}">Live Data Breakup</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('forecast') }}">Forecast</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('possuply') }}">Position Map</a></li>
+                    <li><a href="{{ url_for('possuplychart') }}">Position Map Chart</a></li>                    
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('chart') }}">Comparison Report</a></li>
+                    <li><a href="{{ url_for('chart3') }}">ISGS Tentative Stack</a></li>
+                    <li><a href="{{ url_for('stacked') }}">Total Generation Stack</a></li>
+                    <li><a href="{{ url_for('treemap') }}">Treemap Report</a></li>
+                    <li><a href="{{ url_for('heat') }}">Heatmap Report</a></li>                    
+                  </ul>
+                </li>
+              </ul> -->
+  <!--             <form class="navbar-form navbar-left" role="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" placeholder="Search">
+                </div>
+                <button type="submit" class="btn btn-default">Submit</button>
+              </form> -->
+              <ul class="nav navbar-nav navbar-right">
+                <li><a href="http://zeerone.com/">About</a></li>
+                <li><a href="http://zeerone.com/contact_us.html">Contact</a></li>
+                <li>
+                  <a href="login.html">Logout </a>
+                </li>
+<!--                 <li><a href="#">Link</a></li>
+                <li class="dropdown">
+                  <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
+                  <ul class="dropdown-menu">
+                    <li><a href="#">Action</a></li>
+                    <li><a href="#">Another action</a></li>
+                    <li><a href="#">Something else here</a></li>
+                    <li class="divider"></li>
+                    <li><a href="#">Separated link</a></li>
+                  </ul>
+                </li> -->
+              </ul>
+            </div><!-- /.navbar-collapse -->
+          </div><!-- /.container-fluid -->
+        </nav>
+      </div>
+    </header>
+    <!-- <div class="container"> -->
+      <!-- <div class="col-md-12 content"> -->
+        <!-- // <script src="http://d3js.org/d3.v3.min.js"></script> -->
+        <!-- <div id="heatmap" style='overflow:auto; width:960px; height:480px;'></div> -->
+        <div id='heatmap'></div>
+        <script type="text/javascript">
+          d3.json("{{ url_for('get_heat_data') }}",
+          //   function(d) {
+          //     console.log('d');
+          //     console.log(d);
+          //     return d;
+          //   },
+            function(error, data) { 
+              console.log('data'); 
+          //     console.log(data); 
+            data.forEach(function(d) {
+                d.row =   +d.row;
+                d.col =   +d.col;
+                d.val =   +d.val;
+              });          
+            var margin = { top: 150, right: 10, bottom: 50, left: 100 }, cellSize=12;
+            // col_number=60;
+            // row_number=50;
+            col_number=96;
+            row_number=30;  
+            width = cellSize*col_number, // - margin.left - margin.right,
+            height = cellSize*row_number , // - margin.top - margin.bottom,
+            //gridSize = Math.floor(width / 24),
+            // legendElementWidth = cellSize*2.5,
+            colorBuckets = 21,
+            colors = ['#005824','#1A693B','#347B53','#4F8D6B','#699F83','#83B09B','#9EC2B3','#B8D4CB','#D2E6E3','#EDF8FB','#FFFFFF','#F1EEF6','#E6D3E1','#DBB9CD','#D19EB9','#C684A4','#BB6990','#B14F7C','#A63467','#9B1A53','#91003F'];    
+            var gridSize = 30 * 96,
+              h = 30,
+              w = 96,
+              rectPadding = 60;
+
+            // var colorLow = 'green', colorMed = 'yellow', colorHigh = 'red';
+
+            // var x = d3.time.scale().range([0, width]),
+            var x = d3.scale.linear().domain([1, 96]).range([1, width]),    
+                y = d3.scale.linear().domain([1, 30]).range([height, 1]);
+                // z = d3.scale.linear().range(["white", "steelblue"]);     
+
+            // var parseDate = d3.time.format("%d").parse,
+            //     formatDate = d3.time.format("%d");                       
+            // console.log(parseDate);
+            // console.log(formatDate);
+            // var margin = {top: 20, right: 80, bottom: 30, left: 50},
+            //   width = 640 - margin.left - margin.right,
+            //   height = 380 - margin.top - margin.bottom;
+
+            // var colorScale = d3.scale.linear()
+            //   .domain([-1, 0, 1])
+            //   .range([colorLow, colorMed, colorHigh]);
+            var colorScale = d3.scale.quantile()
+                .domain([ 5000 , 6000, 9000])
+                .range(colors);        
+
+            var svg = d3.select("#heatmap").append("svg")
+              .attr("width", width + margin.left + margin.right)
+              // .attr("height", height + margin.top + margin.bottom)
+              .attr("height", height + margin.top + margin.bottom)
+              .append("g")
+              .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            // var heatMap = svg.selectAll(".heatmap")
+            //   .data(data, function(d) { return d.col + ':' + d.row; })
+            //   .enter().append("svg:rect")
+            //   .attr("x", function(d) { return d.row * w; })
+            //   .attr("y", function(d) { return d.col * h; })
+            //   .attr("width", function(d) { return w; })
+            //   .attr("height", function(d) { return h; })
+            //   .style("fill", function(d) { return colorScale(d.val); });
+              // .style("fill", function(d) { return colorScale(d.score); });
+            var heatMap = svg.selectAll(".heatmap")
+                  .data(data,function(d){console.log(d.val); return d.row+":"+d.col;})
+                  .enter()
+                  .append("svg:rect")
+                  // .attr("x", function(d) { return hccol.indexOf(d.col) * cellSize; })
+                  // .attr("y", function(d) { return hcrow.indexOf(d.row) * cellSize; })
+                  .attr("x", function(d) { return d.col * cellSize; })
+                  .attr("y", function(d) { return d.row * cellSize; })        
+                  .attr("width", cellSize)
+                  .attr("height", cellSize)
+                  .style("fill", function(d) {  return colorScale(d.val); });
+
+            function removeZero(axis) {
+              axis.selectAll("g").filter(function(d) { return !d; }).remove();
+            }    
+
+            // Add an x-axis with label.
+            svg.append("g")
+                .attr("class", "x axis")
+                .attr("transform", "translate(12," + 372 + ")")
+                // .call(d3.svg.axis().scale(x).ticks(d3.time.days).tickFormat(formatDate).orient("bottom"))
+                .call(d3.svg.axis().scale(x).orient("bottom"))
+                .call(removeZero)                
+                .append("text")
+                .attr("class", "label")
+                .attr("x", width/2)
+                .attr("y", 24)
+                .attr("text-anchor", "end")
+                .text("Block_No");
+
+            // Add a y-axis with label.
+            svg.append("g")
+                .attr("class", "y axis")
+                .attr("transform", "translate(12," + 12 + ")")
+                .call(d3.svg.axis().scale(y).orient("left"))
+                .call(removeZero)
+                .append("text")
+                .attr("class", "label")
+                .attr("x", height/-2)
+                .attr("y", -36)
+                .attr("dy", ".71em")
+                .attr("text-anchor", "end")
+                .attr("transform", "rotate(-90)")
+                .text("Date");       
+          })
+        </script>
+        <!-- <div id="chart1"></div> -->
+        <!-- <div id="chart"></div> -->
+<!--       </div>
+    </div> -->     
+  </body>        
+  <footer class="footer">
+    <div class="container">
+      <p class="text-muted">
+          Zeerone © 2012
+          http://www.zeerone.com</p>
+      </div>
+    </div>      
+  </footer>
+</html>

@@ -1,0 +1,2063 @@
+{% extends "basetemplate.html" %}
+{% block title %}Weather Watch{% endblock %}
+{% block script %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.dataTables.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/awesomplete.css') }}">
+    <style>
+        html, body{
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            z-index: 10;
+        }
+        #map-canvas {
+            width: 100%;
+            height: 675px;
+            /*z-index: 6;*/
+        }
+/*       #checkboxes { 
+        position: absolute; 
+        top: 50px; 
+        right: 10px;
+        font-family: 'arial', 'sans-serif'; 
+        font-size: 14px;
+        background-color: white;
+        border: 1px solid black;
+        padding: 10px 10px 0px 10px;
+        }   */       
+/*        #floating-panel {
+            position: absolute;
+            top: 10px;
+            left: 25%;
+            z-index: 5;
+            background-color: #fff;
+            padding: 5px;
+            border: 1px solid #999;
+            text-align: center;
+            font-family: 'Roboto','sans-serif';
+            line-height: 30px;
+            padding-left: 10px;
+        }*/
+        .navbar {
+            position: relative;
+            min-height: 50px;
+            margin-bottom: 1px;
+            border: 1px solid transparent;
+        }                  
+    </style> 
+    <!-- All JS -->
+    <!-- <script type="text/javascript" src="{{ url_for('static', filename='js/jquery-2.1.3.min.js') }}"></script> -->
+    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDwVA8ANu6c-Zw3KLTbZQH1B9d1r-FrGQw">
+    </script>
+    <!-- <script type="text/javascript" src="{{ url_for('static', filename='js/OverlappingFeatureSpiderfier.js') }}"></script> -->
+    <script src="{{ url_for('static', filename='js/maplabel-compiled.js') }}"></script>    
+    <script type="text/javascript" src="{{ url_for('static', filename='js/wicket.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/awesomplete.min.js') }}" async></script>
+    <!-- <script type="text/javascript" src="{{ url_for('static', filename='js/turf.min.js') }}" async></script>     -->
+    <script src="{{ url_for('static', filename='js/minidaemon.js') }}"></script>     
+    <script>
+        var map;
+        var oms;
+        var infowindow = new google.maps.InfoWindow();
+        var alarminfowindow = new google.maps.InfoWindow();
+        var geocoder = new google.maps.Geocoder();
+        var gettingData = false;
+        var coords = new google.maps.LatLng(20,78);
+        var bounds = new google.maps.LatLngBounds();
+        var polyline;
+        var line = [];
+        var trafficLayer = new google.maps.TrafficLayer();
+        var user_pos = [];
+        var all_user_pos = [];
+        var directionsService = new google.maps.DirectionsService;
+        var directionsDisplay = new google.maps.DirectionsRenderer({suppressMarkers: true});
+        var maxZoomService = new google.maps.MaxZoomService();
+        var alarm_marker = [];
+        var user_marker = [];
+        var selobj = {};
+        var alarmobj = [];
+        var requestArray = [];
+        var getAlarmFeederJob;
+        var mapLabel = [];
+        var mapPolyLine = [];
+        var crewLabel = [];
+        var findMarker = [];
+        var find = [];
+        var markerObj = {};
+
+        google.maps.InfoWindow.prototype.isOpen = function(){
+            var map = this.getMap();
+            return (map !== null && typeof map !== "undefined");
+        }          
+
+        function inrange(min,number,max){
+            if (!isNaN(number) && (number >= min) && (number <= max)) return true
+            else return false
+        };
+        
+        function valid_coords(number_lat,number_lng) {
+            if (inrange(-90,number_lat,90) && inrange(-180,number_lng,180)) {
+                return true;
+            }
+            else {
+                return false;
+            }
+        };
+
+        // MapLabel.prototype.offset = function(offsetx,offsety) {
+        //     var map = this.getMap();
+        //     var latlng = this.position;
+        //     var point1 = map.getProjection().fromLatLngToPoint(
+        //         (latlng instanceof google.maps.LatLng) ? latlng : map.getCenter()
+        //     );
+        //     var point2 = new google.maps.Point(
+        //         ( (typeof(offsetx) == 'number' ? offsetx : 0) / Math.pow(2, map.getZoom()) ) || 0,
+        //         ( (typeof(offsety) == 'number' ? offsety : 0) / Math.pow(2, map.getZoom()) ) || 0
+        //     );  
+        //     this.position = map.getProjection().fromPointToLatLng(new google.maps.Point(
+        //         point1.x - point2.x,
+        //         point1.y + point2.y
+        //     ));
+        //     console.log('offset prototype', this.poisition);
+        // }
+
+        function point_offset_in_pixels(latlng, offsetx, offsety) {
+            // var map = this.getMap();
+            var point1 = map.getProjection().fromLatLngToPoint(
+                (latlng instanceof google.maps.LatLng) ? latlng : map.getCenter()
+            );
+            var point2 = new google.maps.Point(
+                ( (typeof(offsetx) == 'number' ? offsetx : 0) / Math.pow(2, map.getZoom()) ) || 0,
+                ( (typeof(offsety) == 'number' ? offsety : 0) / Math.pow(2, map.getZoom()) ) || 0
+            );  
+            return map.getProjection().fromPointToLatLng(new google.maps.Point(
+                point1.x - point2.x,
+                point1.y + point2.y
+            ));
+        }
+
+        function unsetMapLabel() {
+            for (var i = 0, len = mapLabel.length; i < len; i++ ){
+                mapLabel[i].setMap(null);
+                // mapLabel.splice(i, 1);
+            }
+        };        
+
+        function unsetPolyLineCircle() {
+            for (var i = 0, len = mapPolyLine.length; i < len; i++ ){
+                mapPolyLine[i].setMap(null);
+                // mapPolyLine.splice(i, 1);
+            }
+        };        
+
+        var myStyles =[
+            {
+                featureType: "poi",
+                elementType: "labels",
+                stylers: [
+                      { visibility: "off" }
+                ]
+            }
+        ];
+
+        var ringoffActiveSymbol = {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 3,
+            strokeOpacity: 1,
+            strokeWeight: .5,
+            fillColor: '#000000',
+            fillOpacity: 1
+        };
+
+        var ringoffInactiveSymbol = {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 3,
+            strokeOpacity: 1,
+            strokeWeight: .5,
+            fillColor: '#FFFFFF',
+            fillOpacity: 1
+            // strokeColor: '#393'
+        };
+
+        var pkStationSymbol = {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 7,
+            strokeOpacity: 1,
+            strokeWeight: 1.5,
+            fillColor: '#7FFF00',
+            fillOpacity: 1,
+            strokeColor: '#000000'
+        };        
+
+        var pkPriorityStationSymbol = {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 7,
+            strokeOpacity: 1,
+            strokeWeight: 1.5,
+            fillColor: '#7FFF00',
+            fillOpacity: 1,
+            strokeColor: '#3399FF'
+        };
+
+        var pkInAccessibleStationSymbol = {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 7,
+            strokeOpacity: 1,
+            strokeWeight: 1.5,
+            fillColor: '#7FFF00',
+            fillOpacity: 1,
+            strokeColor: '#B40404'
+        };
+
+        var pkRingoffStationSymbol = {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 7,
+            strokeOpacity: 1,
+            strokeWeight: 1.5,
+            fillColor: '#3399FF',
+            fillOpacity: 1,
+            strokeColor: '#000000'
+        };
+
+        var pkRingoffInAccessibleStationSymbol = {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 7,
+            strokeOpacity: 1,
+            strokeWeight: 1.5,
+            fillColor: '#3399FF',
+            fillOpacity: 1,
+            strokeColor: '#B40404'
+        };
+
+        var pkRingoffPriorityStationSymbol = {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 7,
+            strokeOpacity: 1,
+            strokeWeight: 1.5,
+            fillColor: '#3399FF',
+            fillOpacity: 1,
+            strokeColor: '#3399FF'
+        };                  
+
+        var pmtStationSymbol = {
+            path:  'M 50,5 95,97.5 5,97.5 z',
+            scale: .18,
+            strokeOpacity: 1,
+            strokeWeight: 1.5,
+            fillColor: '#7FFF00',
+            fillOpacity: 1,
+            strokeColor: '#000000',
+            anchor: new google.maps.Point(50, 50)
+            // path: google.maps.SymbolPath.CIRCLE,
+            // scale: 7,
+            // strokeOpacity: 1,
+            // strokeWeight: 1.5,
+            // fillColor: '#7FFF00',
+            // fillOpacity: 1,
+            // strokeColor: '#000000'                       
+        };
+
+        var primaryStationSymbol = {
+            path:  'M10 10 H 90 V 90 H 10 L 10 10',
+            scale: .21,
+            strokeOpacity: 1,
+            strokeWeight: 1.5,
+            fillColor: '#3399FF',
+            fillOpacity: 1,
+            strokeColor: '#000000',
+            anchor: new google.maps.Point(50, 50),
+            // scaledSize : new google.maps.Size(16, 16)             
+        };        
+
+        function codeAddress(address) {
+            geocoder.geocode( {'address': address}, function(results, status) {
+                if (status == google.maps.GeocoderStatus.OK) {
+                    map.setCenter(results[0].geometry.location);
+                    map.setTilt(0);
+                    map.setZoom(12);
+                } else {
+                    alert('Geocode was not successful for the following reason: ' + status);
+                }
+            });
+        };
+
+        function initialize() {
+            if (navigator.geolocation) {
+                // navigator.geolocation.getCurrentPosition(success, failure);
+                wpid = navigator.geolocation.watchPosition(success, failure, { enableHighAccuracy: true, maximumAge: 30000, timeout: 27000 });                
+                console.log("In Geolocation");
+            } else {
+                console.log('Geo Location is not supported');
+            }
+
+            function success(position){
+                console.log("Navigator geolocation success!\n\nlat = " + position.coords.latitude + "\nlng = " + position.coords.longitude);
+                coords = new google.maps.LatLng(position.coords.latitude, position.coords.longitude); 
+                // console.log("In Success" + position);
+                // console.log(position.coords.latitude, position.coords.longitude);
+                user_pos.push(coords);
+                // console.log("user_pos" , user_pos);
+                // load();
+                // drawUserLocation(); 
+                $.ajax({
+                    type: 'POST',
+                    url: "{{ url_for('ems.post_user_gis') }}",
+                    data: JSON.stringify({'latitude': position.coords.latitude, 'longitude': position.coords.longitude}, null, '\t'),
+                    contentType: 'application/json;charset=UTF-8',
+                    complete: getAllUserLocation()
+                });
+                // getAllUserLocation();
+                // getAlarmFeeder();
+            }
+
+            function failure(){
+                tryAPIGeolocation();
+                coords = new google.maps.LatLng(20,78);
+                codeAddress('DUBAI');
+                console.log("In Failure");
+                // load();
+                // drawUserLocation();
+                // getAllUserLocation();
+                // getAlarmFeeder();            
+            }
+        }
+
+        var apiGeolocationSuccess = function(position) {
+            console.log("API geolocation success!\n\nlat = " + position.coords.latitude + "\nlng = " + position.coords.longitude);
+            coords = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+            user_pos.push(coords);
+            $.ajax({
+                type: 'POST',
+                url: "{{ url_for('ems.post_user_gis') }}",
+                data: JSON.stringify({'latitude': position.coords.latitude, 'longitude': position.coords.longitude}, null, '\t'),
+                contentType: 'application/json;charset=UTF-8',
+                complete: getAllUserLocation()
+            });               
+        };
+
+        var tryAPIGeolocation = function() {
+            jQuery.post( "https://www.googleapis.com/geolocation/v1/geolocate?key=AIzaSyDwVA8ANu6c-Zw3KLTbZQH1B9d1r-FrGQw", function(success) {
+                apiGeolocationSuccess({coords: {latitude: success.location.lat, longitude: success.location.lng}});
+            })
+            .fail(function(err) {
+                console.log("API Geolocation error! \n\n"+err);
+            });
+        };
+
+        var mapSetStyle = function() {
+            unsetMapLabel();
+            unsetPolyLineCircle();
+            map.data.setStyle(function(feature) {
+                var color = 'gray';
+                var zindex;
+                if (feature.getProperty('color')) {
+                    color = feature.getProperty('color');
+                }
+                if (feature.getProperty('ringoff')) {
+                    // size = 24;
+                    // point = 12;
+                    size = 16;
+                    point = 8;                    
+                } else {
+                    size = 16;
+                    point = 8;
+                }
+                // console.log('icon', feature.getProperty('icon'), feature.getGeometry().getType(), feature.getProperty('visible'), feature.getProperty('ringoff'));
+                var icon = feature.getProperty('icon');
+                // if (icon) {
+                //     icon['anchor'] =  new google.maps.Point(point, point);    
+                //     icon['scaledSize'] =  new google.maps.Size(size, size);   
+                // }
+                if (feature.getGeometry().getType() === 'Point'
+                    && feature.getProperty('visible')) {
+                    zindex = 100;
+                    feature.getGeometry().forEachLatLng(function(LatLng){
+                        var label = new MapLabel({
+                            text: feature.getProperty('code'),
+                            position: point_offset_in_pixels(LatLng, -5, 0),
+                            map: map,
+                            fontSize: 11,
+                            strokeWeight: 2,    
+                            align: 'left'
+                        });                                
+                        // mapLabel.set('position', LatLng);
+                        mapLabel.push(label);   
+                    });
+                } else if (feature.getGeometry().getType() === "LineString" 
+                        && feature.getProperty('ringoff') 
+                        && feature.getProperty('normally_open_ind') === 0
+                        && feature.getProperty('visible')) {
+                    // console.log('inside poline no 0', feature.getGeometry().getArray().reverse());
+                    var polyline = new google.maps.Polyline({
+                        map: map,
+                        path: feature.getGeometry().getArray().reverse(),
+                        strokeWeight: 0,
+                        strokeOpacity: 0,
+                        // strokeColor: 'red',
+                        icons: [{
+                            icon: ringoffActiveSymbol,
+                            offset: '9px'
+                        }],
+                        zindex: -1
+                        // visible: visibleFlag
+                    });
+                    mapPolyLine.push(polyline);
+                } else if (feature.getGeometry().getType() === "LineString" 
+                        && feature.getProperty('ringoff')
+                        && feature.getProperty('normally_open_ind') === 1
+                        && feature.getProperty('visible')) {
+                    // console.log('inside poline no 1', feature.getGeometry().getArray().reverse());
+                    var polyline = new google.maps.Polyline({
+                        map: map,
+                        path: feature.getGeometry().getArray().reverse(),
+                        strokeWeight: 0,
+                        strokeOpacity: 0,
+                        // strokeColor: 'red',
+                        icons: [{
+                            icon: ringoffInactiveSymbol,
+                            offset: '9px'
+                        }],
+                        zindex: -1
+                        // visible: visibleFlag
+                    });
+                    mapPolyLine.push(polyline);
+                } else {
+                    zindex = 1;
+                }
+                // var marker = new google.maps.Marker({
+                //     position:{
+                //         lat: feature.latLng.lat(),
+                //         lng: feature.latLng.lng()
+                //     },
+                //    draggable: false,
+                //    map: map
+                // });                
+                // var label = new Label({
+                //    map: map
+                // });
+                // label.bindTo('position', marker, 'position');
+                // label.bindTo('text', marker, 'position');                             
+                return /** @type {google.maps.Data.StyleOptions} */({
+                    // icon: {
+                    //     url: feature.getProperty('icon'),
+                    //     anchor: new google.maps.Point(point, point),
+                    //     scaledSize : new google.maps.Size(size, size)
+                    // },
+                    icon: icon,                
+                    fillColor: color,
+                    strokeColor: color,
+                    strokeWeight: 2,
+                    visible: feature.getProperty('visible'),
+                    // shape: {coords: [0,0,2], type: 'circle'},
+                    title: feature.getProperty('code'),
+                    zIndex: zindex
+                });
+            });            
+        }                  
+
+        function load() {
+            var myOptions = {
+                zoom: 12,
+                // center: new google.maps.LatLng(20,78),
+                center: coords,
+                mapTypeId: google.maps.MapTypeId.ROADMAP,
+                styles: myStyles,
+                clickableIcons: false
+            };
+
+            map = new google.maps.Map(document.getElementById('map-canvas'), myOptions);
+            // oms = new OverlappingMarkerSpiderfier(map, {markersWontMove: true, markersWontHide: true, nearbyDistance: 10});         
+            codeAddress('DUBAI');
+            // google.maps.event.addListener(map, 'idle', checkIfDataRequested);
+            checkIfDataRequested();            
+
+            mapSetStyle();
+
+            map.addListener('zoom_changed', function() {
+                map.data.revertStyle();
+                mapSetStyle();
+                getAllUserLocation();
+            });
+            getAlarmFeeder();
+            // map.data.addListener('mouseover', function(event) {
+            //     map.data.revertStyle();
+            //     map.data.overrideStyle(event.feature, {strokeColor: "black", strokeWeight: 4});
+            // });
+
+            // map.data.addListener('mouseout', function(event) {
+            //     map.data.revertStyle();
+            // });
+
+            // map.data.addListener('addfeature', function(e) {
+            //     // polyline.setMap(null);
+            //     if (e.feature.getGeometry().getType() == "LineString" && e.feature.getProperty('ringoff') && e.feature.getProperty('normally_open') === 0) {
+            //         // console.log('feature', e.feature.getProperty('ringoff'), e.feature.getProperty('normally_open'), e.feature.getGeometry().getArray(), e.feature.getProperty('type'), 'Closed');
+            //         polyline = new google.maps.Polyline({
+            //             map: map,
+            //             path: e.feature.getGeometry().getArray().reverse(),
+            //             // strokeWeight: 0.1,
+            //             strokeOpacity: 0,
+            //             // strokeColor: 'red',
+            //             icons: [{
+            //                 icon: ringoffActiveSymbol,
+            //                 offset: '9px'
+            //             }]
+            //         });
+            //     } else if (e.feature.getGeometry().getType() == "LineString" && e.feature.getProperty('ringoff') && e.feature.getProperty('normally_open') === 1) {
+            //         // console.log('feature', e.feature.getProperty('ringoff'), e.feature.getProperty('normally_open'), e.feature.getGeometry().getArray(), e.feature.getProperty('type'));                    
+            //         polyline = new google.maps.Polyline({
+            //             map: map,
+            //             path: e.feature.getGeometry().getArray().reverse(),
+            //             // strokeWeight: 0.1,
+            //             strokeOpacity: 0,
+            //             // strokeColor: 'red',
+            //             icons: [{
+            //                 icon: ringoffInactiveSymbol,
+            //                 offset: '9px'
+            //             }]
+            //         });
+            //     };
+            //     // polyline.setMap(map);
+            //     // poly_type_map[e.feature.getProperty('type')].push
+            //     // addPolyLine();
+            // });            
+
+            // var ofs = new OverlappingFeatureSpiderfier(map.data, {markersWontMove: true, markersWontHide: true});
+            // ofs.addListener("click", function(event) {
+            //     infowindow.setContent(
+            //         "<strong>" + event.feature.getProperty("name") + "</strong>"
+            //         + "<br />" + event.feature.getProperty("code")
+            //         // + "<br />" + "Parent:" + event.feature.getProperty("parent")
+            //         // + "<br />" + "Child:" + event.feature.getProperty("child")
+            //         // + "<br />" + event.feature.getProperty("capacity")
+            //     );
+            //     infowindow.setOptions({
+            //         position:{
+            //             lat: event.latLng.lat(),
+            //             lng: event.latLng.lng()
+            //         },
+            //         pixelOffset: {
+            //             width: 0,
+            //             height: -15
+            //         }
+            //     });
+            //     infowindow.open(map);
+            // }); 
+
+            // map.data.addListener("click", function(event) {
+            //     infowindow.setContent(
+            //         "<strong>" + event.feature.getProperty("name") + "</strong>"
+            //         + "<br />" + event.feature.getProperty("code")
+            //         // + "<br />" + "Parent:" + event.feature.getProperty("parent")
+            //         // + "<br />" + "Child:" + event.feature.getProperty("child")
+            //         // + "<br />" + event.feature.getProperty("capacity")
+            //     );
+            //     infowindow.setOptions({
+            //         position:{
+            //             lat: event.latLng.lat(),
+            //             lng: event.latLng.lng()
+            //         },
+            //         pixelOffset: {
+            //             width: 0,
+            //             height: -10
+            //         }
+            //     });
+            //     infowindow.open(map);
+            // });
+
+            map.data.addListener('mouseover', function(event) {
+                map.data.revertStyle();
+                if (event.feature.getGeometry().getType() === 'Point') {
+                    if (event.feature.getProperty("name").substr(0,4) === "Main") {
+                        infowindow.setContent(
+                            "<strong>" + event.feature.getProperty("name") + "</strong>"
+                            + "<br />" + event.feature.getProperty("code")
+                            // + "<br />" + "Parent:" + event.feature.getProperty("parent")
+                            // + "<br />" + "Child:" + event.feature.getProperty("child")
+                            // + "<br />" + event.feature.getProperty("capacity")
+                        );                        
+                    } else {
+                        var priority = event.feature.getProperty("priority") || 'None';
+                        var accessibility = event.feature.getProperty("accessibility") || 'None';
+                        infowindow.setContent(
+                            "<strong>" + event.feature.getProperty("name") + "</strong>"
+                            + "<br />" + event.feature.getProperty("code")
+                            // + "<br />" + "Parent:" + event.feature.getProperty("parent")
+                            // + "<br />" + "Child:" + event.feature.getProperty("child")
+                            // + "<br />" + event.feature.getProperty("capacity")
+                            + "<br />" + "Priority: " + priority 
+                            + "<br />" + "Number of Customers: " + event.feature.getProperty("noc")
+                            + "<br />" + "Accessibility: " + accessibility
+                        );
+                    }
+                    infowindow.setOptions({
+                        position:{
+                            lat: event.latLng.lat(),
+                            lng: event.latLng.lng()
+                        },
+                        pixelOffset: {
+                            width: 0,
+                            height: -7
+                        }
+                    });
+                    infowindow.open(map);                    
+                } 
+                if (event.feature.getGeometry().getType() === 'LineString') {
+                    // if (infowindow.getMap()) {
+                    //     infowindow.setContent(null);
+                    //     infowindow.close();                    
+                    // }                     
+                    map.data.overrideStyle(event.feature, {strokeColor: "black", strokeWeight: 4});
+                    // try {
+                    //     if (infowindow.getMap()) {
+                    //         infowindow.setContent(null);
+                    //         infowindow.close();                    
+                    //     }
+                    // }
+                    // catch(err) {
+                    //     console.log(err);
+                    // }
+                }
+            });
+
+            map.data.addListener('mouseout', function() {
+                if (infowindow.getMap()) {
+                    infowindow.setContent(null);
+                    infowindow.close();                    
+                }                
+                map.data.revertStyle();
+                // console.log('infowindow close', infowindow.getMap());
+                // try {
+                //     if (infowindow.getMap()) {
+                //         infowindow.setContent(null);
+                //         infowindow.close();                    
+                //     }
+                // }
+                // catch(err) {
+                //     console.log(err);
+                // }                
+            });
+
+            directionsDisplay.setMap(map);                                                                        
+        }                        
+
+        // var drawUserLocation = function() {
+        //     for (var i=0; i < user_pos.length; i++) {
+        //         console.log('user_pos[i]:', user_pos[i]);
+        //         // Add the circle for this city to the map.
+        //         var cityCircle = new google.maps.Circle({
+        //             strokeColor: '#FF0000',
+        //             strokeOpacity: 0.8,
+        //             strokeWeight: 2,
+        //             fillColor: '#FF0000',
+        //             fillOpacity: .75,
+        //             map: map,
+        //             center: user_pos[i],
+        //             radius: 100
+        //         });
+        //     };
+        // };
+
+        var getAllUserLocation = function() {
+            // all_user_pos = [];
+            $.getJSON("{{ url_for('ems.get_user_gis') }}", function(data){
+                console.log('gis data', data);
+                for (var j=0, lenj = user_marker.length; j < lenj; j++) {
+                    user_marker[j].setMap(null);
+                    // user_marker.splice(j, 1);
+                }
+
+                for (var k=0, lenk = crewLabel.length; k < lenk; k++) {
+                    crewLabel[k].setMap(null);
+                    // crewLabel.splice(k, 1);
+                }                
+
+                for (var i = 0, leni = data.length; i < leni; i++) {
+                    // var infowindow = new google.maps.InfoWindow({
+                    //     content: data[i].username
+                    // });                    
+                    var marker = new google.maps.Marker({
+                        position: {lat: data[i].latitude, lng: data[i].longitude},
+                        // icon: {
+                        //     path: google.maps.SymbolPath.CIRCLE,
+                        //     scale: 5,
+                        //     fillColor: '#FF0000',
+                        //     fillOpacity: .75,                            
+                        // },
+                        icon: {
+                            url: "{{ url_for('static', filename='images/substation/vehicle-maintenance.png') }}",
+                            anchor: new google.maps.Point(2, 2),
+                            scaledSize : new google.maps.Size(35, 35),
+                            opacity: 1
+                        },
+                        map: map,
+                        title: data[i].username,
+                        html: data[i].username
+                    });
+                    user_marker.push(marker);
+                    var LatLng = new google.maps.LatLng(data[i].latitude, data[i].longitude);
+                    var label = new MapLabel({
+                        text: data[i].username,
+                        position: point_offset_in_pixels(LatLng, 0, 29),
+                        map: map,
+                        fontSize: 12,
+                        strokeWeight: 4,    
+                        align: 'center'
+                    });                                
+                    // mapLabel.set('position', LatLng);
+                    crewLabel.push(label);                       
+
+                    (function (marker, data) {
+                        google.maps.event.addListener(marker, "click", function (e) {
+                            var text, distance, duration;
+                            function calculateAndDisplayRoute(request) {
+                                directionsService.route(request, function(response, status) {
+                                    if (status == google.maps.DirectionsStatus.OK) {
+                                        console.log('response: ' ,response);
+                                        console.log('distance: ', response.routes[0].legs[0].distance.text);
+                                        console.log('time: ', response.routes[0].legs[0].duration.text);
+                                        // if (text) {
+                                        //     text = text + alarmobj[j].substation_code + ": <br>" + response.routes[0].legs[0].distance.text  + " " + response.routes[0].legs[0].duration.text + "<br>";
+                                        // } else {
+                                        //     text = alarmobj[j].substation_code + ": <br>" + response.routes[0].legs[0].distance.text  + " " + response.routes[0].legs[0].duration.text + "<br>";
+                                        // }
+                                        directionsDisplay.setDirections(response);
+                                        document.getElementById('duration').innerHTML = response.routes[0].legs[0].distance.text + " " + response.routes[0].legs[0].duration.text;
+
+                                        // distance = response.routes[0].legs[0].distance.text;
+                                        // duration = response.routes[0].legs[0].duration.text;
+                                        
+                                    }
+                                });
+                            }                             
+                            // console.log("alarmobj: ", alarmobj, alarmobj.length, data);                           
+                            for (var j = 0, lenj = alarmobj.length; j < lenj; j++) {
+                                var request = {
+                                    origin: {lat: data.latitude, lng: data.longitude},
+                                    destination: {lat: alarmobj[j].latitude, lng: alarmobj[j].longitude},
+                                    travelMode: google.maps.DirectionsTravelMode.DRIVING
+                                // Returns multiple routes
+                                // provideRouteAlternatives: true
+                                };
+
+                                var test = calculateAndDisplayRoute(request);
+                                (function() {
+                                    if (text) {
+                                        text = text + alarmobj[j].substation_code + ": <br>" + distance  + " " + duration + "<br>";
+                                    } else {
+                                        text = alarmobj[j].substation_code + ": <br>" + distance  + " " + duration + "<br>";
+                                    };                                     
+                                })();
+                                // console.log("j: ", j, test); 
+                            }                            
+                            //Wrap the content inside an HTML DIV in order to set height and width of InfoWindow.
+                            infowindow.setContent("<b>DEWA Crew Management System</b><br>Name: "+ data.username +  "<br>Employee: FRP 1234<br>Mobile: +971 52 701 5520<br><img src='/static/images/substation/biswadip.png' alt='image in infowindow' style='width:49px;height:61px;'>");
+                            // infowindow.setContent(data.username);
+                            infowindow.open(map, marker);
+                        });
+                    })(marker, data[i]);                                         
+                };
+            });
+            // setTimeout(function(){ getAllUserLocation() }, 3000);
+        };
+
+        var checkIfDataRequested = function() {
+            // Stop extra requests being sent
+            while (gettingData === true) {
+                request.abort();
+                gettingData = false;
+            }
+            // getCoords();
+            getSubstation();
+        };
+
+        var getSubstation = function() {
+            gettingData = true;
+            requestString = "{{ url_for('ems.get_substation') }}";
+            // requestString = "get_substation/" + "D";
+            request = new XMLHttpRequest();
+            request.onload = proccessResults;
+            request.open("get", requestString, true);
+            request.send();
+        };
+        // Take the JSON results and proccess them
+        var proccessResults = function() {
+            // console.log('This:', this);
+            var results = JSON.parse(this.responseText);
+            if (results.length > 0) {
+                // console.log('Results:', results);
+                resetData();
+                for (var i = 0; i < results.length; i++) {
+                    if (results[i].parent_flag === 1){
+                        addPts(jsonToGeoJsonParPt(results[i]));
+                        addPts(jsonToGeoJsonCldPt(results[i]));                        
+                    } else {
+                        addPts(jsonToGeoJsonParPt(results[i]));
+                        addPts(jsonToGeoJsonCldPt(results[i]));  
+                    }
+
+                    if (results[i].child_lat != null){
+                        geoJSON.features.push(jsonToGeoJsonLine(results[i]));
+                        // drawRingOffCircle(results[i]);
+                    }
+                }
+                setGeojsonLayer(geoJSON);
+            }
+            console.log('geoJSON', JSON.stringify(geoJSON));
+        };
+
+
+        function addPts(point) {
+            // console.log('point', point);
+            var found = false;
+            for(var i = 0; i < geoJSON.features.length; i++) {
+                if (geoJSON.features[i].properties.name === point.properties.name && geoJSON.features[i].properties.type === point.properties.type) {
+                    found = true;
+                    break;
+                }
+            }
+            // if (geoJSON.features.indexOf(point) === -1) {
+            //     geoJSON.features.push(point);
+            // }
+            if (!found) {
+                geoJSON.features.push(point);
+            }
+            // console.log(geoJSON.features, point);
+        };        
+        // For each result that comes back, convert the data to geoJSON
+        var jsonToGeoJsonParPt = function (rowItem) {
+            var icon;
+            if (rowItem.parent_flag === 1){
+                // icon = "start_substation_" + "green" + ".svg";
+                icon = primaryStationSymbol;
+            } else {
+                // icon = "substation_" + "green" + ".svg";
+                if (rowItem.parent_code.substr(0,2) === 'PK' && rowItem.parent_ringoff_ind !== 1 && !(rowItem.parent_priority) && !(rowItem.parent_ad)){
+                    icon = pkStationSymbol;
+                    // console.log('jsonToGeoJsonCldPt1','PK', rowItem.child_code, rowItem.child_code.substr(0,2));
+                } else if (rowItem.parent_code.substr(0,2) === 'PM' && rowItem.parent_ringoff_ind !== 1){
+                    icon = pmtStationSymbol;
+                    // console.log('jsonToGeoJsonCldPt2','PM', rowItem.child_code, rowItem.child_code.substr(0,2));
+                } else if (rowItem.parent_ringoff_ind === 1 && !(rowItem.parent_priority) && !(rowItem.parent_ad)){
+                    icon = pkRingoffStationSymbol;
+                } else if (rowItem.parent_ringoff_ind === 1 && rowItem.parent_priority && !(rowItem.parent_ad)){
+                    icon = pkRingoffPriorityStationSymbol;
+                } else if (rowItem.parent_ringoff_ind === 1 && !(rowItem.parent_priority) && rowItem.parent_ad){
+                    icon = pkRingoffInAccessibleStationSymbol;
+                } else if (rowItem.parent_priority){
+                    icon = pkPriorityStationSymbol;
+                } else if (rowItem.parent_ad){
+                    icon = pkInAccessibleStationSymbol;
+                }
+            }            
+            var feature = {
+                type: "Feature",
+                geometry: {
+                    type: "Point",
+                    coordinates: [rowItem.par_long, rowItem.par_lat]
+                },
+                properties: {
+                    name: rowItem.parent_name,
+                    code: rowItem.parent_code,
+                    // capacity: rowItem.output_rating,
+                    // parent: rowItem.parent,
+                    // child: rowItem.child,
+                    ringoff: rowItem.parent_ringoff_ind,
+                    normally_open_ind: rowItem.parent_no,
+                    type: rowItem.substation_type_name,                    
+                    // icon: "/static/images/substation/" + icon,
+                    icon: icon,
+                    visible: true,
+                    id: rowItem.parent,
+                    loop_no: rowItem.loop_no,
+                    priority: rowItem.parent_priority,
+                    noc: rowItem.parent_noc,
+                    accessibility: rowItem.parent_ad                    
+                }                
+            };
+            // console.log('jsonToGeoJsonParPt3',rowItem.parent_code, feature);            
+            return feature;
+        };
+
+        var jsonToGeoJsonCldPt = function (rowItem) {
+            var icon;
+            // var icon = "substation_" + "green" + ".svg";
+            // if (rowItem.ringoff_ind === 1){
+            //     // icon = "ringoff_substation_" + "south" + "_energized.svg";  
+            //     icon = "substation_" + "ringoff" + ".svg";              
+            // } else {
+            //     icon = "substation_" + "green" + ".svg";
+            // }
+            if (rowItem.child_code.substr(0,2) === 'PK' && rowItem.child_ringoff_ind !== 1 && !(rowItem.child_priority) && !(rowItem.child_ad)){
+                icon = pkStationSymbol;
+                // console.log('jsonToGeoJsonCldPt1','PK', rowItem.child_code, rowItem.child_code.substr(0,2));
+            } else if (rowItem.child_code.substr(0,2) === 'PM' && rowItem.child_ringoff_ind !== 1){
+                icon = pmtStationSymbol;
+                // console.log('jsonToGeoJsonCldPt2','PM', rowItem.child_code, rowItem.child_code.substr(0,2));
+            } else if (rowItem.child_ringoff_ind === 1 && !(rowItem.child_priority) && !(rowItem.child_ad)){
+                icon = pkRingoffStationSymbol;
+            } else if (rowItem.child_ringoff_ind === 1 && rowItem.child_priority && !(rowItem.child_ad)){
+                icon = pkRingoffPriorityStationSymbol;
+            } else if (rowItem.child_ringoff_ind === 1 && !(rowItem.child_priority) && rowItem.child_ad){
+                icon = pkRingoffInAccessibleStationSymbol;
+            } else if (rowItem.child_priority){
+                icon = pkPriorityStationSymbol;
+            } else if (rowItem.child_ad){
+                icon = pkInAccessibleStationSymbol;
+            }
+            icon = icon || pkStationSymbol;
+            // console.log('jsonToGeoJsonCldPt', icon);                     
+            var feature = {
+                type: "Feature",
+                geometry: {
+                    type: "Point",
+                    coordinates: [rowItem.child_long, rowItem.child_lat]
+                },
+                properties: {
+                    name: rowItem.child_name,
+                    code: rowItem.child_code,
+                    // capacity: rowItem.output_rating,
+                    // parent: rowItem.parent,
+                    // child: rowItem.child,
+                    ringoff: rowItem.child_ringoff_ind,
+                    normally_open_ind: rowItem.child_no,
+                    type: rowItem.substation_type_name,
+                    // icon: "/static/images/substation/" + icon,
+                    icon: icon,
+                    visible: true,
+                    id: rowItem.child,
+                    loop_no: rowItem.loop_no,
+                    priority: rowItem.child_priority,
+                    noc: rowItem.child_noc,
+                    accessibility: rowItem.child_ad
+                }                
+            };
+            // console.log('jsonToGeoJsonCldPt3',rowItem.child_code, feature);            
+            return feature;
+        };
+
+        var jsonToGeoJsonLine = function (rowItem) {
+            // console.log('connection', rowItem.connection);
+            if (rowItem.connection === null){
+                var feature = {
+                    type: "Feature",
+                    geometry: {
+                        type: "LineString",
+                        coordinates: [[rowItem.par_long, rowItem.par_lat],
+                                      [rowItem.child_long, rowItem.child_lat]]
+                    },
+                    properties: {
+                        color: "red",
+                        type: rowItem.substation_type_name,  
+                        visible: true,
+                        ringoff: rowItem.child_ringoff_ind,
+                        normally_open_ind: rowItem.child_no,
+                        loop_no: rowItem.loop_no,
+                        from: rowItem.parent_code,
+                        to: rowItem.child_code,
+                        from_id: rowItem.parent,
+                        to_id: rowItem.child                          
+                    }                
+                };                
+            } else {
+                // Converting WKT to JSON
+                wkt = new Wkt.Wkt();
+                // Create a geometry object, ready to be mapped!
+                wkt.read(rowItem.connection)
+                var geometry = wkt.toJson(); // Outputs an object
+                var feature = {
+                    type: "Feature",
+                    geometry,
+                    properties: {
+                        color: "red",
+                        type: rowItem.substation_type_name,
+                        visible: true,
+                        ringoff: rowItem.child_ringoff_ind,
+                        normally_open_ind: rowItem.child_no,
+                        loop_no: rowItem.loop_no,
+                        from: rowItem.parent_code,
+                        to: rowItem.child_code,
+                        from_id: rowItem.parent,
+                        to_id: rowItem.child                                     
+                    }                
+                };                                                
+            }
+            // console.log('linefeature', JSON.stringify(feature));                      
+            return feature;
+        };
+
+        var setGeojsonLayer = function (geoJSON) {
+            map.data.addGeoJson(geoJSON);
+            // Set the flag to finished
+            gettingData = false;
+            checkCheckBoxes();
+        };
+
+        // Clear data layer and geoJSON
+        var resetData = function () {
+            geoJSON = {
+                type: "FeatureCollection",
+                features: []
+            };
+            map.data.forEach(function(feature) {
+                map.data.remove(feature);
+            });
+        };
+
+        // var setPolyLine = function(feature, visibleFlag) {
+        //     var temp = {};
+        //     if (feature.getGeometry().getType() == "LineString" && feature.getProperty('ringoff') && feature.getProperty('normally_open') === 0) {
+        //         // if (feature.getProperty('to') === 'PK0005' ||  feature.getProperty('from') === 'PK0005'||  feature.getProperty('to') === 'PK0012' ||  feature.getProperty('to') === 'PK0012') {
+        //         //     console.log('feature open', feature.getProperty('ringoff'), feature.getProperty('normally_open'), feature.getGeometry().getArray(), feature.getProperty('type'), feature.getProperty('from'), feature.getProperty('to'), feature.getProperty('from_id'), feature.getProperty('to_id'));                    
+        //         // }
+        //         polyline = new google.maps.Polyline({
+        //             // map: map,
+        //             path: feature.getGeometry().getArray().reverse(),
+        //             // strokeWeight: 0.1,
+        //             strokeOpacity: 0,
+        //             // strokeColor: 'red',
+        //             icons: [{
+        //                 icon: ringoffActiveSymbol,
+        //                 offset: '9px'
+        //             }],
+        //             visible: visibleFlag
+        //         });
+        //         temp[feature.getProperty('type')] = polyline;                
+        //     } else if (feature.getGeometry().getType() == "LineString" && feature.getProperty('ringoff') && feature.getProperty('normally_open') === 1) {
+        //         // console.log('feature open', feature.getProperty('ringoff'), feature.getProperty('normally_open'), feature.getGeometry().getArray(), feature.getProperty('type'), feature.getProperty('substation_type_name'), feature.getProperty('from'), feature.getProperty('to'), feature.getProperty('from_id'), feature.getProperty('to_id'));                    
+        //         polyline = new google.maps.Polyline({
+        //             // map: map,
+        //             path: feature.getGeometry().getArray().reverse(),
+        //             // strokeWeight: 0.1,
+        //             strokeOpacity: 0,
+        //             // strokeColor: 'red',
+        //             icons: [{
+        //                 icon: ringoffInactiveSymbol,
+        //                 offset: '9px'
+        //             }],
+        //             visible: visibleFlag
+        //         });
+        //         temp[feature.getProperty('type')] = polyline;
+        //     };
+        //     if (polyline) {
+        //         // polyline.setMap(null);
+        //         polyline.setMap(map);
+        //         line.push(temp);
+        //     }           
+        // };
+
+        // Array.prototype.remove = function(from, to) {
+        //     var rest = this.slice((to || from) + 1 || this.length);
+        //     this.length = from < 0 ? this.length + from : from;
+        //     return this.push.apply(this, rest);
+        // };
+
+        // var removePolyLine = function(type) {
+        //     for (var i = 0; i < line.length; i++) {
+        //         // console.log('line',line[i], type, line[i][type]);
+        //         if (line[i]) {
+        //             if (type in line[i]) {
+        //                 // console.log('line', line[i], line[i][type]);
+        //                 line[i][type].setMap(null);
+        //                 // line[i][type].setVisible(false);
+        //                 line.remove(i);
+        //             }
+        //         };
+        //     }
+        // }
+
+        var toggleGroup = function (type, subtype) {
+            // console.log('type', type, line);
+            // for (var i=0; i < line.length; i++) {
+            //     if (line[i]['type'] === type) {
+            //         line[i]['type'].setMap(null);
+            //     }
+            // }
+            for (var i = 0, leni = findMarker.length; i < leni; i++ ) {
+                var keys = Object.keys(findMarker[i])[0];
+                if (keys.substr(0, 2) == type + subtype) {
+                    findMarker[i][keys].setMap(null);
+                    findMarker.splice(i, 1);
+                }
+            }
+            map.data.forEach(function(feature){
+                var featureType = feature.getProperty('type');
+                var featureVisible = feature.getProperty('visible');
+                var loop = feature.getProperty('loop_no');
+                var sub = subtype || -1;
+                // removePolyLine();
+                // setPolyLine(feature, true);
+                // removePolyLine(type);
+                // console.log(featureType, featureVisible, sub , subtype, loop);
+                if (sub > 0) {
+                    if (featureType === type && featureVisible && loop === sub) {
+                        map.data.overrideStyle(feature, {visible: false});
+                        feature.setProperty('visible', false);
+                        // setPolyLine(feature, false);
+                        // setPolyLine(feature);
+                    } else if (featureType === type && loop === sub) {
+                        // console.log('else if');
+                        map.data.overrideStyle(feature, {visible: true});
+                        feature.setProperty('visible', true);
+                        // removePolyLine();
+                        // setPolyLine(feature, true);
+                    }                    
+                } else {
+                    if (featureType === type && featureVisible) {
+                        map.data.overrideStyle(feature, {visible: false});
+                        feature.setProperty('visible', false);
+                        // setPolyLine(feature, false);
+                        // setPolyLine(feature);
+                    } else if (featureType === type) {
+                        // console.log('else if');
+                        map.data.overrideStyle(feature, {visible: true});
+                        feature.setProperty('visible', true);
+                        // removePolyLine();
+                        // setPolyLine(feature, true);
+                    }                      
+                }
+            });
+            mapSetStyle();         
+        };
+
+        function checkCheckBoxes(){
+            // var checkBoxId = ['ScenarioA1', 'ScenarioA2', 'ScenarioB1', 'ScenarioB2', 'ScenarioC1', 'ScenarioC2', 'ScenarioD1', 'ScenarioD2', 'ScenarioD3', 'ScenarioH1', 'ScenarioH2'];
+            var checkBoxId = ['ScenarioA1', 'ScenarioA2', 'ScenarioB1', 'ScenarioB2', 'ScenarioC1', 'ScenarioC2', 'ScenarioD1', 'ScenarioD2', 'ScenarioH1', 'ScenarioH2'];            
+            for (var i = 0; i < checkBoxId.length; i++) {
+                if (document.getElementById(checkBoxId[i]) !== null) {
+                    if (! document.getElementById(checkBoxId[i]).checked) {
+                        if (typeof document.getElementById(checkBoxId[i]).onclick == "function") {
+                            // console.log('ifElse');
+                            document.getElementById(checkBoxId[i]).onclick.apply();
+                        }
+                    }
+                };
+            }
+        };
+
+        function processPoints(geometry, callback, thisArg) {
+            if (geometry instanceof google.maps.LatLng) {
+                callback.call(thisArg, geometry);
+            } else if (geometry instanceof google.maps.Data.Point) {
+                callback.call(thisArg, geometry.get());
+            } else {
+                geometry.getArray().forEach(function(g) {
+                    processPoints(g, callback, thisArg);
+                });
+            }
+        };
+
+        function toggleTraffic() {
+            if (document.getElementById('Traffic').checked) {
+                addTrafficLayer();
+            } else {
+                removeTrafficLayer();
+            }
+
+        }
+
+        function addTrafficLayer() {
+            trafficLayer.setMap(map);
+            // calculateAndDisplayRoute(directionsService, directionsDisplay);
+            // raiseAlertFeeder([{"A": "PK0014"}]);
+            // filterFeeder([{"A": "PK0014"}]);
+        }
+
+        function removeTrafficLayer() {
+            trafficLayer.setMap(null);
+        }
+
+        // function calculateAndDisplayRoute(directionsService, directionsDisplay) {
+        //     directionsService.route({
+        //         origin: {lat: 25.21706210, lng: 55.28344850},
+        //         destination: {lat: 25.15241001, lng: 55.20258003},
+        //         travelMode: 'DRIVING'},
+        //         function(response, status) {
+        //             if (status === 'OK') {
+        //                 directionsDisplay.setDirections(response);
+        //             } else {
+        //                 console.log('Directions request failed due to ' + status);
+        //             }
+        //     });
+        // }
+   
+        function raiseAlertFeeder(jsonScenarioFeedername) {
+            // map.data.forEach(function(feature) {
+            //     for (var i = 0; i < jsonScenarioFeedername.length; i++){
+            //         var obj = jsonScenarioFeedername[i];
+            //         for (var key in obj){
+            //             var  scenario = key;
+            //             var feedername = obj[key];
+                        
+            //             if (feature.getProperty('type') === scenario && feature.getProperty('visible') && feature.getProperty('code') === feedername) {
+            //                 var id = feature.getProperty('id');
+            //                 $.ajax({
+            //                     type: 'POST',
+            //                     url: "{{ url_for('ems.frp_create_alarm') }}",
+            //                     data: JSON.stringify({'id': id}, null, '\t'),
+            //                     contentType: 'application/json;charset=UTF-8'
+            //                 });                         
+            //             }
+            //         }
+            //     }                
+            // });
+            // console.log('jsonScenarioFeedername', jsonScenarioFeedername);
+            map.data.forEach(function(feature) {
+                for (var i = 0; i < jsonScenarioFeedername.length; i++){
+                    var obj = jsonScenarioFeedername[i];
+                    for (var key in obj){
+                        var  scenario = key;
+                        var feedername = obj[key];
+                        // console.log(scenario, feedername);
+                        if (scenario === 'FEEDER' 
+                            && feature.getProperty('code') === feedername 
+                            // && !(feature.getProperty('alarm_id')
+                                ) {
+                            var id = feature.getProperty('id');
+                            console.log(scenario, feedername, id);
+                            $.ajax({
+                                type: 'POST',
+                                url: "{{ url_for('ems.frp_create_alarm') }}",
+                                data: JSON.stringify({'id': id, 'scenario': 'FEEDER'}, null, '\t'),
+                                contentType: 'application/json;charset=UTF-8'
+                            });                         
+                        } else if (scenario === 'SUBSTATION'
+                                   && feature.getProperty('code') === feedername
+                                   && !(feature.getProperty('alarm_id'))) {
+                            var id = feature.getProperty('id');
+                            $.ajax({
+                                type: 'POST',
+                                url: "{{ url_for('ems.frp_create_alarm') }}",
+                                data: JSON.stringify({'id': id, 'scenario': 'SUBSTATION'}, null, '\t'),
+                                contentType: 'application/json;charset=UTF-8'
+                            });                             
+                        }
+                    }
+                }                
+            });            
+            getAlarmFeederJob.pause();
+            getAlarmFeederJob.start();
+        };
+
+        function getAlarmFeeder() {
+            // var icon = "substation_" + "red" + ".svg";
+            $.getJSON("{{ url_for('ems.frp_get_alarm') }}", function(data){
+                console.log('frp_get_alarm data', data, data.length, alarm_marker);
+                for (var j=0, lenj = alarm_marker.length; j < lenj; j++) {
+                    alarm_marker[j].alarm_id.setMap(null);
+                    // alarm_marker.splice(j, 1);
+                };                
+                alarmobj = data;
+                selobj = {};
+                map.data.forEach(function(feature) {
+                    for (var i = 0; i < data.length; i++){
+                        // console.log('data feature');
+                        var obj = data[i];
+                        // for (var key in obj){
+                        var  substation_code = obj['substation_code'];
+                        var substation_master_fk = obj['substation_master_fk'];
+                        var alarm_id = obj['fast_restoration_plan_alarm_pk']
+                        // if (feature.getProperty('visible') && feature.getProperty('code') === substation_code && feature.getProperty('id') === substation_master_fk && feature.getProperty('alarm_id') !== alarm_id) {
+                        if (feature.getProperty('visible') && feature.getProperty('code') === substation_code && feature.getProperty('id') === substation_master_fk) {
+                            var name = feature.getProperty('name');
+                            feature.getGeometry().forEachLatLng( function(LatLng){
+                                // console.log('geometry');
+                                var marker = new google.maps.Marker({
+                                    position: LatLng,
+                                    animation: google.maps.Animation.BOUNCE,
+                                    icon: {
+                                        path: google.maps.SymbolPath.CIRCLE,
+                                        scale: 5,
+                                        fillColor: '#FF0000',
+                                        fillOpacity: .75,
+                                        strokeColor: '#FF0000',
+                                        zIndex: 0                   
+                                    },
+                                    map: map
+                                });
+                                alarm_marker.push({alarm_id: marker});
+                                // (function (marker, data) {
+                                //     google.maps.event.addListener(marker, "click", function (e) {
+                                //         //Wrap the content inside an HTML DIV in order to set height and width of InfoWindow.
+                                //         alarminfowindow.setContent(data[0] + "<br>" + data[1]);
+                                //         alarminfowindow.open(map, marker);
+                                //     });
+                                // })(marker, [name, substation_code]);
+                                (function (marker, feature) {
+                                    google.maps.event.addListener(marker, "click", function (e) {
+                                        //Wrap the content inside an HTML DIV in order to set height and width of InfoWindow.
+                                        alarminfowindow.setContent(data[0] + "<br>" + data[1]);
+                                        alarminfowindow.open(map, marker);
+                                        if (feature.getGeometry().getType() === 'Point') {
+                                            if (feature.getProperty("name").substr(0,4) === "Main") {
+                                                infowindow.setContent(
+                                                    "<strong>" + feature.getProperty("name") + "</strong>"
+                                                    + "<br />" + feature.getProperty("code")
+                                                    // + "<br />" + "Parent:" + event.feature.getProperty("parent")
+                                                    // + "<br />" + "Child:" + event.feature.getProperty("child")
+                                                    // + "<br />" + event.feature.getProperty("capacity")
+                                                );                        
+                                            } else {
+                                                var priority = feature.getProperty("priority") || 'None';
+                                                var accessibility = feature.getProperty("accessibility") || 'None';
+                                                infowindow.setContent(
+                                                    "<strong>" + feature.getProperty("name") + "</strong>"
+                                                    + "<br />" + feature.getProperty("code")
+                                                    // + "<br />" + "Parent:" + event.feature.getProperty("parent")
+                                                    // + "<br />" + "Child:" + event.feature.getProperty("child")
+                                                    // + "<br />" + event.feature.getProperty("capacity")
+                                                    + "<br />" + "Priority: " + priority 
+                                                    + "<br />" + "Number of Customers: " + feature.getProperty("noc")
+                                                    + "<br />" + "Accessibility: " + accessibility
+                                                );
+                                            }                  
+                                        }                                         
+                                    });
+                                })(marker, feature);                                 
+                            });
+                            // feature.setProperty('icon', "/static/images/substation/" + icon);
+                            feature.setProperty('alarm_id', alarm_id);                            
+                        } else if (feature.getProperty('visible') && feature.getProperty('code') !== substation_code && feature.getProperty('id') !== substation_master_fk && feature.getProperty('alarm_id')) {
+                            // console.log('check for close alarm', feature.getProperty('alarm_id'));
+                            feature.removeProperty('alarm_id');
+                        } else if (!(feature.getProperty('visible')) 
+                                    && feature.getProperty('code') === substation_code 
+                                    && feature.getProperty('id') === substation_master_fk) {
+                            var checkBoxId = "Scenario"+ feature.getProperty('type') + feature.getProperty('loop_no');
+                            // console.log('checkBoxId',checkBoxId);
+                            document.getElementById(checkBoxId).checked = true;
+                            toggleGroup(feature.getProperty('type'), feature.getProperty('loop_no'));
+                            var name = feature.getProperty('name');
+                            feature.getGeometry().forEachLatLng( function(LatLng){
+                                // console.log('geometry');
+                                var marker = new google.maps.Marker({
+                                    position: LatLng,
+                                    animation: google.maps.Animation.BOUNCE,
+                                    icon: {
+                                        path: google.maps.SymbolPath.CIRCLE,
+                                        scale: 5,
+                                        fillColor: '#FF0000',
+                                        fillOpacity: .75,
+                                        strokeColor: '#FF0000',
+                                        zIndex: 0                   
+                                    },
+                                    map: map
+                                });
+                                alarm_marker.push({alarm_id: marker});
+                                // (function (marker, data) {
+                                //     google.maps.event.addListener(marker, "click", function (e) {
+                                //         //Wrap the content inside an HTML DIV in order to set height and width of InfoWindow.
+                                //         alarminfowindow.setContent(data[0] + "<br>" + data[1]);
+                                //         alarminfowindow.open(map, marker);
+                                //     });
+                                // })(marker, [name, substation_code]);
+                                (function (marker, feature) {
+                                    google.maps.event.addListener(marker, "click", function (e) {
+                                        //Wrap the content inside an HTML DIV in order to set height and width of InfoWindow.
+                                        alarminfowindow.setContent(data[0] + "<br>" + data[1]);
+                                        alarminfowindow.open(map, marker);
+                                        if (feature.getGeometry().getType() === 'Point') {
+                                            if (feature.getProperty("name").substr(0,4) === "Main") {
+                                                infowindow.setContent(
+                                                    "<strong>" + feature.getProperty("name") + "</strong>"
+                                                    + "<br />" + feature.getProperty("code")
+                                                    // + "<br />" + "Parent:" + event.feature.getProperty("parent")
+                                                    // + "<br />" + "Child:" + event.feature.getProperty("child")
+                                                    // + "<br />" + event.feature.getProperty("capacity")
+                                                );                        
+                                            } else {
+                                                var priority = feature.getProperty("priority") || 'None';
+                                                var accessibility = feature.getProperty("accessibility") || 'None';
+                                                infowindow.setContent(
+                                                    "<strong>" + feature.getProperty("name") + "</strong>"
+                                                    + "<br />" + feature.getProperty("code")
+                                                    // + "<br />" + "Parent:" + event.feature.getProperty("parent")
+                                                    // + "<br />" + "Child:" + event.feature.getProperty("child")
+                                                    // + "<br />" + event.feature.getProperty("capacity")
+                                                    + "<br />" + "Priority: " + priority 
+                                                    + "<br />" + "Number of Customers: " + feature.getProperty("noc")
+                                                    + "<br />" + "Accessibility: " + accessibility
+                                                );
+                                            }                  
+                                        }                                         
+                                    });
+                                })(marker, feature);                                 
+                            });
+                            // feature.setProperty('icon', "/static/images/substation/" + icon);
+                            feature.setProperty('alarm_id', alarm_id);                             
+                        }
+                        // }
+                        if (feature.getProperty('type') && ! feature.getProperty('alarm_id') && feature.getGeometry().getType() === 'Point') {
+                            if (! selobj[feature.getProperty('type')]) {
+                                selobj[feature.getProperty('type')] = [feature.getProperty('code')];
+                            } else {
+                                selobj[feature.getProperty('type')].push(feature.getProperty('code'));
+                            }
+                        }
+                        if (feature.getProperty('type') && feature.getProperty('alarm_id') && feature.getGeometry().getType() === 'Point') {
+                            var temp = {};
+                            temp['category'] = feature.getProperty('type');
+                            temp['code'] = feature.getProperty('code');
+                            temp['alarm_id'] = feature.getProperty('alarm_id');
+                        }
+                                                                                                                          
+                    }
+                    // if (feature.getProperty('icon') === "/static/images/substation/" + icon){
+                    //     feature.setProperty('icon', "/static/images/substation/" +  "substation_" + "green" + ".svg");
+                    // }               
+                });                
+            });
+            // setTimeout(function(){ getAlarmFeeder(); }, 10000);
+        };
+
+        // function filterFeeder(jsonScenarioFeedername) {
+        //     var icon = "substation_" + "red" + ".svg";
+        //     map.data.forEach(function(feature) {
+        //         for (var i = 0; i < jsonScenarioFeedername.length; i++){
+        //             var obj = jsonScenarioFeedername[i];
+        //             for (var key in obj){
+        //                 var  scenario = key;
+        //                 var feedername = obj[key];
+        //                 if (feature.getProperty('type') === scenario && feature.getProperty('visible') && feature.getProperty('code') === feedername) {
+        //                     feature.getGeometry().forEachLatLng( function(LatLng){
+        //                         // map.setCenter(LatLng);
+        //                         // // map.setZoom(showMaxZoom({"LatLng": LatLng})); 
+        //                         // map.setZoom(20);
+        //                         var marker = new google.maps.Marker({                                                     
+        //                             position: LatLng,
+        //                             label: 'F',
+        //                             animation: google.maps.Animation.BOUNCE,
+        //                             map: map
+        //                         });
+        //                         // Commented out to stop the Marker from Disappearing
+        //                         // setTimeout(function () {
+        //                         //     marker.setAnimation(null);
+        //                         //     marker.setMap(null);
+        //                         // }, 1000);                                                                 
+        //                     });                                                 
+        //                 }
+        //             }
+        //         }                
+        //     });
+        // }
+
+        function filterFeeder2(Feedername) {
+            // var icon = "substation_" + "red" + ".svg";
+            if ($.inArray(Feedername, find) === -1) {
+                find.push(Feedername);
+                map.data.forEach(function(feature) {
+                    if (feature.getProperty('visible') && feature.getProperty('code') === Feedername) {
+                        feature.getGeometry().forEachLatLng( function(LatLng){
+                            // map.setCenter(LatLng);
+                            // // map.setZoom(showMaxZoom({"LatLng": LatLng})); 
+                            // map.setZoom(20);
+                            var marker = new google.maps.Marker({
+                                position: LatLng,
+                                label: feature.getProperty('code'),
+                                animation: google.maps.Animation.BOUNCE,
+                                map: map
+                            });
+                            bounds.extend(LatLng);
+                            map.fitBounds(bounds);
+                            map.panToBounds(bounds);
+                            // Commented out to stop the Marker from Disappearing
+                            // setTimeout(function () {
+                            //     marker.setAnimation(null);
+                            //     marker.setMap(null);
+                            // }, 1000);
+                            var key = feature.getProperty('type') + feature.getProperty('loop_no') + feature.getProperty('code');
+                            if (!(markerObj[key])){
+                                markerObj[key] =  marker;
+                                findMarker.push(markerObj);  
+                            }                                                                
+                        });                                                 
+                    } else if (!(feature.getProperty('visible')) && feature.getProperty('code') === Feedername) {
+                        var checkBoxId = "Scenario"+ feature.getProperty('type') + feature.getProperty('loop_no');
+                        // console.log('checkBoxId',checkBoxId);
+                        document.getElementById(checkBoxId).checked = true;
+                        toggleGroup(feature.getProperty('type'), feature.getProperty('loop_no'));
+                        feature.getGeometry().forEachLatLng( function(LatLng){
+                            var marker = new google.maps.Marker({
+                                position: LatLng,
+                                label: feature.getProperty('code'),
+                                animation: google.maps.Animation.BOUNCE,
+                                map: map
+                            });
+                            bounds.extend(LatLng);
+                            map.fitBounds(bounds);
+                            map.panToBounds(bounds);                            
+                            var key = feature.getProperty('type') + feature.getProperty('loop_no') + feature.getProperty('code');
+                            if (!(markerObj[key])){
+                                markerObj[key] =  marker;
+                                findMarker.push(markerObj);  
+                            }                                                                   
+                        }); 
+                    }
+                });
+            } 
+        }
+      
+        function showMaxZoom(e) {
+            maxZoomService.getMaxZoomAtLatLng(e.latLng, function(response) {
+                if (response.status !== 'OK') {
+                    console.log('Error in MaxZoomService');
+                    return 18;
+                } else {
+                    console.log('The maximum zoom at this location is: ' + response.zoom);
+                    return response.zoom;
+                }
+            });
+        };
+
+        function closeAlarmFeeder(alarmid, alarmtype) {
+            console.log('closeAlarmFeeder', alarmid, alarmtype);
+            $.ajax({
+                type: 'POST',
+                url: "{{ url_for('ems.frp_close_alarm') }}",
+                data: JSON.stringify({'alarm_id': alarmid, 'alarm_type': alarmtype}, null, '\t'),
+                contentType: 'application/json;charset=UTF-8'
+            });
+            getAlarmFeederJob.pause();
+            getAlarmFeederJob.start();             
+        };
+
+        // function populateAlarmVal() {
+        //     map.data.forEach(function(feature) {
+        //         // console.log('xxx', feature.getProperty('type'),
+        //         //     feature.getProperty('alarm_id'),
+        //         //     feature.getGeometry().getType());
+        //         if (feature.getProperty('type') && ! feature.getProperty('alarm_id') && feature.getGeometry().getType() === 'Point') {
+        //             if (! selobj[feature.getProperty('type')]) {
+        //                 selobj[feature.getProperty('type')] = [feature.getProperty('code')];
+        //             } else {
+        //                 selobj[feature.getProperty('type')].push(feature.getProperty('code'));
+        //             }
+        //         }
+        //     });
+        //     return selobj;
+        // }
+
+        // function populateFindDropDown() {
+        //     $.getJSON("{{ url_for('ems.frp_get_station') }}", function(data){
+        //         var dropdwnobjval = data;
+        //         console.log('dropdwnobjval',dropdwnobjval);    
+        //         var C = document.getElementById('find-substation-id');
+        //         for (var j =0; j < dropdwnobjval.length; j++) {
+        //             var opt1= document.createElement('option');
+        //             opt1.value = dropdwnobjval[j].substation_type_code + ":" + dropdwnobjval[j].substation_code;
+        //             opt1.text = dropdwnobjval[j].substation_type_code + " " +  dropdwnobjval[j].substation_code;
+        //             C.appendChild(opt1);
+        //         };
+        //     });                 
+        // }
+        function populateFindDropDown() {
+            $.getJSON("{{ url_for('ems.frp_get_station') }}", function(data){
+                var dropdwnobjval = data;
+                // console.log('dropdwnobjval',dropdwnobjval);    
+                var C = document.getElementById('mylist');
+                for (var j =0; j < dropdwnobjval.length; j++) {
+                    var opt1= document.createElement('option');
+                    opt1.value = dropdwnobjval[j].substation_code;
+                    opt1.text = dropdwnobjval[j].substation_code;
+                    C.appendChild(opt1);
+                };
+                function myReplaceFunc(text) {
+                    input.value = text.toUpperCase();
+                }                
+                var input = document.getElementById("find-substation-id");
+                var awesomplete = new Awesomplete(input, {list: "#mylist",
+                    replace: myReplaceFunc
+                });
+                input.addEventListener("keypress", function(event) {
+                    // event.preventDefault();
+                    if (event.keyCode == 13){
+                        event.preventDefault();
+                        awesomplete.close();
+                        console.log('awesomplete', awesomplete.select());
+                        var find = $('#find-substation-id').val();
+                        console.log('e', find);
+                        if (find !== "") {
+                            filterFeeder2(find.toUpperCase());
+                            document.getElementById("find-substation-id").value = "";
+                        }                        
+                        return false;
+                    }
+                });                 
+                window.addEventListener("awesomplete-selectcomplete", function(e){
+                    // User made a selection from dropdown. 
+                    // This is fired after the selection is applied
+                    console.log('e', e);
+                    var find = $('#find-substation-id').val();
+                    console.log('e', find);
+                    if (find !== "") {
+                        filterFeeder2(find);
+                        document.getElementById("find-substation-id").value = "";
+                    }
+                }, false);                        
+            });                                 
+        }        
+
+        google.maps.event.addDomListener(window, 'load', function () {
+            initialize();
+            load();
+            populateFindDropDown();
+            // setTimeout(function(){ getAlarmFeeder(); }, 10000);
+            getAlarmFeederJob = new MiniDaemon(null, getAlarmFeeder, 3000);
+            getAlarmFeederJob.start();
+            $('#createAlarmModal').on('shown.bs.modal', function (e) {
+                $.getJSON("{{ url_for('ems.frp_get_noalarm_station') }}", function(data){
+                    var dropdwnobjval = data;
+                    console.log('dropdwnobjval', dropdwnobjval);
+                    // var A = document.getElementById('substation-cat');
+                    // A.length = 0;
+                    // var temp;
+                    // for (var j =0; j < dropdwnobjval.length; j++) {
+                    //     var opt = document.createElement('option');
+                    //     opt.value = dropdwnobjval[j].substation_type_code;
+                    //     opt.text = dropdwnobjval[j].substation_type_code;
+                    //     if (dropdwnobjval[j].substation_type_code !== temp){
+                    //         A.appendChild(opt);
+                    //         temp = dropdwnobjval[j].substation_type_code;
+                    //     }
+                    // };                     
+                    // var B = document.getElementById('substation-name');
+
+                    // //on change is a good event for this because you are guarenteed the value is different
+                    // A.onchange = function(){
+                    //     //clear out B
+                    //     B.length = 0;
+                    //     //get the selected value from A
+                    //     var _val = this.options[this.selectedIndex].value;
+                    //     console.log(_val);
+                    //     //loop through bOption at the selected value
+                    //     for ( var i=0; i < dropdwnobjval.length; i++){
+                    //         // console.log(i);
+                    //         //create option tag
+                    //         var op = document.createElement('option');
+                    //         //set its value
+                    //         if (dropdwnobjval[i].substation_type_code === _val) {
+                    //             op.value = dropdwnobjval[i].substation_code;
+                    //             //set the display label
+                    //             op.text = dropdwnobjval[i].substation_code;
+                    //             //append it to B
+                    //             B.appendChild(op);
+                    //         }
+                    //     }                        
+                    // };
+                    // //fire this to update B on load
+                    // A.onchange();
+
+                    var A = document.getElementById('substation-type');
+                    A.length = 0;
+                    var type = ['FEEDER', 'SUBSTATION']
+                    for (var j =0, lenj = type.length; j < lenj; j++) {
+                        var optx = document.createElement('option');
+                        optx.value = type[j];
+                        optx.text = type[j];
+                        A.appendChild(optx);
+                    };
+
+                    var B = document.getElementById('substation-name');
+                    B.length = 0;
+                    for ( var i=0, leni = dropdwnobjval.length; i < leni; i++){
+                        var opt = document.createElement('option');
+                        if (document.getElementById('substation-type').value === 'FEEDER' 
+                            && dropdwnobjval[i].parent_ind === 1) {
+                            opt.value = dropdwnobjval[i].substation_code;
+                            opt.text = dropdwnobjval[i].substation_code;
+                        } else if (document.getElementById('substation-type').value === 'SUBSTATION'){
+                            opt.value = dropdwnobjval[i].substation_code;
+                            opt.text = dropdwnobjval[i].substation_code;
+                        }
+                        if (opt.value){
+                            B.appendChild(opt);
+                        }                        
+                    }
+
+                    A.onchange = function(){
+                        //clear out B
+                        B.length = 0;
+                        //get the selected value from A
+                        var _val = this.options[this.selectedIndex].value;
+                        console.log('Aonchange _val', _val);
+                        //loop through bOption at the selected value
+                        for ( var j=0, lenj = dropdwnobjval.length; j < lenj; j++){
+                            // console.log(i);
+                            //create option tag
+                            var op = document.createElement('option');
+                            //set its value
+                            if (_val === 'FEEDER' && dropdwnobjval[j].parent_ind === 1) {
+                                op.value = dropdwnobjval[j].substation_code;
+                                op.text = dropdwnobjval[j].substation_code;
+                            } else if (_val === 'SUBSTATION') {
+                                op.value = dropdwnobjval[j].substation_code;
+                                op.text = dropdwnobjval[j].substation_code;
+                            }                            
+                            if (op.value) {
+                                op.value = dropdwnobjval[j].substation_code;
+                                //set the display label
+                                op.text = dropdwnobjval[j].substation_code;
+                                //append it to B
+                                B.appendChild(op);
+                            }
+                        }                        
+                    };                    
+                });                                
+            });
+
+            // $("#savealarm").on("click", function(e) {
+            //     e.preventDefault();
+            //     if ($('#substation-cat').val() && $('#substation-name').val()) {
+            //         var obj = {};
+            //         obj[$('#substation-cat').val()] = $('#substation-name').val();
+            //         raiseAlertFeeder([obj]);
+            //     }
+            //     // getAlarmFeeder();
+            //     $('#createAlarmModal').modal('hide');
+            // });
+
+            $("#savealarm").on("click", function(e) {
+                e.preventDefault();
+                // console.log($('substation-type').val(), $('#substation-name').val());
+                if ($('#substation-type').val() && $('#substation-name').val()) {
+                    var obj = {};
+                    obj[$('#substation-type').val()] = $('#substation-name').val();
+                    raiseAlertFeeder([obj]);
+                }
+                // getAlarmFeeder();
+                $('#createAlarmModal').modal('hide');
+            });
+
+            $('#closeAlarmModal').on('shown.bs.modal', function (e) {
+                // // console.log(alarmobj);
+                // // var table = $('#closeAlarmTable').DataTable( {
+                // //     "ajax": alarmobj,
+                // //     "columnDefs": [ {
+                // //         "targets": -1,
+                // //         "data": null,
+                // //         "defaultContent": "<button>Close Alarm</button>"
+                // //     } ]
+                // // } );
+             
+                // // $('#example tbody').on( 'click', 'button', function () {
+                // //     var data = table.row( $(this).parents('tr') ).data();
+                // //     alert( data[0] +"'s salary is: "+ data[ 5 ] );
+                // // } );
+                // var dropdwnobjval = alarmobj;
+                // // console.log(dropdwnobjval);
+                // var A = document.getElementById('substation-cat2');
+                // A.length = 0;
+                // for (var j =0; j < dropdwnobjval.length; j++) {
+                //     var opt = document.createElement('option');
+                //     opt.value = dropdwnobjval[j].substation_type_code;
+                //     opt.text = dropdwnobjval[j].substation_type_code;
+                //     A.appendChild(opt);
+                // }; 
+                
+                // var B = document.getElementById('substation-name2');
+
+                // //on change is a good event for this because you are guarenteed the value is different
+                // A.onchange = function(){
+                //     //clear out B
+                //     B.length = 0;
+                //     //get the selected value from A
+                //     var _val = this.options[this.selectedIndex].value;
+                //     console.log('val:', _val);
+                //     //loop through bOption at the selected value
+                //     for ( var i=0; i < dropdwnobjval.length; i++){
+                //         console.log(i);
+                //         //create option tag
+                //         var op = document.createElement('option');
+                //         //set its value
+                //         if (dropdwnobjval[i].substation_type_code === _val) {
+                //             op.value = dropdwnobjval[i].substation_code;
+                //             //set the display label
+                //             op.text = dropdwnobjval[i].substation_code;
+                //             //append it to B
+                //             B.appendChild(op);
+                //         }
+                //     }
+                // };
+                // //fire this to update B on load
+                // A.onchange();
+                // var dropdwnobjval = alarmobj; 
+                // var B = document.getElementById('substation-name2'); 
+                // B.length = 0;
+                // for (var i =0, leni = dropdwnobjval.length; i < leni;  i++) { 
+                //     var op = document.createElement('option');
+                //     op.value = dropdwnobjval[i].substation_code;
+                //     op.text = dropdwnobjval[i].substation_code;
+                //     B.appendChild(op);                    
+                // }
+                var dropdwnobjval = alarmobj; 
+                var A = document.getElementById('substation-type2');
+                A.length = 0;
+                var temp = [];
+                for (var j =0, lenj = dropdwnobjval.length; j < lenj; j++) {
+                    var optx = document.createElement('option');
+                    optx.value = dropdwnobjval[j].alarm_type;
+                    optx.text = dropdwnobjval[j].alarm_type;
+                    if ($.inArray(optx.value, temp) === -1) A.appendChild(optx);
+                    temp.push(dropdwnobjval[j].alarm_type);
+                };
+
+                var B = document.getElementById('substation-name2');
+                B.length = 0;
+                for ( var i=0, leni = dropdwnobjval.length; i < leni; i++){
+                    var opt = document.createElement('option');
+                    if (document.getElementById('substation-type2').value === 'FEEDER' 
+                        && dropdwnobjval[i].parent_ind === 1) {
+                        opt.value = dropdwnobjval[i].substation_code;
+                        opt.text = dropdwnobjval[i].substation_code;
+                    } else if (document.getElementById('substation-type2').value === 'SUBSTATION'
+                               && dropdwnobjval[i].alarm_type === 'SUBSTATION'){
+                        opt.value = dropdwnobjval[i].substation_code;
+                        opt.text = dropdwnobjval[i].substation_code;
+                    }
+                    if (opt.value){
+                        B.appendChild(opt);
+                    }                        
+                }
+
+                A.onchange = function(){
+                    //clear out B
+                    B.length = 0;
+                    //get the selected value from A
+                    var _val = this.options[this.selectedIndex].value;
+                    console.log('Aonchange _val', _val);
+                    //loop through bOption at the selected value
+                    for ( var j=0, lenj = dropdwnobjval.length; j < lenj; j++){
+                        // console.log(i);
+                        //create option tag
+                        var op = document.createElement('option');
+                        //set its value
+                        if (_val === 'FEEDER' && dropdwnobjval[j].parent_ind === 1) {
+                            op.value = dropdwnobjval[j].substation_code;
+                            op.text = dropdwnobjval[j].substation_code;
+                        } else if (_val === 'SUBSTATION'
+                                   && dropdwnobjval[j].alarm_type === 'SUBSTATION') {
+                            op.value = dropdwnobjval[j].substation_code;
+                            op.text = dropdwnobjval[j].substation_code;
+                        }                            
+                        if (op.value) {
+                            op.value = dropdwnobjval[j].substation_code;
+                            //set the display label
+                            op.text = dropdwnobjval[j].substation_code;
+                            //append it to B
+                            B.appendChild(op);
+                        }
+                    }                        
+                };
+            });
+
+            $("#closealarm").on("click", function(e) {
+                e.preventDefault();
+                var dropdwnobjval = alarmobj;
+                if ($('#substation-type2').val() && $('#substation-name2').val()) {
+                    for (var j =0, lenj = dropdwnobjval.length; j < lenj; j++) {
+                        if ($('#substation-type2').val() === 'SUBSTATION' &&
+                            $('#substation-type2').val() === dropdwnobjval[j].alarm_type  &&
+                            $('#substation-name2').val() === dropdwnobjval[j].substation_code) {
+                            closeAlarmFeeder(dropdwnobjval[j].fast_restoration_plan_alarm_pk,
+                                             dropdwnobjval[j].alarm_type);
+                        } else if ($('#substation-type2').val() === 'FEEDER' &&
+                                   $('#substation-type2').val() === dropdwnobjval[j].alarm_type  &&
+                                   $('#substation-name2').val() === dropdwnobjval[j].substation_code &&
+                                   dropdwnobjval[j].parent_ind === 1) {
+                            closeAlarmFeeder(dropdwnobjval[j].feeder_master_fk, dropdwnobjval[j].alarm_type);
+                        }
+                    };                     
+                }
+                // if ($('#substation-name2').val()) {
+                //     for (var j =0, lenj = dropdwnobjval.length; j < lenj; j++) {
+                //         if ($('#substation-name2').val() === dropdwnobjval[j].substation_code) {
+                //             closeAlarmFeeder(dropdwnobjval[j].fast_restoration_plan_alarm_pk);
+                //         }
+                //     };                     
+                // }                
+                // getAlarmFeeder();
+                $('#closeAlarmModal').modal('hide');
+            });
+
+            $('#findButton').on('click', function () {
+                var find = $('#find-substation-id').val();
+                var findJson = [];
+                var findobj = {};
+                if (find !== "") {
+                    var pos = find.indexOf(":");
+                    findobj[find.substr(0, pos)] = find.slice(pos+1);
+                    findJson.push(findobj);
+                    filterFeeder(findJson);
+                }
+            });                                                     
+        });
+    </script>           
+{% endblock %}
+{% block header %}
+    <form id="defaultForm" method="post" class="navbar-form navbar-left form-inline" role="form">
+        <div class="row">                                  
+            <div class="form-group">
+<!--                 <input class="form-control" id="address" type="textbox" value="DUBAI">
+                <input type="button" class="btn btn-primary" value="Geocode" onclick="codeAddress(document.getElementById('address').value)"> -->
+                <!-- <input type="button" class="btn btn-primary" value="Create Alarm" onclick=""></input> -->
+                <!-- <input type="button" class="btn btn-primary" value="Close Alarm" onclick=""></input>  -->              
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target=".bs-example-modal-lg">Create Alarm</button>
+                <div id = 'createAlarmModal' class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                <h4 class="modal-title" id="gridSystemModalLabel">Create Alarm</h4>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row">
+<!--                                     <div class="col-sm-6">
+                                        <div class="form-group field-demo-subcat">
+                                            <label class="control-label" for="demo-subcat">Substation Category</label>
+                                            <select id="substation-cat" class="form-control" placeholder="Select...">
+                                                <option value="">Select...</option>
+                                            </select>                                            
+                                            <div class="help-block"></div>
+                                        </div>
+                                    </div> -->
+                                    <div class="col-sm-6">
+                                        <div class="form-group field-demo-subcat">
+                                            <label class="control-label" for="demo-subcat">Alarm Type</label>
+                                            <select id="substation-type" class="form-control" placeholder="Select...">
+                                                <option value="">Select...</option>
+                                            </select>                                            
+                                            <div class="help-block"></div>
+                                        </div>
+                                    </div>                                    
+                                    <div class="col-sm-6">
+                                        <div class="form-group field-demo-subcat">
+                                            <label class="control-label" for="demo-subcat">Feeder/Substation</label>
+                                            <select id="substation-name" class="form-control" placeholder="Select...">
+                                                <option value="">Select...</option>
+                                            </select>                                            
+                                            <div class="help-block"></div>
+                                        </div>
+                                    </div>                                    
+                                </div>                                
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-primary" id="savealarm">Save changes</button>
+                            </div>                            
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target=".bs-example-modal-lg2">Close Alarm</button>
+                <div id = 'closeAlarmModal' class="modal fade bs-example-modal-lg2" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                <h4 class="modal-title" id="gridSystemModalLabel">Close Alarm</h4>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="form-group field-demo-subcat">
+                                            <label class="control-label" for="demo-subcat">Alarm Type</label>
+                                            <select id="substation-type2" class="form-control" placeholder="Select...">
+                                                <option value="">Select...</option>
+                                            </select>                                            
+                                            <div class="help-block"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group field-demo-subcat">
+                                            <label class="control-label" for="demo-subcat">Feeder/Substation</label>
+                                            <select id="substation-name2" class="form-control" placeholder="Select...">
+                                                <option value="">Select...</option>
+                                            </select>                                            
+                                            <div class="help-block"></div>
+                                        </div>
+                                    </div>                                    
+                                </div>                                                           
+<!--                                 <table id="closeAlarmTable" class="display" cellspacing="0" width="100%">
+                                    <thead>
+                                        <tr>
+                                            <th>Substation Category</th>
+                                            <th>Substation</th>
+                                            <th>Update</th>
+                                        </tr>
+                                    </thead>
+                                </table>   -->                              
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-primary" id="closealarm">Save changes</button>
+                            </div>                            
+                        </div>
+                    </div>
+                </div>                                                                                                    
+            </div>
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                Filter
+                <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><input id="ScenarioA1" type="checkbox" onclick="toggleGroup('A', 1)" checked="checked">Feeder 1E125</input></li>
+                    <li><input id="ScenarioA2" type="checkbox" onclick="toggleGroup('A', 2)" checked="checked">Feeder 2E135</input></li>
+                    <li><input id="ScenarioB1" type="checkbox" onclick="toggleGroup('B', 1)">Feeder 1E126</input></li>
+                    <li><input id="ScenarioB2" type="checkbox" onclick="toggleGroup('B', 2)">Feeder 2E136</input></li>
+                    <li><input id="ScenarioC1" type="checkbox" onclick="toggleGroup('C', 1)">Feeder 1E127</input></li>
+                    <li><input id="ScenarioC2" type="checkbox" onclick="toggleGroup('C', 2)">Feeder 2E116</input></li>
+                    <li><input id="ScenarioD1" type="checkbox" onclick="toggleGroup('D', 1)">Feeder 1E128</input></li>
+                    <li><input id="ScenarioD2" type="checkbox" onclick="toggleGroup('D', 2)">Feeder 2E138</input></li>
+                    <!-- <li><input id="ScenarioD3" type="checkbox" onclick="toggleGroup('D', 3)">Feeder D3</input></li> -->
+                    <li><input id="ScenarioH1" type="checkbox" onclick="toggleGroup('H', 1)">Feeder 1E129</input></li>
+                    <li><input id="ScenarioH2" type="checkbox" onclick="toggleGroup('H', 2)">Feeder 2E140</input></li>
+                    <li><input id="Traffic" type="checkbox" onclick="toggleTraffic('Traffic')">Traffic</input></li>
+                </ul>
+            </div>
+            <div class="form-group field-demo-subcat">
+                <label class="control-label" for="demo-subcat">&nbsp;</label>
+                <!-- <span class="glyphicon glyphicon-cog"></span> -->
+<!--                 <select id="find-substation-id" class="form-control" placeholder="Select...">
+                    <option value="">Select...</option>
+                </select>  -->
+                <input id="find-substation-id" type="text" class="form-control awesomplete" placeholder="Substation" list="mylist">
+                <datalist id="mylist">
+                </datalist>                                                       
+            </div>
+            <!-- <button type="button" class="btn btn-primary" id="findButton">Find</button>                         -->
+                              
+<!--             <div class="button-group">
+                <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown">
+                    <span class="glyphicon glyphicon-cog"></span>
+                    <span class="caret"></span> Filter
+                </button>
+                <ul class="dropdown-menu">
+                    <li><input id="ScenarioA1" type="checkbox" onclick="toggleGroup('A', 1)" checked="checked">Scenario A1</input></li>
+                    <li><input id="ScenarioA2" type="checkbox" onclick="toggleGroup('A', 2)" checked="checked">Scenario A2</input></li>
+                    <li><input id="ScenarioB1" type="checkbox" onclick="toggleGroup('B', 1)">Scenario B1</input></li>
+                    <li><input id="ScenarioB2" type="checkbox" onclick="toggleGroup('B', 2)">Scenario B2</input></li>
+                    <li><input id="ScenarioC1" type="checkbox" onclick="toggleGroup('C', 1)">Scenario C1</input></li>
+                    <li><input id="ScenarioC2" type="checkbox" onclick="toggleGroup('C', 2)">Scenario C2</input></li>
+                    <li><input id="ScenarioD1" type="checkbox" onclick="toggleGroup('D', 1)">Scenario D1</input></li>
+                    <li><input id="ScenarioD2" type="checkbox" onclick="toggleGroup('D', 2)">Scenario D2</input></li>
+                    <li><input id="ScenarioD3" type="checkbox" onclick="toggleGroup('D', 3)">Scenario D2</input></li>
+                    <li><input id="ScenarioH1" type="checkbox" onclick="toggleGroup('H', 1)">Scenario H1</input></li>
+                    <li><input id="ScenarioH2" type="checkbox" onclick="toggleGroup('H', 2)">Scenario H2</input></li>
+                    <li><input id="Traffic" type="checkbox" onclick="toggleTraffic('Traffic')">Traffic</input></li>  
+                </ul>
+            </div> -->
+            <div id="duration"></div>                      
+        </div>     
+    </form>    
+{% endblock %}
+{% block content %}
+    <div id="map-canvas"></div>
+<!-- <div id="checkboxes">
+    <form>
+        <input type="radio" value="A" id="ScenarioA" onclick="changeLayer(this.value);" checked="checked">Scenario A</input><br />
+        <input type="radio" value="B" id="ScenarioB" onclick="changeLayer(this.value);"checked="checked">Scenario B</input><br />
+    </form>
+</div>  -->        
+{% endblock %}

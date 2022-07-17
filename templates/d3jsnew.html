@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+</head>
+
+
+<script src="../static/js/sugar.min.js"></script>
+<script src="../static/js/jquery-2.1.3.min.js"></script>
+<script src="../static/js/jquerymy.min.js"></script>
+<body>
+<div id="form">
+ <input type="text" id="name" />
+ <input type="range" id="age" />
+
+ <input type="text" id="name2" />
+ <input type="number" id="age2" />
+</div>
+<script>
+var data = {
+ name: ["Luke Skywalker", "Biswadip Paul"],
+ age: 12
+};
+// $("#form").my(
+// 	{ui:{
+//  "#name": {check:true, bind:"name"},
+//  "#age": {check:true, bind:"age"},
+//  "#name2":{bind:"data.name",  watch:"#name", recalc:"#name"},
+// }}
+// );
+
+// $("#form2").my({ui:{
+//  "#name2": {check:true, bind:"name"},
+//  "#age2": {check:true, bind:"age"}
+// }}, data);
+// var person={};
+var manifest = {
+    // "data": { name:"", metrics:{ age:"" }},
+    // "init": function ($node, formRuntimeObj) {
+    //     $node.html(
+    //         '<div><input id="name" type="text" /></div>' +
+    //         '<div><input id="age" type="number" /></div>' + 
+    //         '<div><input id="name2" type="text" /></div>' +
+    //         '<div><input id="age2" type="number" /></div>' 
+    //     );
+    // },
+    "ui":{
+        "#name": { bind: "name" , watch: "#name2"},
+        "#age" : { bind: "age", watch: "#age2" },
+        "#name2": { bind: "name" , watch: "#name"},
+        "#age2" : { bind: "age", watch: '#age' }        
+    }
+};
+// Init $.my
+$("#form").my(manifest, data);
+</script>
+
+</body>

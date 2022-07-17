@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="description" content="Navigation Page.">
+    <meta name="author" content="">
+    <!-- <link rel="icon" href="../../favicon.ico"> -->
+    <title>Zeerone Comparison Chart</title>
+     <!-- Meta -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sticky-footer-navbar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery-ui.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-tagsinput.css') }}"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/c3.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/style5.css') }}"> -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/tagit-simple-grey.css') }}"> -->
+    <style>
+      .bars {
+                display: block;
+                width: 20px;
+                height: 3px;    
+                background-color: #333;
+                box-shadow: 0 5px 0 #333, 0 10px 0 #333;
+      }
+      .nav>li>a:hover, .nav>li>a:focus {
+                text-decoration: none;
+                background-color: #fff;
+      }
+      .nav .open>a, .nav .open>a:hover, .nav .open>a:focus {
+                background-color: #fff;
+                border-color: #428bca;
+      }
+
+      .ui-autocomplete-loading {
+          background: white url("/static/images/ui-anim_basic_16x16.gif") right center no-repeat;
+      }
+
+      .ui-autocomplete {
+          max-height: 100px;
+          overflow-y: auto;
+          /* prevent horizontal scrollbar */
+          overflow-x: hidden;
+      }
+
+      body {
+        overflow-y:scroll;
+      }
+
+      text {
+        font: 12px sans-serif;
+      }
+
+      #chart3 svg {
+        height: 500px;
+        margin: 10px;
+        min-width: 100px;
+        min-height: 100px;
+      /*
+        Minimum height and width is a good idea to prevent negative SVG dimensions...
+        For example width should be =< margin.left + margin.right + 1,
+        of course 1 pixel for the entire chart would not be very useful, BUT should not have errors
+      */
+      }
+      .c3-region.foo {
+        fill: red;
+      }
+      select option {
+      color: black;
+      }
+      select option:first-child {
+      color: grey;
+      }
+      select.empty {
+      color: grey;
+      }      
+    </style>    
+    <script src="{{ url_for('static', filename='js/jquery-2.0.3.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <!-- // <script src="{{ url_for('static', filename='js/jquery.dataTables.min.js') }}"></script> -->
+    <script src="{{ url_for('static', filename='js/jquery-ui.js') }}"></script>
+    <!-- // <script src="{{ url_for('static', filename='js/bootstrap-tagsinput.min.js') }}"></script> -->
+    <!-- // <script src="{{ url_for('static', filename='js/tagit.js') }}"></script> -->
+    <!-- // <script src="{{ url_for('static', filename='js/typeahead.bundle.js') }}"></script>     -->
+    <script src="{{ url_for('static', filename='js/require.js') }}"></script>
+    <script>
+      // for nvd3.js
+      //var pos_data = [];
+      //for c3js
+      var pos_data = [];
+      var pos_data2 = {};
+      $(function() {
+        function log( message ) {
+           // console.log('message' + message);
+          $.ajax( {url: "/fulldata/" + message ,
+                   dataType: "json",
+                   //data: "FD_16-11-2009",
+                   //type: "GET",
+                   contentType: "application/json; charset=utf-8",
+                   dataFilter: function(data) { return data; },
+                   success: function(data) {
+                                            console.log(data);
+                                            console.log("success");
+                                            // for nvd3.js
+                                            pos_data.push({'key':message, 'values':data});
+                                            //for c3js
+                                            //pos_data.push({'key': message, message : data});
+                                            pos_data2['x']=data.map(function(a){return a.x});
+                                            pos_data2[message]=data.map(function(a){return a.y});
+                                            len = Object.keys(pos_data2).length;
+                                            keys = Object.keys(pos_data2);
+                                            types = {};
+                                            axes = {};
+                                            if (len >= 3) {
+                                                  for (var i = 1; i <= len - 2; i++){
+                                                    for (var j = i+1 ; j <= len - 1; j++){
+                                                      var sub= []
+                                                      for( var k = 0; k < pos_data2[keys[i]].length; k++){
+                                                        sub[k] = (pos_data2[keys[i]][k] - pos_data2[keys[j]][k]).toFixed(2);
+                                                       };
+                                                       pos_data2[keys[i]+ "-" + keys[j]] = sub;
+                                                       types[keys[i]+ "-" + keys[j]] = 'bar';  
+                                                       axes[keys[i]+ "-" + keys[j]] = 'y2'  
+                                                };
+                                               }; 
+                                            };
+                                            console.log(pos_data2);
+                                            console.log(types);
+                                            c3cht(types, axes);
+                    },
+                   error: function(XMLHttpRequest, textStatus, errorThrown) {
+                    alert(textStatus);
+                    }
+               });
+          // $( "<div>" ).text( message ).prependTo( "#log" );
+          // $( "#log" ).scrollTop( 0 );
+          // $( "#log" ).hide();
+          //$( "<option selected value =" + "'" + message + "'" + ">").text(message).prependTo( "#newtag" );
+          // $( "#newtag" ).tagsinput( 'add', message );
+          //$( "#newtag" ).scrollTop( 0 );
+        };
+
+        function split( val ) {
+          return val.split( /,\s*/ );
+        };
+        function extractLast( term ) {
+          return split( term ).pop();
+        };
+        $( "#tags" )
+          // don't navigate away from the field on tab when selecting an item
+          .bind( "keydown", function( event ) {
+            if ( event.keyCode === $.ui.keyCode.TAB &&
+                $( this ).autocomplete( "instance" ).menu.active ) {
+              event.preventDefault();
+            }
+          })
+          .autocomplete({
+            source: function( request, response ) {
+              $.getJSON( "{{ url_for('quick_search') }}", {
+                term: extractLast( request.term )
+              }, response );
+            },
+            search: function() {
+              // custom minLength
+              var term = extractLast( this.value );
+              if ( term.length < 2 ) {
+                return false;
+              }
+            },
+            focus: function() {
+              // prevent value inserted on focus
+              return false;
+            },
+            select: function( event, ui ) {
+              /*log( ui.item ?
+                  "Selected: " + ui.item.value + " aka " + ui.item.id :
+                  "Nothing selected, input was " + this.value );*/
+              log( ui.item ? ui.item.value :
+                  "Nothing selected, input was " + this.value );
+              var terms = split( this.value );
+              // remove the current input
+              terms.pop();
+              // add the selected item
+              terms.push( ui.item.value );
+              // add placeholder to get the comma-and-space at the end
+              console.log(terms);
+              if (terms.length < 2){
+                terms.push( "" );
+                this.value = terms.join( ", " );                
+              }
+              else this.value = terms.join( ", " );   
+              return false;
+            }
+          });
+      });
+
+      function c3cht(type_arg, axes_arg){
+          require.config({
+            baseUrl: '/static/js'
+          });
+          require(["d3", "c3"], function(d3, c3) {
+              var chart = c3.generate({
+                          bindto: "#chart1",
+                          size: {
+                                  //height: 240,
+                                  //width: 480
+                          },
+                          data: {
+                            x : 'x',
+                            json : pos_data2
+                            /*json: [{"date": "06-03-2013", "x": 1, "y": 7344.0}, {"date": "06-03-2013", "x": 2, "y": 7242.0}, {"date": "06-03-2013", "x": 3, "y": 7167.0}, {"date": "06-03-2013", "x": 4, "y": 7164.0}, {"date": "06-03-2013", "x": 5, "y": 7138.0}, {"date": "06-03-2013", "x": 6, "y": 7123.0}, {"date": "06-03-2013", "x": 7, "y": 7099.0}, {"date": "06-03-2013", "x": 8, "y": 7091.0}, {"date": "06-03-2013", "x": 9, "y": 7065.0}, {"date": "06-03-2013", "x": 10, "y": 7021.0}, {"date": "06-03-2013", "x": 11, "y": 6918.0}, {"date": "06-03-2013", "x": 12, "y": 6863.0}, {"date": "06-03-2013", "x": 13, "y": 6714.0}, {"date": "06-03-2013", "x": 14, "y": 6708.0}, {"date": "06-03-2013", "x": 15, "y": 6630.0}, {"date": "06-03-2013", "x": 16, "y": 6543.0}, {"date": "06-03-2013", "x": 17, "y": 6159.0}, {"date": "06-03-2013", "x": 18, "y": 6166.0}, {"date": "06-03-2013", "x": 19, "y": 6267.0}, {"date": "06-03-2013", "x": 20, "y": 6344.0}, {"date": "06-03-2013", "x": 21, "y": 6442.0}, {"date": "06-03-2013", "x": 22, "y": 6849.0}, {"date": "06-03-2013", "x": 23, "y": 7168.0}, {"date": "06-03-2013", "x": 24, "y": 7417.0}, {"date": "06-03-2013", "x": 25, "y": 7686.0}, {"date": "06-03-2013", "x": 26, "y": 8016.0}, {"date": "06-03-2013", "x": 27, "y": 7856.0}, {"date": "06-03-2013", "x": 28, "y": 7894.0}, {"date": "06-03-2013", "x": 29, "y": 7928.0}, {"date": "06-03-2013", "x": 30, "y": 8080.0}, {"date": "06-03-2013", "x": 31, "y": 8165.0}, {"date": "06-03-2013", "x": 32, "y": 8172.0}, {"date": "06-03-2013", "x": 33, "y": 8091.0}, {"date": "06-03-2013", "x": 34, "y": 7992.0}, {"date": "06-03-2013", "x": 35, "y": 7916.0}, {"date": "06-03-2013", "x": 36, "y": 7918.0}, {"date": "06-03-2013", "x": 37, "y": 7782.0}, {"date": "06-03-2013", "x": 38, "y": 7751.0}, {"date": "06-03-2013", "x": 39, "y": 7694.0}, {"date": "06-03-2013", "x": 40, "y": 7635.0}, {"date": "06-03-2013", "x": 41, "y": 7447.0}, {"date": "06-03-2013", "x": 42, "y": 7511.0}, {"date": "06-03-2013", "x": 43, "y": 7490.0}, {"date": "06-03-2013", "x": 44, "y": 7492.0}, {"date": "06-03-2013", "x": 45, "y": 7450.0}, {"date": "06-03-2013", "x": 46, "y": 7481.0}, {"date": "06-03-2013", "x": 47, "y": 7487.0}, {"date": "06-03-2013", "x": 48, "y": 7434.0}, {"date": "06-03-2013", "x": 49, "y": 7418.0}, {"date": "06-03-2013", "x": 50, "y": 7420.0}, {"date": "06-03-2013", "x": 51, "y": 7352.0}, {"date": "06-03-2013", "x": 52, "y": 7377.0}, {"date": "06-03-2013", "x": 53, "y": 7268.0}, {"date": "06-03-2013", "x": 54, "y": 7236.0}, {"date": "06-03-2013", "x": 55, "y": 7210.0}, {"date": "06-03-2013", "x": 56, "y": 7200.0}, {"date": "06-03-2013", "x": 57, "y": 7130.0}, {"date": "06-03-2013", "x": 58, "y": 7159.0}, {"date": "06-03-2013", "x": 59, "y": 7189.0}, {"date": "06-03-2013", "x": 60, "y": 7123.0}, {"date": "06-03-2013", "x": 61, "y": 7092.0}, {"date": "06-03-2013", "x": 62, "y": 6986.0}, {"date": "06-03-2013", "x": 63, "y": 7021.0}, {"date": "06-03-2013", "x": 64, "y": 7008.0}, {"date": "06-03-2013", "x": 65, "y": 6921.0}, {"date": "06-03-2013", "x": 66, "y": 6923.0}, {"date": "06-03-2013", "x": 67, "y": 6887.0}, {"date": "06-03-2013", "x": 68, "y": 6827.0}, {"date": "06-03-2013", "x": 69, "y": 6561.0}, {"date": "06-03-2013", "x": 70, "y": 6286.0}, {"date": "06-03-2013", "x": 71, "y": 6186.0}, {"date": "06-03-2013", "x": 72, "y": 6066.0}, {"date": "06-03-2013", "x": 73, "y": 5950.0}, {"date": "06-03-2013", "x": 74, "y": 6006.0}, {"date": "06-03-2013", "x": 75, "y": 6228.0}, {"date": "06-03-2013", "x": 76, "y": 6705.0}, {"date": "06-03-2013", "x": 77, "y": 7182.0}, {"date": "06-03-2013", "x": 78, "y": 7387.0}, {"date": "06-03-2013", "x": 79, "y": 7422.0}, {"date": "06-03-2013", "x": 80, "y": 7363.0}, {"date": "06-03-2013", "x": 81, "y": 7170.0}, {"date": "06-03-2013", "x": 82, "y": 7083.0}, {"date": "06-03-2013", "x": 83, "y": 6970.0}, {"date": "06-03-2013", "x": 84, "y": 6872.0}, {"date": "06-03-2013", "x": 85, "y": 7140.0}, {"date": "06-03-2013", "x": 86, "y": 7416.0}, {"date": "06-03-2013", "x": 87, "y": 7376.0}, {"date": "06-03-2013", "x": 88, "y": 7367.0}, {"date": "06-03-2013", "x": 89, "y": 7778.0}, {"date": "06-03-2013", "x": 90, "y": 7883.0}, {"date": "06-03-2013", "x": 91, "y": 7626.0}, {"date": "06-03-2013", "x": 92, "y": 7580.0}, {"date": "06-03-2013", "x": 93, "y": 7569.0}, {"date": "06-03-2013", "x": 94, "y": 7464.0}, {"date": "06-03-2013", "x": 95, "y": 7435.0}, {"date": "06-03-2013", "x": 96, "y": 7482.0}]*/,
+                              type: "spline",
+                              //keys: {
+                              //          x: 'x',
+                              //          value: ['y']
+                              //}
+                              types: type_arg,
+                              axes: axes_arg//,
+                              //labels: true
+                          },
+                          axis: {
+                                  x: {
+                                //    type: 'categorized'
+                                      label: {
+                                               text: 'Block No',
+                                               position: 'outer-center'
+                                      },
+                                      tick: {
+                                              //fit: true
+                                              //count: 96//,
+                                              //format: 
+                                      }
+                                  },
+                                  y: {
+                                      label: {
+                                               text: 'Demand (MW)',
+                                               position: 'outer-middle'
+                                      }
+                                  }                  
+                          },
+                          grid: {
+                                  y: {
+                                    show: true
+                                  },
+                                  x: {
+                                    show: true
+                                  },
+                                  focus: {
+                                    show: true
+                                  }
+                          },
+                          legend: {
+                                    //position: 'right',
+                                    show: true
+                          },
+                          point: {
+                                    show: true
+                          },
+                          transition: {
+                                        duration: 100
+                          },
+                          tooltip: {
+                                      format: {
+                                                title: function (d) { return 'Block_No ' + d; }
+                                      }
+                          },
+                          regions: [
+                          {axis: 'x', start: 76, end: 88, class: 'foo'}
+                          ]
+                      });
+              //console.log(axes_arg);
+              //if (axes_arg){
+              //chart.data.axes(axes_arg);
+              //}
+              /*
+              c3.generate({
+                          bindto: "#chart",
+                          data: {
+                            columns: [
+                              ['data1', 30, 20, 50, 40, 60, 50],
+                              ['data2', 200, 130, 90, 240, 130, 220],
+                              ['data3', 300, 200, 160, 400, 250, 250],
+                              ['data4', 200, 130, 90, 240, 130, 220],
+                              ['data5', 130, 120, 150, 140, 160, 150],
+                              ['data6', 90, 70, 20, 50, 60, 120],
+                            ],
+                            types: {
+                              data1: 'bar',
+                              data2: 'bar',
+                              data3: 'spline',
+                              data4: 'line',
+                              data5: 'bar',
+                              data6: 'area'
+                            },
+                            groups: [
+                              ['data1','data2']
+                            ]
+                          },
+                          axis: {
+                            x: {
+                              type: 'categorized'
+                            }
+                          }
+                      });*/
+            }); 
+      }                  
+    </script> 
+  </head>
+  <body>
+    <header class="top" role="header">
+      <div class="container">
+        <nav class="navbar" role="navigation">
+          <div class="container-fluid">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              <a href="#" class="navbar-brand">
+                <img style="margin-top:-20px;" src="/static/images/logo.png" alt="Z-matics">
+              </a>
+            </div>
+
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+              <ul class="nav navbar-nav">
+                <li class="dropdown">
+                  <a href="#" class="dropdown-toggle" data-toggle="dropdown">Menu <b class="caret"></b></a>
+                  <ul class="dropdown-menu">
+                    <li><a href="{{ url_for('index') }}">NR Gen</a></li>
+                    <li><a href="{{ url_for('nrmarket') }}">NR Market</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('tenisgs') }}">ISGS Tentative Data</a></li>
+                    <li><a href="{{ url_for('tenint') }}">Internal Tentative Data</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('rajmislive') }}">Live MIS Data</a></li>
+                    <li><a href="{{ url_for('rajlive') }}">Live Data Breakup</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('forecast') }}">Forecast</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('possuply') }}">Position Map</a></li>
+                    <li><a href="{{ url_for('possuplychart') }}">Position Map Chart</a></li>                    
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('chart') }}">Comparison Report</a></li>
+                    <li><a href="{{ url_for('chart3') }}">ISGS Tentative Stack</a></li>
+                    <li><a href="{{ url_for('stacked') }}">Total Generation Stack</a></li>
+                    <li><a href="{{ url_for('treemap') }}">Treemap Report</a></li>
+                    <li><a href="{{ url_for('heat') }}">Heatmap Report</a></li>                    
+                  </ul>
+                </li>
+              </ul>
+              <!-- <div class="nav navbar-nav navbar-left" role="search"> -->
+                <!-- <label for="tags2"> Tag2: </label> -->
+<!--                 <select id="newtag" multiple data-role="tagsinput" ></select>
+                <option selected disabled>Search</option>
+              </div>  --> 
+<!--               <form id="defaultForm" class="navbar-form navbar-left form-inline" role="form">    
+                  <div class="form-group">
+                    <select id="newtag" multiple data-role="tagsinput" class="form-control" placeholder="Search"></select> -->
+                      <!-- <option selected disabled>Search</option> -->
+<!--                     </select>
+                  </div>                
+              </form>   -->                         
+              <form class="navbar-form navbar-left" role="search">
+                <div class="form-group">
+                  <div class="ui-widget">
+                    <input id="tags" type="text" class="form-control" placeholder="Search e.g. <AD/FD>_16-11-2009" maxlength="27" size="28"/>
+                  </div>
+                  <!-- <button type="submit" class="btn btn-default">Submit</button> -->
+                </div>              
+              </form>             
+              <ul class="nav navbar-nav navbar-right">
+                <li><a href="http://zeerone.com/">About</a></li>
+                <li><a href="http://zeerone.com/contact_us.html">Contact</a></li>
+                <li>
+                  <a href="login.html">Logout</a>
+                </li>
+<!--                 <li><a href="#">Link</a></li>
+                <li class="dropdown">
+                  <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
+                  <ul class="dropdown-menu">
+                    <li><a href="#">Action</a></li>
+                    <li><a href="#">Another action</a></li>
+                    <li><a href="#">Something else here</a></li>
+                    <li class="divider"></li>
+                    <li><a href="#">Separated link</a></li>
+                  </ul>
+                </li> -->
+              </ul>
+            </div><!-- /.navbar-collapse -->
+          </div><!-- /.container-fluid -->
+        </nav>
+      </div>
+    </header>
+    <!-- Site banner -->
+    <div class="banner">
+        <div class="container">
+          <div class="col-md-9 content">
+            <h1><small>Comparison Chart</small></h1>
+          </div>
+        </div>
+    </div>     
+
+    <!-- Site banner -->
+    <!--
+    <div class="banner">
+        <div class="container">
+            <h1>Twitter Bootstrap 3: Responsive Design Tutorial</h1>
+            <p>A comprehensive tutorial showing you how to quickly create responsive designs using Twitter Bootstrap 3.</p>
+        </div>
+    </div>-->
+    <!-- Middle content section -->
+    <div class="middle">
+        <div class="container">
+            <div class="col-md-9 content">
+                <!--
+                <h2>Use Twitter Bootstrap to create responsive designs for desktop, tablet & mobile</h2>
+                <p>Twitter bootstrap allows web developers and designers to quickly create attractive and responsive website templates. This tutorial provided by <a href="http://www.revillweb.com/">RevillWeb.com</a> will show you how to use Twitter Bootstrap 3 to create this responsive website template.</p>
+                <div class="to-tutorial">
+                    <p><strong>Visit the tutorial now to learn more:</strong></p>
+                    <a href="http://www.revillweb.com/tutorials/bootstrap-tutorial/" class="btn btn-success">TO THE TUTORIAL</a>
+                </div>-->
+<!--                   <div class="ui-widget">
+                    <br>
+                    <label for="tags">Tags: </label>
+                    <input id="tags" size="50">
+                  </div>
+                  <div class="ui-widget" style="margin-top:2em; font-family:Arial; display: none;">
+                    Result:
+                    <div id="log" style="height: 200px; width: 300px; overflow: auto;"  class="ui-widget-content"></div>
+                  </div>
+                  <div class="ui-widget" style="margin-top:2em; ">
+                    <label for="tags2"> Tag2: </label>
+                    <select id = "newtag" multiple data-role="tagsinput" size ="50"></select>
+                    <input type="text" id="tagFilter" data-provide="typeahead">
+                  </div> -->                  
+            </div>
+
+            </div>
+            <!--
+            <div class="col-md-3">
+                <h2>Resources</h2>
+                <ul class="nav nav-pills nav-stacked">
+                    <li><a href="http://getbootstrap.com/" target="_blank">Download Twitter Bootstrap</a></li>
+                    <li><a href="https://www.bootstrapresponsivethemes.com/" target="_blank">Bootstrap Responsive Themes</a></li>
+                    <li><a href="http://amzn.to/1iO8NBg" target="_blank">UK: HTML & CSS: Design and Build Web Sites</a></li>
+                    <li><a href="http://amzn.to/1lESKDp" target="_blank">UK: Bootstrap Site Blueprints</a></li>
+                    <li><a href="http://amzn.to/1oXAbu6" target="_blank">US: HTML & CSS: Design and Build Web Sites</a></li>
+                    <li><a href="http://amzn.to/1lESF2w" target="_blank">US: Bootstrap Site Blueprints</a></li>
+                </ul>
+            </div>-->
+        </div>
+    </div>
+    <div class="container">
+      <div class="col-md-12 content">
+        <div id="chart1"></div>
+        <div id="chart"></div>
+      </div>
+    </div>  
+  </body>
+  <footer class="footer">
+    <div class="container">
+      <p class="text-muted">
+          Zeerone © 2012
+          http://www.zeerone.com</p>
+      </div>
+    </div>      
+  </footer>
+</html>

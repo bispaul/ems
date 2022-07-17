@@ -1,0 +1,71 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dataTables.bootstrap.css') }}">
+<style>
+  .bars {
+            display: block;
+            width: 20px;
+            height: 3px;    
+            background-color: #333;
+            box-shadow: 0 5px 0 #333, 0 10px 0 #333;
+        }
+  .nav>li>a:hover, .nav>li>a:focus {
+            text-decoration: none;
+            background-color: #fff;
+        }
+  .nav .open>a, .nav .open>a:hover, .nav .open>a:focus {
+            background-color: #fff;
+            border-color: #428bca;
+        }
+  body { font-size: 140%; }
+  div.DTTT { margin-bottom: 0.5em; float: right; }
+  div.dataTables_wrapper { clear: both; }           
+</style>    
+<script src="{{ url_for('static', filename='js/jquery.dataTables.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dataTables.tableTools.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dataTables.bootstrap.js') }}"></script>
+<!-- // <script src="{{ url_for('static', filename='js/jquery-ui.js') }}"></script> -->
+<script>
+  /*
+   * Example initialisation
+   */
+  $(document).ready( function () {
+      var table = $('#example').dataTable( {
+        "fnRowCallback": function( nRow, aData, iDisplayIndex ) {
+                $('td', nRow).attr('nowrap','nowrap');
+                return nRow;
+                },              
+        // "dom": 'Tlfrtip',
+        // "sDom": "<'row-fluid'<'span6 toolbar'><'span6'>r>t<'row-fluid'<'span6'f><'span6'p>>",
+        // "tableTools": {
+     //                 "sSwfPath": "/static/swf/copy_csv_xls_pdf.swf"
+      //                },        
+        // "scrollY": true,
+        "scrollX": "600px",
+        // "scrollCollapse": true,
+        "responsive": true,
+        //"paging": true,
+        "deferRender": true,
+        "aLengthMenu": [[96, 182], [96, 182]],
+        "aaSorting": [[0,'desc'],[2,'desc']],
+        "iDisplayLength": 96,
+        "sAjaxSource": "{{ url_for('get_biharmislive_data') }}"
+      } );
+      // var tt = new $.fn.dataTable.TableTools( table );
+      // $( tt.fnContainer() ).insertAfter('div.middle');
+      var tt = new $.fn.dataTable.TableTools( table, {
+                      "sSwfPath": "{{ url_for('static', filename='swf/copy_csv_xls_pdf.swf') }}"
+                    } );
+      $( tt.fnContainer() ).insertBefore('div.dataTables_wrapper');
+  } );
+</script> 
+<div class="col-md-12 content">    
+  <table id="example" class="table table-striped table-bordered table-condensed table-hover" cellspacing="0" width="100%">
+    <thead>
+      <tr>
+        
+        {% for col in columns %}
+        <th>{{ col }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+  </table>            
+</div> 

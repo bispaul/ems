@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Editable Spline</title>
+    <meta name="description" content="This is a d3js ediatble spline test">
+    <meta name="author" content="biswadip">
+    <script src="../static/js/d3.min.js"></script>
+</head>    
+<body>
+    <div id="chart1" class="chart"></div>
+
+    <script type="text/javascript">
+      var data2 =
+      // [
+          [{'x':1,'y':3},{'x':2,'y':8},{'x':3,'y':13},{'x':4,'y':3},{'x':5,'y':9},{'x':6,'y':14},{'x':7,'y':6},{'x':8,'y':1},{'x':9,'y':7},{'x':10,'y':9}];
+          // ,
+      var data = [{'x':1,'y':1},{'x':2,'y':6},{'x':3,'y':11},{'x':4,'y':1},{'x':5,'y':7},{'x':6,'y':12},{'x':7,'y':8},{'x':8,'y':3},{'x':9,'y':13},{'x':10,'y':3}];
+          // ];
+
+      var margin = {top: 20, right: 20, bottom: 30, left: 50},
+          width = 960 - margin.left - margin.right,
+          height = 500 - margin.top - margin.bottom;
+
+      var x = d3.scale.linear()
+          .domain([0, 12])
+          .range([0, width]);
+       
+      var y = d3.scale.linear()
+          .domain([-1, 16])
+          .range([height, 0]);          
+
+      var svg02 = d3.select("#chart1").append("svg")
+          .attr("width", width + margin.left + margin.right)
+          .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+          .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+      svg02.append("rect")
+          .attr("width", width)
+          .attr("height", height);
+
+      var drag = d3.behavior.drag()
+          .origin(function(d) { console.log('origin', d);return d; })
+          .on("dragstart", dragstarted)
+          .on("drag", dragged)
+          .on("dragend", dragended);    
+
+
+      // d3.select(window)
+      //     .on("mousemove", mousemove)
+      //     .on("mouseup", mouseup);
+          // .on("keydown", keydown);                  
+                             
+      var circles = [];
+      var colors = [];
+
+      var dragged = null,
+        selected = null;
+
+      var line = d3.svg.line()
+                  .x(function(d,i) { return  x(d.x); })
+                  .y(function(d,i) { return  y(d.y); })
+                  .interpolate("monotone");
+
+    //   var graph = svg02.select('graph').data(data2).enter().append("g")
+    // .attr("class", "city");
+
+      svg02.append("path")
+        .datum(data2)
+        .attr("class", "line")
+        .attr("stroke", "grey")
+        .attr("stroke-width", 5)
+        .attr("fill", "none")
+        .call(redraw);
+
+      // svg02.append("path")
+      //   .datum(data)
+      //   .attr("class", "line")
+      //   .attr("stroke", "red")
+      //   .attr("stroke-width", 5)
+      //   .attr("fill", "none")
+      //   .call(redraw);        
+
+      svg02.node().focus();
+
+      function redraw() {
+        svg02.select("path").attr("d", line);
+
+        // var color = d3.range(0, data2.length).map(function(i){
+        //   d3.scale.category10[i];
+        // });
+        var color = d3.scale.category10();
+
+        // console.log(color);
+
+        colors.push(color);        
+        var circle = svg02.selectAll("circle")
+            .data(data2);
+
+        circle.enter().append("circle")
+            .attr("cx",function(d,i){return x(d.x);})
+            .attr("cy",function(d,i){return y(d.y);})        
+            .attr("r", 1e-6)
+            .attr("fill", color)
+            .on("drag", function(d) { selected = dragged = d; redraw(); })
+            .on("mousedown", function(d) { selected = dragged = d; redraw(); })
+            .call(drag)
+          .transition()
+            .duration(750)
+            .ease("elastic")
+            .attr("r", 6.5);
+
+
+        circle
+            .classed("dragging", function(d) { console.log('draginng update',d,d === selected);return d === selected; })
+            // .classed("selected", function(d) { return d === selected; })
+            // .attr("cx", function(d) { return x(d.x); })
+            .attr("cy", function(d) { return y(d.y); });
+
+        circle.exit().remove();
+
+        // if (d3.event) {
+        //   // d3.event.preventDefault();
+        //   // d3.event.stopPropagation();
+        //   d3.event.preventDefault();          
+        //   d3.event.stopPropagation();
+
+        // }
+      };
+
+      console.log('clicked....');
+      // click event listner作成
+      // svg02.on("click",function(){
+      //   console.log('clicked');
+      //   // accessor function
+      //   var lineFunction 
+      //         = d3.svg.line()
+      //                 .x(function(d,i) { return d[0]; })
+      //                 .y(function(d,i) { return d[1]; })
+      //                 .interpolate("monotone");  
+
+      //   // 円と線を削除                
+      //   svg02.selectAll("circle")
+      //        .remove();
+      //   svg02.selectAll("path")
+      //        .remove();
+
+      //   // マウスの座標を取得、保存
+      //   var mousePos = d3.mouse(this);
+      //   circles.push(mousePos);
+
+      // 　　// 色を生成、保存
+      //   var color = d3.rgb(Math.floor(Math.random()*255)+1,
+      //                       Math.floor(Math.random()*255)+1,
+      //                       Math.floor(Math.random()*255)+1
+      //                      );
+      //   colors.push(color);
+
+      //   // 線を描画
+      //   svg02.append("path")
+      //        .attr("d", lineFunction(circles))
+      //        .attr("stroke", "grey")
+      //        .attr("stroke-width", 5)
+      //        .attr("fill", "none");          
+
+      //   // 円を描画
+      //   svg02.selectAll("circle")
+      //       .data(circles)
+      //        .enter()
+      //        .append("circle")
+      //       .attr("cx",function(d,i){return circles[i][0];})
+      //       .attr("cy",function(d,i){return circles[i][1];})
+      //       .attr("r",15)
+      //       .style("fill",function(d,i){return colors[i];})
+      //        .on("mousedown",function(){d3.select(this).attr("opacity",0.7);})
+      //        .on("mouseup",function(){d3.select(this).attr("opacity",1.0);})
+      //        .on("mouseout",function(){d3.select(this).attr("opacity",1.0);})
+      //        .call(drag);            
+      // });
+
+      function dragstarted(d) {
+        console.log('Drag started');
+        d3.event.sourceEvent.stopPropagation();
+        d3.event.sourceEvent.preventDefault();
+        d3.select(this).classed("dragging", true);
+        console.log('Drag started2', d3.select(this));
+      }
+
+      function dragged(d) {
+        console.log('Draged');
+        selected = dragged = d3.mouse(svg02.node());
+        // var x1 = d3.select(this).attr("cx");
+        // var y1 = d3.select(this).attr("cy");    
+        // d.x = x.invert(Math.min(width,d3.event.dx));
+        // d.y = y.invert(Math.min(height,d3.event.dy)); 
+        // d.x = x.invert(Math.min(width,dragged[0]));
+        d.y = y.invert(Math.min(height,dragged[1]));         
+        // d3.select(this).attr("cx", cx);
+        // d3.select(this).attr("cy", cy);    
+        console.log("node",d3.mouse(svg02.node()));
+        // console.log("d3.event",d3.event, d3.event.dx, d3.event.dy, d3.event.x,d3.event.y, d, d.x, d.y);
+        // d3.select(this).attr("cx", d.x = d3.event.x).attr("cy", d.y = d3.event.y);
+        // console.log("selected",{x: selected[0], y: selected[1]});
+        // console.log("selected2", d3.select(this));
+        // console.log("this", {x1, y1});
+        // var m = d3.map(data2, function(d){return x(d.x);});
+        // console.log("get",m.get(x1).y, y(1/cy), d3.event.dy);
+        // m.set(m.get(x1), 14);
+        // console.log(m);
+        // data2[0] = {x:1, y:14};
+        // data2.push({x: selected[0], y: selected[1]});
+        // data2.push(selected = dragged = d3.mouse(svg02.node()));
+        redraw();                 
+        // // console.log('Draged ' + d3.event.dx + '|' + d3.event.dy);
+        // // console.log(d);
+        // // d3.select(this).attr("transform", "translate(" + d3.event.dx + "," + d3.event.dy + ")");        
+        // var draggedCircles = [{ "x": cx, "y": cy}];
+
+        // d3.select(this)
+        //   .data(draggedCircles)
+        //   .attr("cx", function (d) { return d.x; })
+        //   .attr("cy", function (d) { return d.y; });
+      }
+
+      function dragended(d) {
+        console.log('Drag Ended');
+        d3.select(this).classed("dragging", false);
+        dragged = null;
+      }    
+
+      // function mousedown() {
+      //   points.push(selected = dragged = d3.mouse(svg02.node()));
+      //   redraw();
+      // }
+
+      // function mousemove() {
+      //   console.log('Mouse Move');
+      //   if (!dragged) return;
+      //   console.log('Mouse Move2');
+      //   var m = d3.mouse(svg02.node());
+      //   dragged.x = x.invert(Math.max(0, Math.min(width, m[0])));
+      //   dragged.y = y.invert(Math.max(0, Math.min(height, m[1])));
+      //   redraw();
+      // }
+      // function mouseup() {
+      //   if (!dragged) return;
+      //   mousemove();
+      //   dragged = null;
+      // }                  
+    
+    </script>
+</body>
+<footer class="footer">
+    <div class="container">
+    <ul class="footer-links">
+        <li>© 2013</li>
+        <li><a href='https://github.com/imwilsonxu/flask-datatables'>About</a></li>
+    </ul>
+    </div>
+</footer>
+
+</html>

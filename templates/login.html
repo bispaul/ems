@@ -1,0 +1,37 @@
+{% extends "basetemplate.html" %}
+{% from "flask_user/_macros.html" import render_field, render_checkbox_field, render_submit_field %}
+{% block title %}Login{% endblock %}
+{% block script %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/signin.css') }}">      
+    <style>
+      .bars {
+                display: block;
+                width: 20px;
+                height: 3px;    
+                background-color: #333;
+                box-shadow: 0 5px 0 #333, 0 10px 0 #333;
+            }
+      .nav>li>a:hover, .nav>li>a:focus {
+                text-decoration: none;
+                background-color: #fff;
+            }
+      .nav .open>a, .nav .open>a:hover, .nav .open>a:focus {
+                background-color: #fff;
+                border-color: #428bca;
+            }
+    </style>
+{% endblock %}
+{% block content %}
+    <div class="container">
+      <form class="form-signin" role="form" method="POST" action="{{ url_for('ems.loginpost') }}">
+        <h2 class="form-signin-heading">Please sign in</h2>
+        <input type="userid" class="form-control" placeholder="Userid" required autofocus>
+        <input type="password" class="form-control" placeholder="Password" required>
+        <label class="checkbox">
+          <input type="checkbox" value="remember-me"> Remember Me
+        </label>
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
+      </form>
+    </div> <!-- /container -->
+{% endblock %}

@@ -1,0 +1,1835 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+<html> 
+<head> 
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="description" content="Login Page.">
+    <meta name="author" content="">
+    <title>Zeerone Map Services</title>
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}"> -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+    <style>
+/*      * {
+            border: 1px solid red !important;
+        }*/
+
+/*      * {
+            -webkit-box-sizing: border-box;
+            -moz-box-sizing: border-box;
+            -ms-box-sizing: border-box;
+            box-sizing: border-box;
+        }*/
+      /*
+      A custom Bootstrap 3.1 theme from http://bootply.com\
+
+      This CSS code should follow the 'bootstrap.css'
+      in your HTML file.
+
+      license: MIT
+      author: bootply.com
+      */
+
+
+      html,body{
+          height:100%;
+      }
+
+      body{
+          padding-top:50px; /*padding for navbar*/
+      }
+
+      .navbar-custom .icon-bar {
+        background-color:#5cb85c;
+      }
+
+      .navbar-custom {
+        background-color:#5cb85c;
+          color:#5cb85c;
+      }
+
+      .navbar-custom li>a:hover,.navbar-custom li>a:focus {
+        background-color:#005C37;
+      }
+
+      .navbar-custom a{
+          color:#fefefe;
+      }
+
+      .navbar-custom .form-control:focus {
+        border-color: #49bfff;
+        outline: 0;
+        -webkit-box-shadow: inset 0 0 0;
+        box-shadow: inset 0 0 0;
+      }
+
+      #main, #main>.row {
+        height:100%;
+      }
+
+      #main>.row {
+          overflow-y:scroll;
+      }
+
+      #left {
+        height:100%;
+      }
+
+      #map-canvas {
+        width:74%;
+        height:calc(100% - 0);
+        position:absolute;
+        right:10px;
+        top:50px;
+        bottom:20px;
+        overflow:hidden;
+      }  
+
+/*      .footer {
+          background-color:#ffffff;
+          bottom:0;
+          position:fixed;
+          padding:1px;
+      }*/
+      /* Set the fixed height of the footer here */
+      #footer {
+        height: 20px;
+        background-color:#5cb85c;
+        margin-top:5px;
+        padding-top:2px;
+        padding-bottom:2px;
+        bottom:0;
+        position:fixed;
+        width: 100%;
+      }
+
+      .fixed {
+          position: fixed;
+          bottom:25px;
+       }
+
+/*      #plotForm .form-control-feedback {
+          pointer-events: auto;
+      }
+
+      #plotForm .form-control-feedback:hover {
+          cursor: pointer;
+      } */
+
+ /*     #plotForm label.error {
+        font-weight: bold;
+        color: red;
+        padding: 2px 8px;
+        margin-top: 2px;
+      }*/
+      #plotModal, #editplotModal { 
+        width: 100%;
+        left: 39%;
+        top: 7%;
+        /*top: 25px;*/
+        background-color: transparent; 
+        max-height: 91%;
+        height: auto;
+        /*position: absolute;*/
+      }
+      #plotModal .modal-body, #editplotModal .modal-body {
+          max-height: calc(100vh - 260px);
+          overflow-y: scroll;
+          height: auto;
+          /*position: relative;*/
+      }
+
+    </style>
+    <script type="text/javascript" src="http://maps.google.co.in/maps/api/js?sensor=false&libraries=places,geometry,drawing"></script> 
+    <script src="{{ url_for('static', filename='js/jquery-2.1.3.min.js') }}"></script>
+    <!-- // <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>  -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+    <!-- // <script src="{{ url_for('static', filename='js/jquery.validate.min.js') }}"></script> -->
+    <script src="{{ url_for('static', filename='js/validator.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/mapiconmaker.js') }}"></script>
+    <script type="text/javascript">    
+        //declare namespace
+        var zms = {};
+ 
+        //declare map
+        var map;
+
+        var data = {
+            type: "Feature",
+            geometry: {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [-73.974228, 40.75597],
+                  [-73.983841, 40.742931],
+                  [-74.008133, 40.75307500000001],
+                  [-73.998131, 40.765915],
+                  [-73.974228, 40.75597]
+                ]
+              ]
+            }
+        };
+          var ind = {
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "1",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              76.43269529566169,
+              22.682638096611512
+            ],
+            [
+              76.43288841471076,
+              22.682568803495478
+            ],
+            [
+              76.43323173746467,
+              22.68223223643359
+            ],
+            [
+              76.43347850069404,
+              22.68201445730617
+            ],
+            [
+              76.43387546762824,
+              22.681776879681706
+            ],
+            [
+              76.43406858667731,
+              22.681648191629872
+            ],
+            [
+              76.43432607874274,
+              22.681776879681706
+            ],
+            [
+              76.43442263826728,
+              22.681895668545405
+            ],
+            [
+              76.43468013033271,
+              22.681826375054094
+            ],
+            [
+              76.43498053774238,
+              22.68172738429146
+            ],
+            [
+              76.43524875864387,
+              22.681707586130347
+            ],
+            [
+              76.43546333536506,
+              22.681707586130347
+            ],
+            [
+              76.43557062372565,
+              22.681707586130347
+            ],
+            [
+              76.43567791208625,
+              22.681559099830928
+            ],
+            [
+              76.43577447161078,
+              22.681341319634193
+            ],
+            [
+              76.43581738695502,
+              22.681212631173516
+            ],
+            [
+              76.43587103113532,
+              22.681103740843202
+            ],
+            [
+              76.43596759065986,
+              22.68098495129332
+            ],
+            [
+              76.43607487902045,
+              22.68090575820288
+            ],
+            [
+              76.43623581156135,
+              22.6808661616405
+            ],
+            [
+              76.4363001845777,
+              22.680004933579504
+            ],
+            [
+              76.43611779436469,
+              22.680014832783353
+            ],
+            [
+              76.43588175997138,
+              22.680133623173795
+            ],
+            [
+              76.43563499674201,
+              22.68015342156219
+            ],
+            [
+              76.43549552187324,
+              22.680143522368354
+            ],
+            [
+              76.435452606529,
+              22.679668360223364
+            ],
+            [
+              76.43563499674201,
+              22.679668360223364
+            ],
+            [
+              76.43565645441413,
+              22.6794604762671
+            ],
+            [
+              76.43575301393867,
+              22.67935158454518
+            ],
+            [
+              76.43568864092231,
+              22.679064505954653
+            ],
+            [
+              76.4355598948896,
+              22.678906117509474
+            ],
+            [
+              76.43547406420112,
+              22.678737829585994
+            ],
+            [
+              76.4344977401197,
+              22.678114172539097
+            ],
+            [
+              76.43431534990668,
+              22.67810427319803
+            ],
+            [
+              76.43395056948066,
+              22.677827091357752
+            ],
+            [
+              76.43302788957953,
+              22.67776769517623
+            ],
+            [
+              76.43161168321967,
+              22.678034977790485
+            ],
+            [
+              76.43153658136725,
+              22.678797225347274
+            ],
+            [
+              76.43153658136725,
+              22.67935158454518
+            ],
+            [
+              76.43167605623603,
+              22.679866344650573
+            ],
+            [
+              76.43183698877692,
+              22.680371203645908
+            ],
+            [
+              76.432030107826,
+              22.680975052159507
+            ],
+            [
+              76.43216958269477,
+              22.681559099830928
+            ],
+            [
+              76.43216958269477,
+              22.68171748521126
+            ],
+            [
+              76.43235197290778,
+              22.68211344786152
+            ],
+            [
+              76.43269529566169,
+              22.682638096611512
+            ]
+          ]
+        ]
+      },
+      "properties": { "name": "Plot1"}
+    },
+    {
+      "type": "Feature",
+      // "id": "2",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              76.42901530489326,
+              22.683410217535027
+            ],
+            [
+              76.42903676256537,
+              22.68201445730617
+            ],
+            [
+              76.4290582202375,
+              22.681826375054094
+            ],
+            [
+              76.42938008531928,
+              22.681252227635813
+            ],
+            [
+              76.43000235781074,
+              22.68022271589907
+            ],
+            [
+              76.43029203638434,
+              22.680004933579504
+            ],
+            [
+              76.43042078241706,
+              22.679925739922993
+            ],
+            [
+              76.43042078241706,
+              22.679826747788
+            ],
+            [
+              76.4308606646955,
+              22.679688158678943
+            ],
+            [
+              76.43107524141669,
+              22.679767352472705
+            ],
+            [
+              76.43133273348212,
+              22.67980694935243
+            ],
+            [
+              76.43149366602302,
+              22.679905941501698
+            ],
+            [
+              76.43167605623603,
+              22.680183119139432
+            ],
+            [
+              76.4317618869245,
+              22.680678077813056
+            ],
+            [
+              76.43193354830146,
+              22.681291824086685
+            ],
+            [
+              76.43204083666205,
+              22.681707586130347
+            ],
+            [
+              76.43233051523566,
+              22.68228173164158
+            ],
+            [
+              76.43251290544868,
+              22.682539106435026
+            ],
+            [
+              76.43281331285834,
+              22.68302415761689
+            ],
+            [
+              76.43301716074347,
+              22.683291429983704
+            ],
+            [
+              76.43353214487433,
+              22.68353890393278
+            ],
+            [
+              76.43426857888699,
+              22.684390210905743
+            ],
+            [
+              76.43478356301785,
+              22.684865356684707
+            ],
+            [
+              76.43508397042751,
+              22.685815643301513
+            ],
+            [
+              76.43508397042751,
+              22.686409569091357
+            ],
+            [
+              76.43255196511745,
+              22.68973550595218
+            ],
+            [
+              76.43160782754421,
+              22.69337810608828
+            ],
+            [
+              76.42838917672634,
+              22.691952752349636
+            ],
+            [
+              76.42671547830105,
+              22.692150719033332
+            ],
+            [
+              76.42662964761257,
+              22.69009185154277
+            ],
+            [
+              76.42868958413601,
+              22.690012663713823
+            ],
+            [
+              76.42937622964382,
+              22.685142524295166
+            ],
+            [
+              76.42911873757839,
+              22.68427142420365
+            ],
+            [
+              76.42901530489326,
+              22.683410217535027
+            ]
+          ]
+        ]
+      },
+      "properties": { "name": "Plot2"}
+    }
+  ]
+};       
+        //trace function for debugging
+        function trace(message)
+        {
+            if (typeof console != 'undefined')
+            {
+            console.log(message);
+            }
+        }
+
+        //declare infowindow in global space
+        var infowindow = new google.maps.InfoWindow();
+         
+        zms.createMarker = function(latitude,longitude,title,contentString)
+        {   
+            var markerLatLng = new google.maps.LatLng(latitude,longitude);
+            var marker = new google.maps.Marker({
+                position: markerLatLng,
+                map: map,
+                title: title
+            });
+            google.maps.event.addListener(marker, 'click', function() {
+                //add contentString using this syntax
+                infowindow.setContent(contentString);
+                infowindow.open(map,marker);
+            });
+        }     
+
+        var infowindow = new google.maps.InfoWindow();
+        var markerGroups = new google.maps.MVCObject();
+        var mymarker = 'MyMarker'
+        zms.createMymarker = function(latitude,longitude,label){
+            var iconOptions = {};
+            iconOptions.width = 32;
+            iconOptions.height = 32;
+            iconOptions.primaryColor = "#FF6666";
+            iconOptions.label = label;
+            iconOptions.labelSize = 0;
+            iconOptions.labelColor = "#000000";
+            iconOptions.shape = "circle";
+            var newIcon = MapIconMaker.createFlatIcon(iconOptions);
+            // https://chart.googleapis.com/chart?cht=it&chs=32x32&chco=FF6666,000000ff,ffffff01&chl=ABC&chx=FF0000,0&chf=bg,s,00000000&ext=.png   
+            var markerLatLng = new google.maps.LatLng(latitude,longitude);
+            var marker = new google.maps.Marker({
+                  position: markerLatLng,
+                  map: map,
+                  icon: newIcon.icon,
+                  title: label //,
+                  // zIndex: -99
+            });
+            marker.bindTo('map',markerGroups,mymarker);
+            // markerGroups.set(mymarker,map);
+            zms.toggleMarker(mymarker, 'mygeojson_checkbox');
+        }  
+
+        zms.toggleMarker = function(marker, id){
+            if ($('#'+id).is(':checked')) 
+            {
+                markerGroups.set(marker,map);
+            }
+            else
+            {
+                markerGroups.set(marker,null);
+            }          
+        }
+
+        //Function that gets run when the document loads
+        zms.initialize = function()
+        {
+            var latlng = new google.maps.LatLng(20,78);
+            var myOptions = {
+                zoom: 4,
+                center: latlng,
+                mapTypeId: google.maps.MapTypeId.HYBRID
+            };
+            map = new google.maps.Map(document.getElementById("map-canvas"), myOptions);
+
+            // drawingManager.setMap(map);
+            zms.drawingManager(map);  
+            // zms.autolocate();            
+            zms.loadGeoJsonString(ind);
+            // google.maps.event.addListener(drawingManager, 'drawingmode_changed', zms.clearSelection);
+            // google.maps.event.addListener(map, 'click', zms.clearSelection);  
+            // zms.plotFormValidation();    
+            // $('#advancedoption').on('shown.bs.collapse', function () {
+            //     $('#plotModal').scrollTo(50,50);
+            // });
+            $('#plotsave').on('click', function() {
+                trace('Submit');
+                $('#plotForm').validator().on('submit', function (e) {
+                  trace('Validate');
+                  if (e.isDefaultPrevented()) {
+                    console.log('Form Error');
+                  } else {
+                      trace('Submit-----Validate');
+                      zms.myplotSetProperty(selectedGeoJSON, $('#plotForm').serializeObject());
+                      // zms.addtoMyLayer(selectedGeoJSON);
+                      $.ajax({
+                        type: 'POST',
+                        // Provide correct Content-Type, so that Flask will know how to process it.
+                        contentType: 'application/json',
+                        // Encode data as JSON.
+                        data: JSON.stringify(selectedGeoJSON),
+                        // This is the type of data expected back from the server.
+                        dataType: 'json',
+                        url: "{{ url_for('plot_save') }}",
+                        success: function (ret) {
+                          alert('JSON posted: ' + JSON.stringify(ret));
+                          // $.ajax({
+                          //   url: "{{ url_for('get_myplot') }}",
+                          //   type: 'GET',
+                          //   dataType: 'application/json',
+                          //   complete: function (data) {
+                          //     alert('JSON posted: ' + JSON.stringify(data));
+                          //   }
+                          // });
+                        }
+                      }); 
+                      trace('Submit-----Validate');               
+                  }
+                });                 
+
+
+                $("#plotForm").trigger('submit');
+                
+            });
+            $.getJSON("{{ url_for('get_myplot') }}", function(data){
+              trace('JSON posted: ' + JSON.stringify(data));
+              trace(data.features.length);
+              if (data.features.length) {
+                zms.addtoMyLayer(data);
+              }
+
+            })
+
+            // $.ajax({
+            //   url: "{{ url_for('get_myplot') }}",
+            //   type: 'GET',
+            //   dataType: 'json',
+            //   complete: function (data) {
+            //     // trace('JSON posted: ' + JSON.stringify(data));
+            //     trace('JSON posted: ' + JSON.stringify(data));
+            //     mydata = data;
+            //     // zms.addtoMyLayer(data);
+            //   }
+            // });
+            // zms.addtoMyLayer(ind);
+
+        } 
+
+        $.fn.serializeObject = function()
+        {
+            var o = {};
+            var a = this.serializeArray();
+            $.each(a, function() {
+                if (o[this.name] !== undefined) {
+                    if (!o[this.name].push) {
+                        o[this.name] = [o[this.name]];
+                    }
+                    o[this.name].push(this.value || '');
+                } else {
+                    o[this.name] = this.value || '';
+                }
+            });
+            return o;
+        };
+        //set the geocoder
+        var geocoder = new google.maps.Geocoder();
+        //geocode function
+        zms.geocode = function() 
+        {
+            var address = $('#address').val();
+            geocoder.geocode( { 'address': address}, function(results, status) {
+                if (status == google.maps.GeocoderStatus.OK) 
+                {
+                    map.setCenter(results[0].geometry.location);
+                    // var marker = new google.maps.Marker({
+                    //     map: map, 
+                    //     position: results[0].geometry.location
+                    // });
+                } 
+                else 
+                {
+                    alert("Geocode was not successful for the following reason: " + status);
+                }
+            });
+        } 
+
+        //allow pressing "enter"
+        $('#address').keypress(function(e) {
+            console.log("Keypress" + e);
+            if(e.which == 13) {
+                zms.geocode();
+            }
+        });
+
+        zms.autolocate = function() 
+        {
+            var latlng;
+            //Automaticallly findout out the location
+            if (navigator.geolocation) 
+            {
+                navigator.geolocation.getCurrentPosition(success, failure);
+                console.log("In Geolocation");
+            } 
+            else 
+            {
+                console.log('Geo Location is not supported');
+            }
+
+            function success(position)
+            {
+                latlng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude); 
+                trace('Success' + position.coords.latitude + position.coords.longitude);
+                map.setCenter(latlng);
+                map.setZoom(10);
+                zms.drawCircle(latlng, 1000);
+            }
+
+            function failure()
+            {
+                trace('Failure');
+            }          
+        }
+
+        var mylocCircle;
+        //draw circle example 
+        zms.drawCircle = function(centerlatlangobj, radius)
+        {
+            var bufferOptions = {
+                strokeColor: "#FF0000",
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: "#FF0000",
+                fillOpacity: 0.35,
+                map: map,
+                center: centerlatlangobj,
+                radius: radius
+              };                        
+            mylocCircle = new google.maps.Circle(bufferOptions);               
+        }
+     
+
+        //toggle single layers on/off
+        zms.toggleLayer = function(layer,id) 
+        {
+            if ($('#'+id).is(':checked')) 
+            {
+                layer.setMap(map);
+            }
+            else
+            {
+                layer.setMap(null);
+            }
+        }
+
+        //get my plots marking
+        zms.getLandPlots = function()
+        {
+            $.getJSON('http://api.metro.net/agencies/lametro/routes/',
+                function(data)
+                {
+                    trace(data);
+                }
+            );
+        } 
+
+        //select plots
+        zms.selectLandPlots = function()
+        {
+
+        }
+
+        // var drawingManager = new google.maps.drawing.DrawingManager({
+        //     // drawingMode: None,
+        //     drawingControl: true,
+        //     drawingControlOptions: {
+        //       position: google.maps.ControlPosition.TOP_CENTER,
+        //       drawingModes: [
+        //         // google.maps.drawing.OverlayType.MARKER,
+        //         google.maps.drawing.OverlayType.CIRCLE,
+        //         google.maps.drawing.OverlayType.POLYGON//,
+        //         // google.maps.drawing.OverlayType.POLYLINE,
+        //         // google.maps.drawing.OverlayType.RECTANGLE
+        //       ]
+        //     },
+        //     // markerOptions: {
+        //     //   icon: 'images/beachflag.png'
+        //     // },
+        //     circleOptions: {
+        //       // fillColor: '#ffff00',
+        //       // fillOpacity: 1,
+        //       // strokeWeight: 5,
+        //       // clickable: false,
+        //       editable: true,
+        //       zIndex: 1
+        //     },
+        //     polygonOptions: {
+        //         editable: true,
+        //         zIndex: 1
+        //     }
+        // });
+        var drawingManager;
+        zms.drawingManager = function()
+        {
+            // var polyOptions = {
+            //     strokeWeight: 0,
+            //     fillOpacity: 0.45,
+            //     editable: true
+            // };
+            // drawingManager = new google.maps.drawing.DrawingManager({
+            //     drawingMode: google.maps.drawing.OverlayType.POLYGON,
+            //     drawingControlOptions: {
+            //         position: google.maps.ControlPosition.TOP_CENTER,
+            //         drawingModes: [
+            //           google.maps.drawing.OverlayType.POLYGON
+            //         ]
+            //     },
+            //     markerOptions: {
+            //         draggable: true
+            //     },
+            //     polylineOptions: {
+            //         editable: true
+            //     },
+            //     polygonOptions: polyOptions,
+            //     map: mapobj
+            // }); 
+
+            map.data.setControls(['Polygon']);
+            map.data.setStyle({
+                editable: false,
+                draggable: false
+            });
+            map.data.setControlPosition(google.maps.ControlPosition.TOP_CENTER);
+            map.data.addListener('click', function(event) {
+                trace('123');
+                trace(event.feature.getGeometry());
+            });           
+            // mapobj.data.setStyle(function(feature) {
+            //     var color = 'red';
+            //     if (feature.getProperty('isColorful')) {
+            //         color = feature.getProperty('color');
+            //     }
+            //     return /** @type {google.maps.Data.StyleOptions} */({
+            //           fillColor: color,
+            //           strokeColor: color,
+            //           strokeWeight: 2
+            //         });
+            // }); 
+            // mapobj.data.addListener('click', function(event) {
+            //     event.feature.setProperty('isColorful', true);
+            //   });             
+
+            // drawingManager = mapobj.data;
+            // bindDataLayerListeners(mapobj.data);
+            // google.maps.event.addListener(drawingManager, 'overlaycomplete', function (e) {
+            //           drawingManager.setDrawingMode(null);
+
+            //         // Add an event listener that selects the newly-drawn shape when the user
+            //         // mouses down on it.
+            //   if (e.type != google.maps.drawing.OverlayType.MARKER) {
+            //         // Switch back to non-drawing mode after drawing a shape.
+            //         var newShape = e.overlay;
+            //         newShape.type = e.type;
+            //         google.maps.event.addListener(newShape, 'click', function () {
+            //             zms.setSelection(newShape);
+            //         });
+            //         zms.setSelection(newShape);
+            //   }
+            // });
+        }
+        
+        var layer;
+        zms.loadGeoJsonString = function(geoString) 
+        {
+            trace("LoadGeo");
+            // var geojson = JSON.parse(geoString);
+            layer = new google.maps.Data();
+            // map.data.addGeoJson(geoString);
+            layer.addGeoJson(geoString);
+            layer.setMap(map);
+            zms.zoom(layer);
+            zms.listener(layer); 
+        }
+
+        /**
+         * Update a map's viewport to fit each geometry in a dataset
+         * @param {google.maps.Map} map The map to adjust
+         */
+        zms.zoom = function(layer) 
+        {
+          var bounds = new google.maps.LatLngBounds();
+          // map.data.forEach(function(feature) {
+          //   zms.processPoints(feature.getGeometry(), bounds.extend, bounds);
+          // });
+          layer.forEach(function(feature) {
+            zms.processPoints(feature.getGeometry(), bounds.extend, bounds);
+          });
+          map.fitBounds(bounds);
+          trace("Zoom");
+        }
+
+
+        // layer.setStyle(function(feature) {
+        //     var color = 'gray';
+        //     if (feature.getProperty('isColorful')) {
+        //       color = feature.getProperty('color');
+        //     }
+        //     return /** @type {google.maps.Data.StyleOptions} */({
+        //       fillColor: 'green',
+        //       strokeColor: 'black',
+        //       strokeWeight: 1
+        //     });
+        // });
+        var mylayer = new google.maps.Data();
+        zms.addtoMyLayer = function(geoJSON){
+            trace("LoadGeo2");
+            // var geojson = JSON.parse(geoString);
+            // map.data.addGeoJson(geoString);
+            // mylayer.addGeoJson(geoString);
+            mylayer.addGeoJson(geoJSON);
+            mylayer.setMap(map);
+            // mylayer.setMap(map);
+            // zms.zoom();
+            // zms.listener(mylayer);
+            // trace('Length' + mylayer.length);
+            trace(mylayer);
+            mylayer.setStyle(function(feature){
+                // if (feature.getProperty('isColorful')) {
+                  // color = feature.getProperty('color');
+                  return({fillColor: 'green' ,strokeColor: 'black',fillOpacity: .5, strokeWeight: 2});
+                // }                                   
+            });          
+            trace(geoJSON);           
+            zms.zoom(mylayer);
+            zms.addMyPointer(mylayer);
+            zms.mylistener(mylayer, geoJSON);  
+        }
+
+        zms.addMyPointer = function(layer){  
+            mylayer.forEach(function(feature) {
+              trace(feature);
+              var bounds = new google.maps.LatLngBounds();
+              zms.processPoints(feature.getGeometry(), bounds.extend, bounds);
+              trace(bounds.getCenter());
+              zms.createMymarker(bounds.getCenter().lat(),bounds.getCenter().lng(),feature.getProperty('name'));
+            });   
+        }
+
+        var myplotID;
+        zms.myplotGetId = function(){
+            mylayer.toGeoJson(function(geoJson){
+              myplotID = geoJson.features.length + 1;
+            });
+        }
+
+        zms.myplotSetProperty = function(geoJSON, propertyJSON){
+            // trace(propertyJSON);
+            // trace(typeof(propertyJSON));
+            // var x = {"name":"Plot1","group":"","district":"Dewas","village":"Matmor","state":"Madhya Pradesh","pin":"455227","country":"India","area":"159.80539456925243","valueperacre":"","costperacre":"","optionsown":"True","irrigation_checkbox":"True","notes":""};
+            // trace(typeof(x));
+            // trace(JSON.stringify(geoJSON, null, 2));
+            // geoJSON.properties = {"name":"Plot1","group":"","district":"Dewas","village":"Matmor","state":"Madhya Pradesh","pin":"455227","country":"India","area":"159.80539456925243","valueperacre":"","costperacre":"","optionsown":"True","irrigation_checkbox":"True","notes":""};
+            // trace('*******');
+            // trace(geoJSON);
+            geoJSON.properties = propertyJSON;
+        }
+
+        zms.mylistener = function(layer){
+            layer.addListener('click', function(event) {
+              trace(event);
+              trace("Biswadip1");
+              // $('#editplotModal').modal({backdrop: 'static'});
+              $('#myTab a[href="#myland"]').tab('show');
+              document.getElementById("edname").value = event.feature.getProperty('name');
+              document.getElementById("edvillage").value = event.feature.getProperty('village');
+              document.getElementById("edplotid").value = event.feature.getProperty('plotid');
+              document.getElementById("edarea").value = event.feature.getProperty('area');
+              document.getElementById("eddistrict").value = event.feature.getProperty('district');
+              document.getElementById("edstate").value = event.feature.getProperty('state');
+              document.getElementById("edpin").value = event.feature.getProperty('pin');
+              document.getElementById("edcountry").value = event.feature.getProperty('country');
+              document.getElementById("edvalueperacre").value = event.feature.getProperty('valueperacre');
+              document.getElementById("edcostperacre").value = event.feature.getProperty('costperacre');
+              document.getElementById("edoptionsown").value = event.feature.getProperty('optionsown');     
+              document.getElementById("ednotes").value = event.feature.getProperty('notes'); 
+
+              $('#editboundaries').on('click', function(event) {
+                mylayer.setControls(['Polygon']);
+                mylayer.setStyle({
+                    editable: true,
+                    draggable: true
+                });
+                mylayer.setControlPosition(google.maps.ControlPosition.TOP_CENTER);
+                mylayer.addListener('click', function(event) {
+                    trace(event.feature.getGeometry());
+                });
+                // trace(event);
+                trace("Biswadip");
+              });                                               
+            });
+           
+            trace(markerGroups);
+
+            google.maps.event.addListener(markerGroups , 'click', function(event) {
+              trace("Here");
+            });
+            // google.maps.event.addListener(marker, 'click', function() {
+            //     //add contentString using this syntax
+            //     infowindow.setContent(contentString);
+            //     infowindow.open(map,marker);
+            // });            
+        }
+
+        var selectedGeoJSON;
+        zms.listener = function(layer){
+            layer.addListener('mouseover', function(event) {
+                layer.revertStyle();
+                // trace(event.feature);
+                layer.overrideStyle(event.feature, {fillColor: 'red' ,strokeColor: 'red',fillOpacity: .5, strokeWeight: 2});
+                // trace(event.feature);
+            });
+
+            layer.addListener('mouseout', function(event) {
+                layer.revertStyle();
+            });
+
+            layer.addListener('click', function(event) {
+                // trace(event);
+                trace(event.feature);
+                trace(layer);
+                zms.myplotGetId();
+                event.feature.setProperty('isColorful', true);
+                event.feature.toGeoJson(function(geoJson) {
+                    trace('Geo');
+                    trace(geoJson);
+                    // zms.myplotSetProperty(geoJson);
+                    selectedGeoJSON = geoJson;
+                    // zms.addtoMyLayer(selectedGeoJSON);
+                });
+                
+                // layer.overrideStyle(event.feature, {fillColor: 'green' ,strokeColor: 'black',fillOpacity: .5, strokeWeight: 2});
+                // layer.setStyle(event.feature, {fillColor: 'green' ,strokeColor: 'black',fillOpacity: .5, strokeWeight: 2});
+                // event.feature.setProperty('isColorful', true);
+                // mylayer.setStyle(function(feature){
+                //     if (feature.getProperty('isColorful')) {
+                //       // color = feature.getProperty('color');
+                //       return({fillColor: 'green' ,strokeColor: 'black',fillOpacity: .5, strokeWeight: 2});
+                //     }                                   
+                // });
+                var area;
+                event.feature.getGeometry().getArray().forEach(function(points){
+                    area = google.maps.geometry.spherical.computeArea(points.getArray());
+                });
+                var bounds = new google.maps.LatLngBounds();
+                zms.processPoints(event.feature.getGeometry(), bounds.extend, bounds);
+                // trace(bounds);
+                // trace(google.maps.geometry.spherical.computeArea(pathLeftLatLng));
+                // trace(bounds.getCenter().lat(), bounds.getCenter().lng());
+                
+                geocoder.geocode({latLng: bounds.getCenter()}, function(responses) {
+                            // trace(bounds.getCenter());
+                            if (responses && responses.length > 0) {
+                                // responses.forEach(function(res){
+                                //   trace(res.formatted_address);
+                                // });
+                                // address = ;
+                                // infoWindow.setContent(
+                                // "<div class='place'>" + responses[0].formatted_address 
+                                // + "<br /> <small>" 
+                                // + "Latitude: " + marker.getPosition().lat() + "<br>" 
+                                // + "Longitude: " + marker.getPosition().lng() + "</small></div>"
+                                // );
+                                // infoWindow.open(map, marker);
+                                var results = responses;
+                                var i=0;
+                                for(var j=0;j < results[i].address_components.length; j++){
+                                    for(var k=0; k < results[i].address_components[j].types.length; k++){
+                                      trace(results[i].address_components[j].types[k]);
+                                      trace(results[i].address_components[j].long_name);
+                                      if (results[i].address_components[j].types[k] == 'locality'){
+                                        document.getElementById("village").value = results[i].address_components[j].long_name;
+                                      }
+                                      if (results[i].address_components[j].types[k] == 'administrative_area_level_2'){
+                                        document.getElementById("district").value = results[i].address_components[j].long_name;
+                                      } 
+                                      if (results[i].address_components[j].types[k] == 'administrative_area_level_1'){
+                                        document.getElementById("state").value = results[i].address_components[j].long_name;
+                                      }  
+                                      if (results[i].address_components[j].types[k] == 'postal_code'){
+                                        document.getElementById("pin").value = results[i].address_components[j].long_name;
+                                      }
+                                      if (results[i].address_components[j].types[k] == 'country'){
+                                        document.getElementById("country").value = results[i].address_components[j].long_name;
+                                      }                                       
+                                    }
+                                }
+                                document.getElementById("area").value = 0.000247105 * area; /*Sqm to Acres*/
+                                trace(typeof(plotid));
+                                document.getElementById("plotid").value = myplotID;
+                                if (!(document.getElementById("name").value) || (document.getElementById("name").value) == 'Plot' + myplotID){
+                                  document.getElementById("name").value = 'Plot' + myplotID;
+                                } 
+                                zms.createMarker(bounds.getCenter().lat(),bounds.getCenter().lng(),'Plot' + event.feature.id, event.feature.getProperty('name') + '\n Area:' + area +' sqm' + '\n address' + responses[0].formatted_address);                                
+                            } else {
+                                alert('Error: Google Maps could not determine the address of this location.');
+                            }
+                });             
+                $('#plotModal').modal();
+                // infowindow.setContent("Hello World");
+                // infowindow.open(map, bounds.getCenter());            
+            });
+                         
+        }
+
+
+        /**
+         * Process each point in a Geometry, regardless of how deep the points may lie.
+         * @param {google.maps.Data.Geometry} geometry The structure to process
+         * @param {function(google.maps.LatLng)} callback A function to call on each
+         *     LatLng point encountered (e.g. Array.push)
+         * @param {Object} thisArg The value of 'this' as provided to 'callback' (e.g.
+         *     myArray)
+         */
+        zms.processPoints = function(geometry, callback, thisArg) 
+        {
+          if (geometry instanceof google.maps.LatLng) 
+          {
+            callback.call(thisArg, geometry);
+          } 
+          else if (geometry instanceof google.maps.Data.Point) 
+          {
+            callback.call(thisArg, geometry.get());
+          } 
+          else 
+          {
+            geometry.getArray().forEach(function(g) {
+              zms.processPoints(g, callback, thisArg);
+            });
+          }
+        }
+
+        var geoJsonInput;
+        // Refresh different components from other components.
+        zms.refreshGeoJsonFromData = function() {
+            // trace('start');
+          map.data.toGeoJson(function(geoJson) {
+            trace(geoJson);
+            geoJsonInput = JSON.stringify(geoJson, null, 2);
+            // zms.refreshDownloadLinkFromGeoJson();
+          });
+        }
+
+        // Refresh download link.
+        zms.refreshDownloadLinkFromGeoJson = function() {
+          trace(geoJsonInput);
+        }
+
+        var selectedShape;
+        zms.clearSelection = function() {
+            if (selectedShape) {
+                selectedShape.setEditable(false);
+                //selectedShape = null;
+            }
+        }
+        zms.setSelection= function(shape) {
+            zms.clearSelection();
+            selectedShape = shape;
+            shape.setEditable(true);
+            // selectColor(shape.get('fillColor') || shape.get('strokeColor'));
+        }
+
+        zms.deleteSelectedShape= function() {
+            if (selectedShape) {
+                selectedShape.setMap(null);
+                // document.getElementById('info').innerHTML = "";
+            }
+        }
+
+        zms.setSelection = function(shape) {
+            zms.clearSelection();
+            selectedShape = shape;
+            shape.setEditable(true);
+            // selectColor(shape.get('fillColor') || shape.get('strokeColor'));
+        }
+
+                                                                                 
+</script> 
+</head>
+<body onload="zms.initialize()"> 
+
+    <!-- begin template -->
+    <div class="navbar navbar-custom navbar-fixed-top">
+     <div class="navbar-header"><a class="navbar-brand" href="#">Brand</a>
+          <a class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+        </div>
+        <div class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="#">Home</a></li>
+            <li><a href="#">Link</a></li>
+            <li><a href="#">Link</a></li>
+            <li>&nbsp;</li>
+          </ul>
+          <form class="navbar-form">
+            <div class="form-group" style="display:inline;">
+              <div class="input-group">
+                <div class="input-group-btn">
+                  <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-chevron-down"></span></button>
+                  <ul class="dropdown-menu">
+                    <li><a href="#">Category 1</a></li>
+                    <li><a href="#">Category 2</a></li>
+                    <li><a href="#">Category 3</a></li>
+                    <li><a href="#">Category 4</a></li>
+                    <li><a href="#">Category 5</a></li> 
+                  </ul>
+                </div>
+                <input type="text" class="form-control" placeholder="What are searching for?">
+                <span class="input-group-addon"><span class="glyphicon glyphicon-search"></span> </span>
+              </div>
+            </div>
+          </form>
+        </div>
+    </div>    
+    <div id="map-canvas"></div>
+    <div class="container-fluid" id="main">
+      <div class="row">
+        <div class="col-xs-3" id="left">
+          <ul id="myTab" class="nav nav-tabs" role="tablist">
+            <li role="presentation"  class="active"><a href="#search" aria-controls="search" role="tab" data-toggle="tab"> Search </a></li>
+            <li role="presentation"><a href="#myland" aria-controls="myland" role="tab" data-toggle="tab"> My Land </a></li>
+          </ul>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane active" id="search">
+                  <div class="well form-inline">
+                      <input type="text" class="form-control" id="address" value="india">
+                      <input type="button" value="find" onClick="zms.geocode()" class="btn btn-primary"><br>
+                  </div>
+                  <div class="well form-search">
+                      <input id="mylocCircle_checkbox" type="checkbox" checked="checked" onClick="zms.toggleLayer(mylocCircle,'mylocCircle_checkbox')" /> My Location<br>
+                      <input id="pregeojsonland_checkbox" type="checkbox" checked="checked" onClick="zms.toggleLayer(layer,'pregeojsonland_checkbox')" /> Plot Grid<br>
+                      <input id="mygeojson_checkbox" type="checkbox" checked="checked" onClick="zms.toggleLayer(mylayer,'mygeojson_checkbox'); zms.toggleMarker('MyMarker','mygeojson_checkbox');" /> My Plot<br>
+                      <input type="button" value="GetGeoJson" onClick="zms.refreshGeoJsonFromData()" class="btn btn-primary"><br>
+                      <input type="button" value="delete shape" onClick="zms.deleteSelectedShape()" class="btn btn-primary"><br>
+                  </div> 
+            </div>
+            <div role="tabpanel" class="tab-pane" id="myland">
+<!--                   <form class="form-horizontal" id="plotForm1" data-toggle="validator">
+                    <div class="form-group" >
+                      <label for="Name" class="col-sm-3 control-label">Name</label>
+                      <div class="col-sm-9">
+                          <input type="text" class="form-control" id="name" placeholder="ex: Plot1" data-minlength="2" required>
+                      </div>
+                    </div> 
+                    <div class="form-group">
+                      <label for="Group" class="col-sm-3 control-label">Group</label>
+                      <div class="col-sm-9">
+                        <input type="text" class="form-control" id="group" placeholder="ex: Group1">
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label for="District" class="col-sm-3 control-label">District</label>
+                      <div class="col-sm-9">
+                        <input type="text" class="form-control" id="district" required>
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label for="Village" class="col-sm-3 control-label">Village</label>
+                      <div class="col-sm-9">
+                        <input type="text" class="form-control" id="village" required>
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label for="State" class="col-sm-3 control-label">State</label>
+                      <div class="col-sm-9">
+                        <input type="text" class="form-control" id="state" required>
+                      </div>
+                    </div> 
+                    <div class="form-group">
+                      <label for="PIN" class="col-sm-3 control-label">Pin/Zip</label>
+                      <div class="col-sm-9">
+                        <input type="text" class="form-control" id="pin" type="number" required>
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label for="Country" class="col-sm-3 control-label">Country</label>
+                      <div class="col-sm-9">
+                        <input type="text" class="form-control" id="country" required>
+                      </div>
+                    </div>                                          
+                    <div class="form-group">
+                      <label for="PlotId" class="col-sm-3 control-label">Plot Id</label>
+                      <div class="col-sm-9">
+                        <input type="text" class="form-control" id="plotid" data-minlength="1" required>
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label for="Acre" class="col-sm-3 control-label">Acre</label>
+                      <div class="col-sm-9">
+                        <input type="text" class="form-control" id="area" type="number" required>
+                      </div>
+                    </div> 
+                    <a class="text-left" data-toggle="collapse" href="#advancedoption" aria-expanded="false" aria-controls="advancedoption">
+                      <p class="text-muted">Advanced Option</p>
+                    </a>                    
+                    <div class="collapse" id="advancedoption">
+                      <div class="form-group">
+                        <label for="ValueperAcre" class="col-sm-5 control-label">Value per Acre</label>
+                        <div class="col-sm-7">
+                          <div class="input-group">
+                            <div class="input-group-addon">&#x20B9;</div>
+                            <input type="text" class="form-control" id="valueperacre" placeholder="Amount">
+                          </div>
+                        </div>
+                      </div>                  
+                      <div class="form-group">
+                        <label for="CostperAcre" class="col-sm-5 control-label">Cost per Acre</label>
+                        <div class="col-sm-7">
+                          <div class="input-group">
+                            <div class="input-group-addon">&#x20B9;</div>
+                            <input type="text" class="form-control" id="costperacre" placeholder="Amount">
+                          </div>
+                        </div>
+                      </div>  
+                      <div class="form-group">
+                        <label for="OwnRent" class="col-sm-5 control-label">Own/Rent</label>
+                        <div class="col-sm-7">
+                          <div class="radio">
+                            <label>
+                              <input type="radio" name="own" id="optionsown" value="own" checked>
+                              Own this land
+                            </label>
+                          </div>
+                          <div class="radio">
+                            <label>
+                              <input type="radio" name="rent" id="optionsrent" value="rent">
+                              Rent this Land
+                            </label>
+                          </div>
+                        </div>
+                      </div>                        
+                      <div class="form-group">
+                        <label for="Irrigation" class="col-sm-5 control-label">Irrigation</label>
+                        <div class="col-sm-7">
+                          <div class="checkbox">
+                            <label>
+                              <input type="checkbox" name="irrigation" id="irrigation_checkbox" onClick="" checked/>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="form-group">
+                        <label for="Notes" class="col-sm-5 control-label">Notes</label>
+                        <div class="col-sm-7">
+                          <textarea class="form-control" rows="3"></textarea>
+                        </div>
+                      </div>                                           
+                    </div>
+                    <div class="form-group">
+                      <div class="col-sm-offset-3 col-sm-9">
+                        <input type="submit" value="Save Changes" class="btn btn-default submit">
+                        <input type="reset" value="Cancel" class="btn btn-danger">
+                      </div>
+                    </div>                                                                                                                                               
+                  </form> -->
+                  <form class="form-horizontal" id="editplotForm" data-toggle="validator">
+                    <div class="form-group" >
+                      <label for="Name" class="col-sm-3 control-label">Name</label>
+                      <div class="col-sm-9">
+                          <input type="text" class="form-control" id="edname" name="name" placeholder="ex: Plot1" data-minlength="2" data-maxlength="20" pattern="^([_A-z0-9]){3,}$"required>
+                      </div>
+                      <!-- <span class="help-block">Minimum of 2 characters</span> -->
+                    </div> 
+                    <div class="form-group">
+                      <label for="Group" class="col-sm-3 control-label">Group</label>
+                      <div class="col-sm-9">
+                        <input type="text" class="form-control" id="edgroup" name="group" placeholder="ex: Group1" data-maxlength="20" pattern="^([_A-z0-9]){3,}$">
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label for="District" class="col-sm-3 control-label">District</label>
+                      <div class="col-sm-9">
+                        <input type="text" class="form-control" id="eddistrict" name="district" data-maxlength="75" pattern="^([ A-z]){3,}$" required>
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label for="Village" class="col-sm-3 control-label">Village</label>
+                      <div class="col-sm-9">
+                        <input type="text" class="form-control" id="edvillage" name="village" data-maxlength="75" pattern="^([ A-z]){3,}$" required>
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label for="State" class="col-sm-3 control-label">State</label>
+                      <div class="col-sm-9">
+                        <input type="text" class="form-control" id="edstate" name="state" data-maxlength="75" pattern="^([ A-z]){3,}$" required>
+                      </div>
+                    </div> 
+                    <div class="form-group">
+                      <label for="PIN" class="col-sm-3 control-label">Pin/Zip</label>
+                      <div class="col-sm-9">
+                        <input type="text" class="form-control" id="edpin" name="pin" type="number" data-maxlength="20" pattern="^([0-9]){3,}$" required>
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label for="Country" class="col-sm-3 control-label">Country</label>
+                      <div class="col-sm-9">
+                        <input type="text" class="form-control" id="edcountry" name="country" data-maxlength="75" pattern="^([ A-z]){3,}$" required>
+                      </div>
+                    </div>                                          
+                    <div class="form-group">
+                      <label for="PlotId" class="col-sm-3 control-label">Plot Id</label>
+                      <div class="col-sm-9">
+                        <input type="number" class="form-control" id="edplotid" name="plotid" data-minlength="1" pattern="([0-9])*" required readonly="readonly">
+                      </div>
+                      <!-- <span class="help-block">Minimum of 1 characters</span> -->
+                    </div>
+                    <div class="form-group">
+                      <label for="Acre" class="col-sm-3 control-label">Acre</label>
+                      <div class="col-sm-9">
+                        <input type="number" step="any" class="form-control" id="edarea" name="area" required>
+                      </div>
+                    </div> 
+                    <div class="form-group">
+                      <label for="Filler" class="col-sm-3 control-label"></label>
+                      <div class="col-sm-9">
+                        <input type="button" value="Edit Boundaries" class="btn btn-default" id="editboundaries">
+                      </div>
+                    </div>
+                    <a class="text-left" data-toggle="collapse" href="#edadvancedoption" aria-expanded="false" aria-controls="advancedoption">
+                      <p class="text-muted">Advanced Option</p>
+                    </a>                    
+                    <div class="collapse" id="edadvancedoption">
+                      <div class="form-group">
+                        <label for="ValueperAcre" class="col-sm-5 control-label">Value per Acre</label>
+                        <div class="col-sm-7">
+                          <div class="input-group">
+                            <div class="input-group-addon">&#x20B9;</div>
+                            <input type="number" step="any" class="form-control" id="edvalueperacre" name="valueperacre" data-maxlength="12" placeholder="Amount">
+                          </div>
+                        </div>
+                      </div>                  
+                      <div class="form-group">
+                        <label for="CostperAcre" class="col-sm-5 control-label">Cost per Acre</label>
+                        <div class="col-sm-7">
+                          <div class="input-group">
+                            <div class="input-group-addon">&#x20B9;</div>
+                            <input type="number" step="any" class="form-control" id="edcostperacre" name="costperacre" data-maxlength="12" placeholder="Amount">
+                          </div>
+                        </div>
+                      </div>  
+                      <div class="form-group">
+                        <label for="OwnRent" class="col-sm-5 control-label">Own/Rent</label>
+                        <div class="col-sm-7">
+                          <div class="radio">
+                            <label>
+                              <input type="radio" name="optionsown" id="edoptionsown" value="True" checked>
+                              Own this land
+                            </label>
+                          </div>
+                          <div class="radio">
+                            <label>
+                              <input type="radio" name="optionsown" id="edoptionsrent" value="False">
+                              Rent this Land
+                            </label>
+                          </div>
+                        </div>
+                      </div>                        
+                      <div class="form-group">
+                        <label for="Irrigation" class="col-sm-5 control-label">Irrigation</label>
+                        <div class="col-sm-7">
+                          <div class="checkbox">
+                            <label>
+                              <input type="checkbox" name="irrigation_checkbox" id="edirrigation_checkbox"  value="True" checked/>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="form-group">
+                        <label for="Notes" class="col-sm-5 control-label">Notes</label>
+                        <div class="col-sm-7">
+                          <textarea class="form-control" name="notes" id="ednotes" rows="3" data-maxlength="250"></textarea>
+                        </div>
+                      </div>                                           
+                    </div> 
+                    <div>
+                      <button type="button" class="btn btn-success" id="edplotsave">Save</button>          
+                      <button type="reset" class="btn btn-danger" data-dismiss="modal" id="edplotcancel">Cancel</button>                  
+                    </div>                                                                                                                                                 
+                  </form>                
+            </div>                                                                          
+          </div>                      
+        </div>
+        <div class="col-xs-9"><!--map-canvas will be postioned here--></div>
+      </div>
+    </div>
+    <!-- end template -->
+    <div class="modal fade" id="plotModal" tabindex="-1" role="dialog" aria-labelledby="plotModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+          <div class="modal-header">
+            <!-- <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button> -->
+            <h4 class="modal-title" id="plotModalLabel">My Land</h4>
+          </div>
+<!--           <div class="modal-body">
+            <form>
+              <div class="form-group">
+                <label for="recipient-name" class="control-label">Recipient:</label>
+                <input type="text" class="form-control" id="recipient-name">
+              </div>
+              <div class="form-group">
+                <label for="message-text" class="control-label">Message:</label>
+                <textarea class="form-control" id="message-text"></textarea>
+              </div>
+            </form>
+          </div> -->
+<!--           <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary">Send message</button>
+          </div> -->
+          <div class="modal-body">
+            <!-- <form class="form-horizontal" id="plotForm" data-toggle="validator" method="post" action="/plot_save"> -->
+            <form class="form-horizontal" id="plotForm" data-toggle="validator">
+              <div class="form-group" >
+                <label for="Name" class="col-sm-3 control-label">Name</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="name" name="name" placeholder="ex: Plot1" data-minlength="2" data-maxlength="20" pattern="^([_A-z0-9]){3,}$"required>
+                </div>
+                <!-- <span class="help-block">Minimum of 2 characters</span> -->
+              </div> 
+              <div class="form-group">
+                <label for="Group" class="col-sm-3 control-label">Group</label>
+                <div class="col-sm-9">
+                  <input type="text" class="form-control" id="group" name="group" placeholder="ex: Group1" data-maxlength="20" pattern="^([_A-z0-9]){3,}$">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="District" class="col-sm-3 control-label">District</label>
+                <div class="col-sm-9">
+                  <input type="text" class="form-control" id="district" name="district" data-maxlength="75" pattern="^([ A-z]){3,}$" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="Village" class="col-sm-3 control-label">Village</label>
+                <div class="col-sm-9">
+                  <input type="text" class="form-control" id="village" name="village" data-maxlength="75" pattern="^([ A-z]){3,}$" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="State" class="col-sm-3 control-label">State</label>
+                <div class="col-sm-9">
+                  <input type="text" class="form-control" id="state" name="state" data-maxlength="75" pattern="^([ A-z]){3,}$" required>
+                </div>
+              </div> 
+              <div class="form-group">
+                <label for="PIN" class="col-sm-3 control-label">Pin/Zip</label>
+                <div class="col-sm-9">
+                  <input type="text" class="form-control" id="pin" name="pin" type="number" data-maxlength="20" pattern="^([0-9]){3,}$" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="Country" class="col-sm-3 control-label">Country</label>
+                <div class="col-sm-9">
+                  <input type="text" class="form-control" id="country" name="country" data-maxlength="75" pattern="^([ A-z]){3,}$" required>
+                </div>
+              </div>                                          
+              <div class="form-group">
+                <label for="PlotId" class="col-sm-3 control-label">Plot Id</label>
+                <div class="col-sm-9">
+                  <input type="number" class="form-control" id="plotid" name="plotid" data-minlength="1" pattern="([0-9])*" required readonly="readonly">
+                </div>
+                <!-- <span class="help-block">Minimum of 1 characters</span> -->
+              </div>
+              <div class="form-group">
+                <label for="Acre" class="col-sm-3 control-label">Acre</label>
+                <div class="col-sm-9">
+                  <input type="number" step="any" class="form-control" id="area" name="area" required>
+                </div>
+              </div> 
+  <!--                     <div class="form-group">
+                <input type="button" value="Redraw Boundaries" class="btn btn-default">
+              </div> -->
+              <a class="text-left" data-toggle="collapse" href="#advancedoption" aria-expanded="false" aria-controls="advancedoption">
+                <p class="text-muted">Advanced Option</p>
+              </a>                    
+              <div class="collapse" id="advancedoption">
+                <div class="form-group">
+                  <label for="ValueperAcre" class="col-sm-5 control-label">Value per Acre</label>
+                  <div class="col-sm-7">
+                    <div class="input-group">
+                      <div class="input-group-addon">&#x20B9;</div>
+                      <input type="number" step="any" class="form-control" id="valueperacre" name="valueperacre" data-maxlength="12" placeholder="Amount">
+                    </div>
+                  </div>
+                </div>                  
+                <div class="form-group">
+                  <label for="CostperAcre" class="col-sm-5 control-label">Cost per Acre</label>
+                  <div class="col-sm-7">
+                    <div class="input-group">
+                      <div class="input-group-addon">&#x20B9;</div>
+                      <input type="number" step="any" class="form-control" id="costperacre" name="costperacre" data-maxlength="12" placeholder="Amount">
+                    </div>
+                  </div>
+                </div>  
+  <!--                       <div class="form-group">
+                  <div class="btn-group" data-toggle="buttons">
+                    <label class="btn btn-success active">
+                      <input type="radio" name="options" id="own" autocomplete="off" checked> Own
+                    </label>
+                    <label class="btn btn-default">
+                      <input type="radio" name="options" id="rent" autocomplete="off"> Rent
+                    </label>
+                  </div>
+                </div> -->
+                <div class="form-group">
+                  <label for="OwnRent" class="col-sm-5 control-label">Own/Rent</label>
+                  <div class="col-sm-7">
+                    <div class="radio">
+                      <label>
+                        <input type="radio" name="optionsown" id="optionsown" value="True" checked>
+                        Own this land
+                      </label>
+                    </div>
+                    <div class="radio">
+                      <label>
+                        <input type="radio" name="optionsown" id="optionsrent" value="False">
+                        Rent this Land
+                      </label>
+                    </div>
+                  </div>
+                </div>                        
+                <div class="form-group">
+                  <label for="Irrigation" class="col-sm-5 control-label">Irrigation</label>
+                  <div class="col-sm-7">
+                    <div class="checkbox">
+                      <label>
+                        <input type="checkbox" name="irrigation_checkbox" id="irrigation_checkbox"  value="True" checked/>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="Notes" class="col-sm-5 control-label">Notes</label>
+                  <div class="col-sm-7">
+                    <textarea class="form-control" name="notes" id="notes" rows="3" data-maxlength="250"></textarea>
+                  </div>
+                </div>                                           
+              </div>
+<!--               <div class="form-group">
+                <div class="col-sm-offset-3 col-sm-9">
+                  <input type="submit" value="Save Changes" class="btn btn-success submit">
+                  <input type="reset" value="Cancel" class="btn btn-danger" data-dismiss="modal">
+                </div>
+              </div>  -->                                                                                                                                              
+            </form>
+          </div>             
+          <div class="modal-footer">
+            <button type="button" class="btn btn-success" id="plotsave">Save</button>          
+            <button type="reset" class="btn btn-danger" data-dismiss="modal" id="plotcancel">Cancel</button>
+          </div>           
+        </div>
+      </div>
+    </div>  
+    <!--End Modal  -->
+    <div class="modal fade" id="editplotModal" tabindex="-1" role="dialog" aria-labelledby="plotModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+          <div class="modal-header">
+            <!-- <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button> -->
+            <h4 class="modal-title" id="editplotModalLabel">My Land</h4>
+          </div>
+          <div class="modal-body">
+            <!-- <form class="form-horizontal" id="plotForm" data-toggle="validator" method="post" action="/plot_save"> -->
+            <form class="form-horizontal" id="editplotForm" data-toggle="validator">
+              <div class="form-group" >
+                <label for="Name" class="col-sm-3 control-label">Name</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="edname" name="name" placeholder="ex: Plot1" data-minlength="2" data-maxlength="20" pattern="^([_A-z0-9]){3,}$"required>
+                </div>
+                <!-- <span class="help-block">Minimum of 2 characters</span> -->
+              </div> 
+              <div class="form-group">
+                <label for="Group" class="col-sm-3 control-label">Group</label>
+                <div class="col-sm-9">
+                  <input type="text" class="form-control" id="edgroup" name="group" placeholder="ex: Group1" data-maxlength="20" pattern="^([_A-z0-9]){3,}$">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="District" class="col-sm-3 control-label">District</label>
+                <div class="col-sm-9">
+                  <input type="text" class="form-control" id="eddistrict" name="district" data-maxlength="75" pattern="^([ A-z]){3,}$" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="Village" class="col-sm-3 control-label">Village</label>
+                <div class="col-sm-9">
+                  <input type="text" class="form-control" id="edvillage" name="village" data-maxlength="75" pattern="^([ A-z]){3,}$" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="State" class="col-sm-3 control-label">State</label>
+                <div class="col-sm-9">
+                  <input type="text" class="form-control" id="edstate" name="state" data-maxlength="75" pattern="^([ A-z]){3,}$" required>
+                </div>
+              </div> 
+              <div class="form-group">
+                <label for="PIN" class="col-sm-3 control-label">Pin/Zip</label>
+                <div class="col-sm-9">
+                  <input type="text" class="form-control" id="edpin" name="pin" type="number" data-maxlength="20" pattern="^([0-9]){3,}$" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="Country" class="col-sm-3 control-label">Country</label>
+                <div class="col-sm-9">
+                  <input type="text" class="form-control" id="edcountry" name="country" data-maxlength="75" pattern="^([ A-z]){3,}$" required>
+                </div>
+              </div>                                          
+              <div class="form-group">
+                <label for="PlotId" class="col-sm-3 control-label">Plot Id</label>
+                <div class="col-sm-9">
+                  <input type="number" class="form-control" id="edplotid" name="plotid" data-minlength="1" pattern="([0-9])*" required readonly="readonly">
+                </div>
+                <!-- <span class="help-block">Minimum of 1 characters</span> -->
+              </div>
+              <div class="form-group">
+                <label for="Acre" class="col-sm-3 control-label">Acre</label>
+                <div class="col-sm-9">
+                  <input type="number" step="any" class="form-control" id="edarea" name="area" required>
+                </div>
+              </div> 
+              <div class="form-group">
+                <label for="Filler" class="col-sm-3 control-label"></label>
+                <div class="col-sm-9">
+                  <input type="button" value="Edit Boundaries" class="btn btn-default">
+                </div>
+              </div>
+              <a class="text-left" data-toggle="collapse" href="#edadvancedoption" aria-expanded="false" aria-controls="advancedoption">
+                <p class="text-muted">Advanced Option</p>
+              </a>                    
+              <div class="collapse" id="edadvancedoption">
+                <div class="form-group">
+                  <label for="ValueperAcre" class="col-sm-5 control-label">Value per Acre</label>
+                  <div class="col-sm-7">
+                    <div class="input-group">
+                      <div class="input-group-addon">&#x20B9;</div>
+                      <input type="number" step="any" class="form-control" id="edvalueperacre" name="valueperacre" data-maxlength="12" placeholder="Amount">
+                    </div>
+                  </div>
+                </div>                  
+                <div class="form-group">
+                  <label for="CostperAcre" class="col-sm-5 control-label">Cost per Acre</label>
+                  <div class="col-sm-7">
+                    <div class="input-group">
+                      <div class="input-group-addon">&#x20B9;</div>
+                      <input type="number" step="any" class="form-control" id="edcostperacre" name="costperacre" data-maxlength="12" placeholder="Amount">
+                    </div>
+                  </div>
+                </div>  
+                <div class="form-group">
+                  <label for="OwnRent" class="col-sm-5 control-label">Own/Rent</label>
+                  <div class="col-sm-7">
+                    <div class="radio">
+                      <label>
+                        <input type="radio" name="optionsown" id="edoptionsown" value="True" checked>
+                        Own this land
+                      </label>
+                    </div>
+                    <div class="radio">
+                      <label>
+                        <input type="radio" name="optionsown" id="edoptionsrent" value="False">
+                        Rent this Land
+                      </label>
+                    </div>
+                  </div>
+                </div>                        
+                <div class="form-group">
+                  <label for="Irrigation" class="col-sm-5 control-label">Irrigation</label>
+                  <div class="col-sm-7">
+                    <div class="checkbox">
+                      <label>
+                        <input type="checkbox" name="irrigation_checkbox" id="edirrigation_checkbox"  value="True" checked/>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="Notes" class="col-sm-5 control-label">Notes</label>
+                  <div class="col-sm-7">
+                    <textarea class="form-control" name="notes" id="ednotes" rows="3" data-maxlength="250"></textarea>
+                  </div>
+                </div>                                           
+              </div>                                                                                                                                            
+            </form>
+          </div>             
+          <div class="modal-footer">
+            <button type="button" class="btn btn-success" id="edplotsave">Save</button>          
+            <button type="reset" class="btn btn-danger" data-dismiss="modal" id="edplotcancel">Cancel</button>
+          </div>           
+        </div>
+      </div>
+    </div>    
+    <!--End Modal  -->    
+    <div id="footer">
+      <div class="container">
+        <p class="text-muted">&copy; Zeerone 2012</p>
+      </div>
+    </div>
+</body>  
+</html>

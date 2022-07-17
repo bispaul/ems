@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Editable Spline</title>
+    <meta name="description" content="This is a d3js ediatble spline test">
+    <meta name="author" content="biswadip">
+    <link rel="stylesheet" href="../static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../static/css/sticky-footer-navbar.css">
+    <style type="text/css">
+      body { font: 13px sans-serif; }
+/*      table, th, td {
+         border: 1px solid black;
+      };*/
+      div.DTTT { margin-bottom: 0.5em; float: right; }
+      div.dt-buttons { margin-bottom: 0.5em; float: right; }
+      div.dataTables_wrapper { clear: both; }   
+            
+      #test1 .cellEditing {
+          padding: 0;
+      }
+       
+      #test1 .cellEditing input[type=text]{
+          width:100%;
+          border:0;
+          background-color:rgb(255,253,210);  
+      }           
+      rect { fill: #fff; }
+      ul {
+        list-style-type: none;
+        margin: 0.5em 0em 0.5em 0em;
+        width: 100%; }
+        ul li {
+          display: table-cell;
+          vertical-align: middle;
+          margin: 0em;
+          padding: 0em 1em; }
+
+
+        .axis path,
+        .axis line {
+          fill: none;
+          stroke: #000;
+          shape-rendering: crispEdges;
+        }
+
+        .x.axis path {
+          display: none;
+        }
+
+        .line {
+          fill: none;
+          stroke: steelblue;
+          stroke-width: 1.5px;
+        }          
+    </style>    
+    <script src="../static/js/jquery-2.1.3.min.js"></script>
+    <script src="../static/js/bootstrap.min.js"></script>
+    <script src="../static/js/d3.v4.min.js"></script>
+    <script src="../static/js/knockout-3.4.0.js"></script> 
+    <script src="../static/js/knockout.mapping.js"></script>
+    <script>
+        var data = [
+            { id: 0, x: 5, y: 100},
+            { id: 1, x: 10, y: 150},
+            { id: 2, x: 15, y: 300}
+        ];
+
+        var ChartModel = function(data) {
+            var self = this;
+
+            self.id = data.id;
+            self.x = ko.observable(data.x);
+            self.y = ko.observable(data.y);
+            self.bias = ko.observable(0);
+            self.bias_y = ko.computed({
+              read: function () {
+                if (self.bias() != undefined && !isNaN(parseFloat(self.bias()))) {
+                  return parseFloat(self.y()) + parseFloat(self.bias());
+                }
+                else {
+                  return 0;
+                }                
+              },
+              write: function (value) {
+                if (value != undefined && !isNaN(parseFloat(value))) {
+                  self.bias(parseFloat(value) - parseFloat(self.y()));
+                }
+                else {
+                  self.bias(0);
+                }
+              }
+            });
+            // .extend({ throttle: 100 });
+            // Create a computed observable that watches the members of a ChartRow for change.
+            self.chartrow = ko.computed(function () {
+                  return { x: self.x(), y: self.y,
+                      bias: self.bias(), bias_y: self.bias_y() };
+              });
+                                 
+          };
+
+        var ChartViewModel = function() {
+            var self = this;
+            self.chart = ko.observableArray([
+              // new ChartModel({ id: 0, x: 5, y: 7 }),
+              // new ChartModel({ id: 1, x: 10, y: 10 }),
+              // new ChartModel({ id: 2, x: 15, y: 15 }),
+              // new ChartModel({ id: 3, x: 20, y: 30 })
+              ]);
+            self.addRow = function () {
+                self.chart.push(new ChartModel(self));
+            };            
+        };
+
+                                                    
+    </script>    
+<body>
+<!--     <form>
+      <label for="interpolate">Interpolate:</label>
+      <select id="interpolate"></select><br>
+    </form> -->
+    <div id="chart1" class="chart"></div>
+<!--     <div>
+        <button data-bind="click:addStory">
+            Add</button>
+    </div> -->
+    <div>
+        <table data-bind="visible: chart().length > 0">
+            <thead>
+                <tr>
+                    <th>
+                        Index
+                    </th>
+                    <th>
+                        X
+                    </th>
+                    <th>
+                        Y
+                    </th>
+                    <th>
+                        Bias
+                    </th>
+                    <th>
+                        Bias_Y
+                    </th>                    
+                </tr>
+            </thead>
+            <tbody data-bind="foreach: chart">
+                <!-- <tr data-bind="css: {'selected': selected}" class=""> -->
+                <tr>
+                    <td>
+                        <input name="'id' + $data.id()" style="width: 50px" data-bind="value: id" readonly="true">
+                    </td>
+                    <td>
+                        <input name="'X' + $data.id()" style="width: 50px" data-bind="value: x" readonly="true">
+                    </td>
+                    <td>
+                       <input name="'Y' + $data.id()" style="width: 50px" data-bind="value: y" readonly="true">
+                    </td>
+                    <td>
+                       <input  name="'Bias' + $data.id()" style="width: 50px" data-bind="value: bias , valueUpdate: 'afterkeydown'">
+                    </td> 
+                    <td>
+                       <input name="'Bias_Y' + $data.id()" style="width: 50px" data-bind="value: bias_y , valueUpdate: 'keyup'">
+                    </td>                                         
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <script type="text/javascript">
+        // d3 code
+        var margin = {top: 20, right: 20, bottom: 30, left: 50},
+            width = 960 - margin.left - margin.right,
+            height = 500 - margin.top - margin.bottom;
+
+        var x = d3.time.scale()
+            .range([0, width]);
+
+        var y = d3.scale.linear()
+            .range([height, 0]);
+
+        var xAxis = d3.svg.axis()
+            .scale(x)
+            .orient("bottom");
+
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left");
+
+        // var line = d3.svg.line()
+        //     .x(function(d) { return x(d.x()); })
+        //     .y(function(d) { return y(d.y()); });
+
+        var svg = d3.select("#chart1").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")"); 
+
+        function updateGraph(data) {
+
+          // data.forEach(function(d) {
+          //   console.log(d);
+          //   d.x = d.x();
+          //   d.y = d.y();
+          // });
+          console.log('xxx');
+          x.domain(d3.extent(data, function(d) { return d.x(); }));
+          y.domain(d3.extent(data, function(d) { return d.y(); }));
+
+          // var drag = d3.behavior.drag()
+          //     .origin(function(d) { return d; })
+          //     .on("drag", dragmove);
+      var drag = d3.behavior.drag()
+          .origin(Object)
+          .on("drag", function (d) {
+              // Update the view model
+              // d.x(d.x() + d3.event.dx);
+              d.bias(d.bias() + d3.event.dy);
+       
+              // // Keep rectangle within horizontal bounds
+              // if (d.y() < padding) {
+              //     d.start_on(padding);
+              // }
+              // else if (d.start_on() + parseInt(d.points()) > canvas_width + padding) {
+              //     d.start_on(canvas_width - parseInt(d.points()) + padding);
+              // }
+       
+              // // Keep rectangle within vertical bounds
+              // if (d.priority() < padding) {
+              //     d.priority(padding);
+              // }
+              // else if (d.priority() + rect_height > canvas_height + padding) {
+              //     d.priority(canvas_height - rect_height + padding);
+              // }
+          });
+
+          var circle = svg.selectAll("circle")
+              .data(data);
+
+              circle.enter().append("circle");
+              circle.exit().remove(); 
+
+            circle
+              .attr("cy", function(d) { return d.bias_y(); })
+              .attr("cx", function(d) { return d.x(); })
+              .attr("r", 5)
+              .call(drag);
+
+        //   function dragmove(d) {
+        //   console.log(
+        // "x: " + d3.event.x + ", " + 
+        // "y: " + d3.event.y + ", " + 
+        // "dx: " + d3.event.dx + ", " + 
+        // "dy: " + d3.event.dy + "," +
+        // "xy:" + d3.event.sourceEvent.x + "," +
+        // "xz:" + d3.event.sourceEvent.y);            
+        //     // console.log('xxxx' + d3.event.y);
+        //     d.x=d3.event.x;
+        //     d.y=d3.event.y;
+        //     // d3.select(this).attr("x", d3.event.x);
+        //     // d3.select(this)
+        //     //   .attr("x", function(d,i){console.log(d);return points[i]});
+        //     d3.select(this)
+        //         .attr("cx", d.x = Math.max(d.bias_y(), Math.min(width - d.bias_y(),d3.event.sourceEvent.x)))
+        //         .attr("cy", d.y = Math.max(d.bias_y(),Math.min(height - d.bias_y(),d3.event.sourceEvent.y)));
+        //   }              
+              
+        };     
+      // console.log(data);
+      var vm = new ChartViewModel();
+      ko.applyBindings(vm);
+      // updateGraph(data);
+
+
+      var subs = [];
+      // vm.chart.subscribe(function (newValue) {
+      //   console.log(newValue);
+      //   updateGraph(newValue);
+      // });        
+
+
+      // Register subscription to observableArray.
+      vm.chart.subscribe(function (newValue) {
+          // Call the updateStories function, which uses D3 to draw objects representing stories.
+          updateGraph(newValue);
+
+        // Dispose of any existing subscriptions.
+        ko.utils.arrayForEach(subs, function (sub) {
+          sub.dispose();
+        });
+
+        // Register subscriptions for each story.
+        ko.utils.arrayForEach(newValue, function (item) {
+            // Register to call the updateStories function whenever a stories 'story' computed observable changes.
+          subs.push(item.chartrow.subscribe(function () {
+              updateGraph(newValue);
+          }));
+        });        
+    });
+
+      vm.chart.push(new ChartModel({ id: 0, x: 5, y: 7 }));
+      vm.chart.push(new ChartModel({ id: 1, x: 15, y: 10 }));
+      vm.chart.push(new ChartModel({ id: 2, x: 30, y: 15 }));
+      vm.chart.push(new ChartModel({ id: 3, x: 60, y: 30 }));      
+      //   graph = new SimpleGraph("chart1", {
+      //       "xmax": 60, "xmin": 0,
+      //       "ymax": 40, "ymin": 0, 
+      //       "title": "Simple Graph1",
+      //       "xlabel": "X Axis",
+      //       "ylabel": "Y Axis"  
+      //     }, newValue);
+
+      //   ko.utils.arrayForEach(subs, function (sub) {
+      //       sub.dispose();
+      //   });
+
+      //   ko.utils.arrayForEach(newValue, function (item) {
+      //       // Register to call the updateStories function whenever a stories 'story' computed observable changes.
+      //       subs.push(item.chart.subscribe(function () {
+      //         graph = new SimpleGraph("chart1", {
+      //             "xmax": 60, "xmin": 0,
+      //             "ymax": 40, "ymin": 0, 
+      //             "title": "Simple Graph1",
+      //             "xlabel": "X Axis",
+      //             "ylabel": "Y Axis"  
+      //           }, newValue);
+      //       }));
+      //   });
+      //   vm.stories.push(new ChartModel());                           
+      // });
+
+    
+    </script>
+</body>
+<footer class="footer">
+    <div class="container">
+    <ul class="footer-links">
+        <li>© 2013</li>
+        <li><a href='https://github.com/imwilsonxu/flask-datatables'>About</a></li>
+    </ul>
+    </div>
+</footer>
+
+</html>

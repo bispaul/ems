@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+	<head>
+	  <meta charset="utf-8">
+	  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Zeerone Forecast</title>
+    <meta name="description" content="This is a Flask (Python microframework) use Datatables.js Ajax source application.">
+    <meta name="author" content="">
+		<!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery-ui.css') }}"> -->
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/sticky-footer-navbar.css') }}">
+		<!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.dataTables.css') }}"> -->
+		<!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/dataTables.tableTools.css') }}"> -->
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/dataTables.bootstrap.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/datepicker.css') }}">
+    <style>
+		  .bars {
+		            display: block;
+		            width: 20px;
+		            height: 3px;    
+		            background-color: #333;
+		            box-shadow: 0 5px 0 #333, 0 10px 0 #333;
+		        }
+		  .nav>li>a:hover, .nav>li>a:focus {
+		            text-decoration: none;
+		            background-color: #fff;
+		        }
+		  .nav .open>a, .nav .open>a:hover, .nav .open>a:focus {
+		            background-color: #fff;
+		            border-color: #428bca;
+		        }
+			body { font-size: 140%; }
+			div.DTTT { margin-bottom: 0.5em; float: right; }
+			div.dataTables_wrapper { clear: both; }
+
+      select option {
+      color: black;
+            }
+      select option:first-child {
+      color: grey;
+            }
+      select.empty {
+      color: grey;
+            }
+      /* Hidden placeholder */
+      select option[disabled]:first-child {
+        display: none;
+            }      	        
+		</style>		
+		<script src="{{ url_for('static', filename='js/jquery-2.1.3.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/jquery.dataTables.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/dataTables.tableTools.min.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/dataTables.bootstrap.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap-datepicker.js') }}"></script>
+		<!-- // <script src="{{ url_for('static', filename='js/jquery-ui.js') }}"></script> -->
+		<script>
+			// $(document).ready(function() {
+			// 	$('#example').dataTable( {
+			// 		"sDom": "<'row-fluid'<'span6 toolbar'><'span6'>r>t<'row-fluid'<'span6'f><'span6'p>>",
+			// 		"bProcessing": true,
+			// 		"bjQueryUI": true,
+			// 		"sAjaxSource": "{{ url_for('get_server_data') }}",
+			// 	});
+			// } );
+
+			/*
+			 * Example initialisation
+			 */
+            
+
+			$(document).ready( function () {
+          $( '#example2' ).datepicker({
+              format: "dd-mm-yyyy",
+              todayHighlight: true,
+              autoclose: true
+          });
+          $( '#example' ).hide();
+          function Datatab(dateval){
+            if ( $.fn.dataTable.isDataTable( '#example' ) ) {
+              table = $('#example').DataTable();
+              table.destroy();
+            };  
+  			    var table = $('#example').dataTable( {
+              "fnRowCallback": function( nRow, aData, iDisplayIndex ) {
+                      $('td', nRow).attr('nowrap','nowrap');
+                      return nRow;
+                      },             
+  			    	// "dom": 'Tlfrtip',
+  			    	// "sDom": "<'row-fluid'<'span6 toolbar'><'span6'>r>t<'row-fluid'<'span6'f><'span6'p>>",
+  			      // "tableTools": {
+           //    							"sSwfPath": "/static/swf/copy_csv_xls_pdf.swf"
+          	// 								},	    	
+  			      // "scrollY": true,
+  			      //"scrollX": true,
+  			      // "scrollCollapse": true,
+  			      //"responsive": true,
+  			      //"paging": true,
+  			      //"deferRender": true,
+              "aLengthMenu": [[96, 182], [96, 182]],
+              "iDisplayLength": 96,
+              "aaSorting": [[0,'asc'],[1,'asc']],
+              // "sAjaxSource":  "{{ url_for('get_forecast_data')}}"
+              "ajax": {
+                "url": "{{ url_for('get_bforecast_data')}}",
+                "type": "POST"
+              },
+              "fnServerParams": function ( aoData ) {
+                    aoData.push( { "name": "date", "value": dateval });
+              }
+  			    } );
+  			    // var tt = new $.fn.dataTable.TableTools( table );
+  					// $( tt.fnContainer() ).insertAfter('div.middle');
+  					var tt = new $.fn.dataTable.TableTools( table, {
+                            "sSwfPath": "/static/swf/copy_csv_xls_pdf.swf"
+                            } );
+   					$( tt.fnContainer() ).insertBefore('div.dataTables_wrapper');
+          };
+          function DoValidate(){
+          // check your validate here, 
+          // if all field pass: return true, if not : return false;
+          // ex: return $('input[name="part_barcode"]).val().length>10;
+          // alert($('input[name="model"]').val().length);
+          // alert($('input[name="date"]').val().length);
+           return $('#Select').val() !== null && $('input[name="date"]').val() != "";
+           // return true;
+          }; 
+          function calldovalidate(){
+              if(DoValidate()){
+                Datatab($('input[name="date"]').val());
+                $( '#example' ).show();
+              };            
+          };
+          $( '#Select,input[name="date"]' ).bind({
+            click: function(){
+              calldovalidate();
+              },            
+            focusout: function(){
+              calldovalidate();
+              },
+            keydown: function(){
+              calldovalidate();
+              },
+            change: function(){
+              calldovalidate();
+              }                               
+          });            
+
+          // $( '#Select,input[name="date"]' ).focusout(function(){
+          //     // console.log('submitting');
+          //     // if(DoValidate()) $('#defaultForm').submit();
+          //     if(DoValidate()){
+          //       Datatab($('input[name="date"]').val());
+          //       $( '#example' ).show();
+          //     } 
+          //     // $('#defaultForm').submit();
+          //     // or: $('input[type="submit"]').trigger('click');
+          // });           
+			} );
+		</script>
+	</head>
+
+
+<!-- <body>
+	<div class="container">
+	<table class='table' id='example'>
+		<thead>
+			<tr>
+				{% for col in columns %}
+				<th>{{ col }}</th>
+				{% endfor %}
+			</tr>
+		</thead>
+	</table>
+	</div>
+</body>
+
+<footer class="footer">
+	<div class="container">
+    <ul class="footer-links">
+        <li>© 2013</li>
+        <li><a href='https://github.com/imwilsonxu/flask-datatables'>About</a></li>
+	</ul>
+	</div>
+</footer>
+
+</html> -->
+
+
+  <body>
+    <!--body data-twttr-rendered="true"-->
+    <!-- Start Content -->
+    <!-- Site header and navigation -->
+    <header class="top" role="header">
+      <div class="container">
+        <nav class="navbar" role="navigation">
+          <div class="container-fluid">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              <a href="#" class="navbar-brand">
+                <img style="margin-top:-20px;" src="/static/images/logo.png" alt="Z-matics">
+              </a>
+            </div>
+
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+            {% include "menu.html" %}
+<!--               <ul class="nav navbar-nav">
+                <li class="dropdown">
+                  <a href="#" class="dropdown-toggle" data-toggle="dropdown">Menu <b class="caret"></b></a>
+                  <ul class="dropdown-menu">
+                    <li><a href="{{ url_for('biharlive') }}">Bihar Live</a></li>                     
+                    <li><a href="{{ url_for('index') }}">NR Gen</a></li>
+                    <li><a href="{{ url_for('nrmarket') }}">NR Market</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('tenisgs') }}">ISGS Tentative Data</a></li>
+                    <li><a href="{{ url_for('tenint') }}">Internal Tentative Data</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('rajmislive') }}">Live MIS Data</a></li>
+                    <li><a href="{{ url_for('rajlive') }}">Live Data Breakup</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('forecast') }}">Forecast</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('possuply') }}">Position Map</a></li>
+                    <li><a href="{{ url_for('possuplychart') }}">Position Map Chart</a></li>                    
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('chart') }}">Comparison Report</a></li>
+                    <li><a href="{{ url_for('chart3') }}">ISGS Tentative Stack</a></li>
+                    <li><a href="{{ url_for('stacked') }}">Total Generation Stack</a></li>
+                    <li><a href="{{ url_for('treemap') }}">Treemap Report</a></li>
+                    <li><a href="{{ url_for('heat') }}">Heatmap Report</a></li>                    
+                  </ul>
+                </li>
+              </ul>
+ -->              <form id="defaultForm" method="post" class="navbar-form navbar-left form-inline" role="form">    
+                  <div class="form-group">
+                    <!-- <label for="disabledSelect">select menu</label> -->
+                    <select id="Select" class="form-control" placeholder="Select Model" name="model">
+                      <option selected disabled>Select Model</option>
+                      <option>MODEL_REG</option>
+                      <option>MODEL_NN</option>
+                      <option>MODEL_HYBRID</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <input  class="form-control" type="text" placeholder="dd-mm-yyyy"  id="example2" name="date">
+                  </div>
+<!--                   <div class="form-group">
+                    <button type="submit" class="btn btn-primary">Go</button>
+                  </div>  -->                 
+              </form>               
+              <ul class="nav navbar-nav navbar-right">
+                <li><a href="http://zeerone.com/">About</a></li>
+                <li><a href="http://zeerone.com/contact_us.html">Contact</a></li>
+                <li><a href="login.html">Logout </a></li>
+              </ul>
+            </div><!-- /.navbar-collapse -->
+          </div><!-- /.container-fluid -->
+        </nav>
+      </div>
+    </header>              
+    <!-- Site banner -->
+    <div class="banner">
+        <div class="container">
+          <div class="col-md-9 content">
+            <h1><small>Forecast</small></h1>
+          </div>
+        </div>
+    </div>    
+    <!--
+    <div class="banner">
+        <div class="container">
+            <h1>Twitter Bootstrap 3: Responsive Design Tutorial</h1>
+            <p>A comprehensive tutorial showing you how to quickly create responsive designs using Twitter Bootstrap 3.</p>
+        </div>
+    </div>-->
+    <!-- Middle content section -->
+<!--     <div class="middle">
+        <div class="container">
+            <div class="col-md-9 content"> -->
+                
+<!--                 <h2>Use Twitter Bootstrap to create responsive designs for desktop, tablet & mobile</h2>
+                <p>Twitter bootstrap allows web developers and designers to quickly create attractive and responsive website templates. This tutorial provided by <a href="http://www.revillweb.com/">RevillWeb.com</a> will show you how to use Twitter Bootstrap 3 to create this responsive website template.</p>
+                <div class="to-tutorial">
+                    <p><strong>Visit the tutorial now to learn more:</strong></p>
+                    <a href="http://www.revillweb.com/tutorials/bootstrap-tutorial/" class="btn btn-success">TO THE TUTORIAL</a>
+                </div> -->
+<!--                   <div class="ui-widget">
+                    <br>
+                    <label for="tags">Tags: </label>
+                    <input id="tags" size="50">
+                  </div>
+                  <div class="ui-widget" style="margin-top:2em; font-family:Arial; display: none;">
+                    Result:
+                    <div id="log" style="height: 200px; width: 300px; overflow: auto;"  class="ui-widget-content"></div>
+                  </div>
+                  <div class="ui-widget" style="margin-top:2em; ">
+                    <label for="tags2"> Tag2: </label>
+                    <select id = "newtag" multiple data-role="tagsinput" size ="50"></select>
+                  </div> -->
+<!--             </div>
+        </div> -->
+            <!--
+            <div class="col-md-3">
+                <h2>Resources</h2>
+                <ul class="nav nav-pills nav-stacked">
+                    <li><a href="http://getbootstrap.com/" target="_blank">Download Twitter Bootstrap</a></li>
+                    <li><a href="https://www.bootstrapresponsivethemes.com/" target="_blank">Bootstrap Responsive Themes</a></li>
+                    <li><a href="http://amzn.to/1iO8NBg" target="_blank">UK: HTML & CSS: Design and Build Web Sites</a></li>
+                    <li><a href="http://amzn.to/1lESKDp" target="_blank">UK: Bootstrap Site Blueprints</a></li>
+                    <li><a href="http://amzn.to/1oXAbu6" target="_blank">US: HTML & CSS: Design and Build Web Sites</a></li>
+                    <li><a href="http://amzn.to/1lESF2w" target="_blank">US: Bootstrap Site Blueprints</a></li>
+                </ul>
+            </div>-->
+    <!-- </div> -->
+<!--     <div class="container">
+      <div class="col-md-12 content">
+        <div id="chart1"></div>
+        <div id="chart"></div>
+      </div>
+    </div> -->
+    <div class="middle">
+      <div class="container">
+      	<div class="col-md-12 content">
+  				<!-- <table class='table display cell-border nowrap compact' id='example'> -->
+  				<table id="example" class="table table-striped table-bordered table-condensed table-hover" cellspacing="0" width="100%">
+  					<thead>
+  						<tr>
+  							{% for col in columns %}
+  							<th>{{ col }}</th>
+  							{% endfor %}
+  						</tr>
+  					</thead>
+  				</table>
+  			</div>	
+  		</div> 
+    </div> 
+  </body>
+  <footer class="footer">
+    <div class="container">
+      <p class="text-muted">
+          Zeerone © 2012
+          http://www.zeerone.com</p>
+      </div>
+    </div>      
+  </footer>
+</html>

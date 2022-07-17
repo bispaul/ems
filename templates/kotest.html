@@ -1,0 +1,374 @@
+<!DOCTYPE html> 
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../static/css/sticky-footer-navbar.css">  
+    <link rel="stylesheet" href="../static/css/dataTables.bootstrap.css"> 
+    <style type="text/css">
+      div.DTTT { margin-bottom: 0.5em; float: right; }
+      div.dt-buttons { margin-bottom: 0.5em; float: right; }
+      div.dataTables_wrapper { clear: both; }      
+    </style>
+        
+    <script src="../static/js/jquery-2.1.3.min.js"></script>
+    <script src="../static/js/knockout-3.3.0.js"></script> 
+    <script src="../static/js/bootstrap.min.js"></script>
+    <script src="../static/js/d3.min.js"></script> 
+    <script src="../static/js/jquery.bootstrap.wizard.min.js"></script>     
+    <script src="../static/js/jquery.dataTables.min.js"></script>
+    <script src="../static/js/dataTables.tableTools.min.js"></script>
+    <script src="../static/js/dataTables.bootstrap.min.js"></script>
+    <script src="../static/js/dataTables.buttons.min.js"></script>
+    <script src="../static/js/buttons.bootstrap.min.js"></script>
+    <!-- // <script src="../static/js/zach-knockout.debug.js"></script> -->
+    <script src="../static/js/knockout.mapping.js"></script>
+    <!-- // <script src="../static/js/DatatablesForEach.js"></script> -->
+    <script src="../static/js/jquery-ui.js"></script>
+    <script src="../static/js/knockout-jqueryui.min.js"></script>   
+    <script type="text/javascript" charset="utf-8">
+        // $(document).ready(function() {
+        // }
+    </script>
+</head>
+<body>
+    <div>
+        <button data-bind="click:addStory">
+            Add</button>
+    </div>
+    <div>
+        <table data-bind="visible: stories().length > 0">
+            <thead>
+                <tr>
+                    <th>
+                        Name
+                    </th>
+                    <th>
+                        Starts on
+                    </th>
+                    <th>
+                        Priority
+                    </th>
+                    <th>
+                        Points
+                    </th>
+                    <th>
+                    </th>
+                </tr>
+            </thead>
+            <tbody data-bind="foreach: stories">
+                <tr data-bind="css: {'selected': selected}" class="">
+                    <td>
+                        <input name="'story_name' + $data.story_name()" style="width: 120px" data-bind="value: story_name, valueUpdate: 'afterkeydown'">
+                    </td>
+                    <td>
+                        <input name="'date' + $data.id()" style="width: 120px" data-bind="datepicker: {
+                                dateFormat: 'D M dd yy',
+                                minDate: project_beg,
+                                maxDate: project_end
+                            },
+                            value: start_on_disp" readonly="true" id="dp1441806187701" class="hasDatepicker">
+                    </td>
+                    <td>
+                        <span class="ui-spinner ui-widget ui-widget-content ui-corner-all"><input name="'priority' + $data.id()" style="width: 50px" data-bind="spinner: {
+                                min: 1,
+                                max: num_priorities
+                            },
+                            value: priority_disp,
+                            valueUpdate: 'spinstop'" readonly="true" aria-valuemin="1" aria-valuemax="10" class="ui-spinner-input" autocomplete="off" role="spinbutton"><a class="ui-spinner-button ui-spinner-up ui-corner-tr ui-button ui-widget ui-state-default ui-button-text-only" tabindex="-1" role="button" aria-disabled="false"><span class="ui-button-text"><span class="ui-icon ui-icon-triangle-1-n">▲</span></span></a><a class="ui-spinner-button ui-spinner-down ui-corner-br ui-button ui-widget ui-state-default ui-button-text-only" tabindex="-1" role="button" aria-disabled="false"><span class="ui-button-text"><span class="ui-icon ui-icon-triangle-1-s">▼</span></span></a></span>
+                    </td>
+                    <td>
+                        <span class="ui-spinner ui-widget ui-widget-content ui-corner-all"><input name="'points' + $data.id()" style="width: 50px" data-bind="spinner: {
+                                min: min_points,
+                                max: max_points
+                            },
+                            value: points,
+                            valueUpdate: 'spinstop'" readonly="true" aria-valuemin="1" aria-valuemax="200" class="ui-spinner-input" autocomplete="off" role="spinbutton"><a class="ui-spinner-button ui-spinner-up ui-corner-tr ui-button ui-widget ui-state-default ui-button-text-only" tabindex="-1" role="button" aria-disabled="false"><span class="ui-button-text"><span class="ui-icon ui-icon-triangle-1-n">▲</span></span></a><a class="ui-spinner-button ui-spinner-down ui-corner-br ui-button ui-widget ui-state-default ui-button-text-only" tabindex="-1" role="button" aria-disabled="false"><span class="ui-button-text"><span class="ui-icon ui-icon-triangle-1-s">▼</span></span></a></span>
+                    </td>
+                    <td>
+                        <button data-bind="click: $parent.deleteStory">
+                            Delete</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <script type="text/javascript">
+        var canvas_width = 800;
+        var canvas_height = 400;
+
+        var padding = 30;
+
+        var project_beg = new Date();
+        var project_end = new Date();
+        project_end.setMonth(project_end.getMonth() + 5);
+
+        var min_points = 1;
+        var max_points = 200;
+
+        var num_priorities = 10;
+        var num_iterations = 7;
+
+        var rect_height = 30;
+
+        var num_stories = 1;
+
+        var time_scale = d3.time.scale()
+            .domain([project_beg, project_end])
+            .range([0, canvas_width]);
+
+        function Story() {
+            var self = this;
+
+            self.id = ko.observable("story" + num_stories++);
+            self.story_name = ko.observable("New Story");
+            self.start_on = ko.observable(padding);
+            self.priority = ko.observable(padding);
+            self.points = ko.observable(40);
+            self.selected = ko.observable(false);
+
+            self.story = ko.computed(function () {
+                return { story_name: self.story_name(), start_on: self.start_on(), priority: self.priority(), points: self.points() };
+            });
+
+            self.start_on_disp = ko.computed({
+                read: function () {
+                    return time_scale.invert(self.start_on() - padding).toDateString();
+                },
+                write: function (value) {
+                    self.start_on(time_scale(Date.parse(value)) + padding);
+                }
+            }).extend({ throttle: 500 });
+
+            self.priority_disp = ko.computed({
+                read: function () {
+                    return Math.round(
+                        (canvas_height + padding - self.priority()) / canvas_height * num_priorities);
+                },
+                write: function (value) {
+                    self.priority(Math.round(
+                        canvas_height + padding - ((canvas_height * value) / num_priorities)));
+                }
+            }).extend({ throttle: 500 });
+        };
+
+        function ViewModel() {
+            var self = this;
+
+            self.stories = ko.observableArray([]);
+            self.addStory = function () {
+                self.stories.push(new Story(self));
+            };
+            self.deleteStory = function (story) {
+                self.stories.remove(story);
+            };
+        };
+
+        var dragStory = d3.behavior.drag()
+            .origin(Object)
+            .on("drag", function (d) {
+                d.start_on(d.start_on() + d3.event.dx);
+                d.priority(d.priority() + d3.event.dy);
+
+                if (d.start_on() < padding) {
+                    d.start_on(padding);
+                }
+                else if (d.start_on() + parseInt(d.points()) > canvas_width + padding) {
+                    d.start_on(canvas_width - parseInt(d.points()) + padding);
+                }
+
+                if (d.priority() < padding) {
+                    d.priority(padding);
+                }
+                else if (d.priority() + rect_height > canvas_height + padding) {
+                    d.priority(canvas_height - rect_height + padding);
+                }
+            });
+
+            var changePoints = d3.behavior.drag()
+            .origin(Object)
+            .on("drag", function (d) {
+                var newValue = +d.points() + +d3.event.dx;
+                if (min_points <= newValue && newValue <= max_points) {
+                    d.points(newValue);
+                }
+            });
+
+        window.onload = function () {
+            var svg = d3.select("body").append("svg")
+                .attr("width", canvas_width + (2 * padding))
+                .attr("height", canvas_height + (2 * padding));
+
+            var div = d3.select("body").append("div")
+                .attr("class", "tooltip")
+                .style("opacity", 0);
+
+            var group = svg.append("g");
+
+            var vm = new ViewModel();
+            ko.applyBindings(vm);
+
+            function updateStories(data) {
+                var rects = group
+                    .selectAll("rect")
+                    .data(data, function (d) { return d.id(); });
+
+                rects.enter()
+                    .append("rect")
+                    .on("mouseover", function (d) {
+                        d3.select(this)
+                            .attr("opacity", 0.5)
+                            .transition()
+                            .duration(300)
+                            .style("fill", "LightSkyBlue")
+                            .attr("opacity", 1.0);
+                        d.selected(true);
+
+                        div.transition()
+                            .duration(200)
+                            .style("opacity", .9);
+
+                        div.html(d.story_name())
+                            .style("left", (d3.event.pageX) + "px")
+                            .style("top", (d3.event.pageY) + "px");
+                    })
+                    .on("mouseout", function (d) {
+                        d3.select(this)
+                            .attr("opacity", 1.0)
+                            .transition()
+                            .duration(300)
+                            .style("fill", "Black")
+                            .attr("opacity", 0.5);
+                        d.selected(false);
+
+                        div.transition()
+                            .duration(500)
+                            .style("opacity", 0);
+                    })
+                    .attr("id", function (d) { return d.id(); })
+                    .attr("opacity", 0.0)
+                    .transition()
+                    .duration(1000)
+                    .attr("opacity", 0.5);
+
+                rects
+                    .attr("x", function (d) { return d.start_on(); })
+                    .attr("y", function (d) { return d.priority(); })
+                    .attr("width", function (d) { return d.points(); })
+                    .attr("height", function (d) { return rect_height; })
+                    .call(dragStory);
+
+                rects.exit().remove();
+
+                var lines = group
+                    .selectAll("line")
+                    .data(data, function (d) { return d.id(); });
+
+                lines.enter()
+                    .append("line")
+                    .on("mouseover", function (d) {
+                        d3.select("body").style("cursor", "ew-resize");
+                    })
+                    .on("mouseout", function (d) {
+                        d3.select("body").style("cursor", "default");
+                    });
+
+                lines
+                    .attr("x1", function (d) {
+                        return +d.points() + +d.start_on() + +1;
+                    })
+                    .attr("x2", function (d) {
+                        return +d.points() + +d.start_on() + +1;
+                    })
+                    .attr("y1", function (d) { return d.priority() + rect_height; })
+                    .attr("y2", function (d) { return d.priority(); })
+                    .attr("stroke", "red")
+                    .attr("stroke-width", "2")
+                    .call(changePoints);
+
+                lines.exit().remove();
+            }
+
+            var subs = [];
+
+            vm.stories.subscribe(function (newValue) {
+                updateStories(newValue);
+
+                ko.utils.arrayForEach(subs, function (sub) {
+                    sub.dispose();
+                });
+
+                ko.utils.arrayForEach(newValue, function (item) {
+                    subs.push(item.story.subscribe(function () {
+                        updateStories(newValue);
+                    }));
+                });
+            });
+
+            vm.stories.push(new Story());
+
+            var rules = svg.append("g")
+                .attr("transform", "translate(" + padding + ", " + padding + ")")
+                .classed("rules", true);
+
+            function make_month_axis() {
+                return d3.svg.axis()
+                    .scale(time_scale)
+                    .orient("top")
+                    .ticks(d3.time.month, 1)
+                    .tickSize(5)
+                    .tickFormat(d3.time.format("%b %Y"))
+            }
+
+            rules.append("g").classed("months", true)
+                .attr("transform", "translate(0," + canvas_height + ")")
+                .call(make_month_axis())
+
+            function make_week_axis() {
+                return d3.svg.axis()
+                    .scale(time_scale)
+                    .orient("top")
+                    .ticks(d3.time.week, 1) // One tick per week
+                    .tickSize(3)
+                    .tickFormat("")
+            }
+
+            rules.append("g").classed("weeks", true)
+                .attr("transform", "translate(0," + canvas_height + ")")
+                .call(make_week_axis())
+
+            var iteration_scale = d3.scale.linear()
+                .domain([0, num_iterations])
+                .range([0, canvas_width]);
+
+            function make_iteration_axis() {
+                return d3.svg.axis()
+                    .scale(iteration_scale)
+                    .orient("bottom")
+                    .ticks(num_iterations)
+                    .tickSize(-canvas_height, 0, 0)
+            }
+
+            rules.append("g").classed("iterations", true)
+                .attr("transform", "translate(0," + canvas_height + ")")
+                .call(make_iteration_axis())
+
+            var priority_scale = d3.scale.linear()
+                .domain([num_priorities, 0])
+                .range([0, canvas_height]);
+
+            function make_priority_axis() {
+                return d3.svg.axis()
+                    .scale(priority_scale)
+                    .orient("left")
+                    .ticks(num_priorities / 2)
+                    .tickSize(-canvas_width, 0, 0)
+            }
+
+            rules.append("g").classed("priorities", true)
+                .call(make_priority_axis())
+        };
+
+    </script>
+</body>
+</html>

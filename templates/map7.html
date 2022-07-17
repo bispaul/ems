@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="description" content="Login Page.">
+    <meta name="author" content="">
+    <title>Zeerone Map Services</title>
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}"> -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+    <style type="text/css">
+/*      #map, html, body {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+      }*/
+ 
+      #buttons {
+        position: fixed;
+        top: 50px;
+        right: 5px;
+        font-family: Roboto;
+        font-size: 15px;
+        font-weight: 300;        
+        margin-left: 12px;
+        padding: 0 11px 0 13px;
+        text-overflow: ellipsis;        
+      }
+
+      html,body{
+        padding: 0;
+        margin: 0;
+        height: 100%;
+      }
+
+      body{
+        padding-top:50px; /*padding for navbar*/
+      }
+
+      .navbar-custom .icon-bar {
+        background-color: #5cb85c;
+      }
+
+      .navbar-custom {
+        background-color: #5cb85c;
+        color: #5cb85c;
+      }
+
+      .navbar-custom li>a:hover,.navbar-custom li>a:focus {
+        background-color:#005C37;
+      }
+
+      .navbar-custom a{
+          color:#fefefe;
+      }
+
+      .navbar-custom .form-control:focus {
+        border-color: #49bfff;
+        outline: 0;
+        -webkit-box-shadow: inset 0 0 0;
+        box-shadow: inset 0 0 0;
+      }
+
+      #main, #main>.row {
+        height:100%;
+      }
+
+      #main>.row {
+          overflow-y:scroll;
+      }
+
+      #left {
+        height:100%;
+      }
+
+      img { 
+          max-width: 100%; 
+      }
+
+      #map-canvas img { 
+          max-width: none; 
+      }
+
+      #map-canvas {
+        /*width:74%;*/
+        width:100%;
+        height:calc(100% - 0);
+        position:absolute;
+        /*right:10px;*/
+        top:50px;
+        bottom:20px;
+        overflow:hidden;
+      }        
+
+/*      html, body, #map-canvas {
+          height: 100%;
+          margin: 0px;
+          padding: 0px;
+      }*/
+
+      #footer {
+        height: 20px;
+        background-color: #5cb85c;
+        margin-top: 5px;
+        padding-top: 2px;
+        padding-bottom: 2px;
+        bottom: 0;
+        position: fixed;
+        width: 100%;
+      }
+
+      .fixed {
+          position: fixed;
+          bottom:25px;
+       }
+
+      #plotModal, #editplotModal { 
+        width: 100%;
+        left: 39%;
+        top: 7%;
+        /*top: 25px;*/
+        background-color: transparent; 
+        max-height: 91%;
+        height: auto;
+        /*position: absolute;*/
+      }
+
+      #plotModal .modal-body, #editplotModal .modal-body {
+          max-height: calc(100vh - 260px);
+          overflow-y: scroll;
+          height: auto;
+          /*position: relative;*/
+      }
+
+      .controls {
+        margin-top: 6px;
+        border: 1px solid transparent;
+        border-radius: 2px 0 0 2px;
+        box-sizing: border-box;
+        -moz-box-sizing: border-box;
+        height: 32px;
+        outline: none;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      }
+
+      #pac-input {
+        background-color: #fff;
+        font-family: Roboto;
+        font-size: 15px;
+        font-weight: 300;
+        margin-left: 12px;
+        padding: 0 11px 0 13px;
+        text-overflow: ellipsis;
+        width: 400px;
+      }
+
+      #pac-input:focus {
+        border-color: #4d90fe;
+      }
+
+      .pac-container {
+        font-family: Roboto;
+      }
+
+      #type-selector {
+        color: #fff;
+        background-color: #4d90fe;
+        padding: 5px 11px 0px 11px;
+      }
+
+      #type-selector label {
+        font-family: Roboto;
+        font-size: 13px;
+        font-weight: 300;
+      }      
+    </style>
+    <script type="text/javascript" src="http://maps.google.co.in/maps/api/js?sensor=false&libraries=places,geometry,drawing"></script> 
+    <script src="{{ url_for('static', filename='js/jquery-2.1.3.min.js') }}"></script>
+    <!-- // <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>  -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+    <script type="text/javascript">
+        var center = new google.maps.LatLng(45.00495,-90.00052);
+        // The Google Map.
+        var map;
+
+        // The HTML element that contains the drop container.
+        var dropContainer;
+        // var panel;
+        var geoJsonInput;
+        // var downloadLink;
+
+        function init() {
+          // Initialise the map.
+          map = new google.maps.Map(document.getElementById('map-canvas'), {
+            center: center,
+            zoom: 16,
+            mapTypeId: google.maps.MapTypeId.HYBRID,
+            zoomControl: true,
+            scaleControl: true            
+          });
+
+          map.data.setControls(['Polygon']);
+          map.data.setStyle({
+            editable: true,
+            draggable: true
+          });
+          map.data.setControlPosition(google.maps.ControlPosition.TOP_CENTER);
+
+          bindDataLayerListeners(map.data);
+
+          // Retrieve HTML elements.
+          // dropContainer = document.getElementById('drop-container');
+          // panel = document.getElementById('panel');
+          var mapContainer = document.getElementById('map-canvas');
+          // geoJsonInput = document.getElementById('geojson-input');
+          // downloadLink = document.getElementById('download-link');
+
+          // Resize the geoJsonInput textarea.
+          // resizeGeoJsonInput();
+
+          // Set up the drag and drop events.
+          // First on common events.
+          // [mapContainer, dropContainer].forEach(function(container) {
+          //   google.maps.event.addDomListener(container, 'drop', handleDrop);
+          //   google.maps.event.addDomListener(container, 'dragover', showPanel);
+          // });
+
+          // Then map-specific events.
+          // google.maps.event.addDomListener(mapContainer, 'dragstart', showPanel);
+          // google.maps.event.addDomListener(mapContainer, 'dragenter', showPanel);
+
+          // Then the overlay specific events (since it only appears once drag starts).
+          // google.maps.event.addDomListener(dropContainer, 'dragend', hidePanel);
+          // google.maps.event.addDomListener(dropContainer, 'dragleave', hidePanel);
+          // Set up events for changing the geoJson input.
+          // google.maps.event.addDomListener(
+          //     geoJsonInput,
+          //     'input',
+          //     refreshDataFromGeoJson);
+          // google.maps.event.addDomListener(
+          //     geoJsonInput,
+          //     'input',
+          //     refreshDownloadLinkFromGeoJson);
+
+          // Set up events for styling.
+          // google.maps.event.addDomListener(window, 'resize', resizeGeoJsonInput);
+        }
+
+
+        // Refresh different components from other components.
+        function refreshGeoJsonFromData() {
+          map.data.toGeoJson(function(geoJson) {
+            geoJsonInput = JSON.stringify(geoJson, null, 2);
+            // refreshDownloadLinkFromGeoJson();
+          });
+          trace('Test');
+          // map.data.setEditable(false);
+          // map.data.setStyle({
+          //   editable: false,
+          //   draggable: false
+          // }); 
+          map.data.setDrawingMode(null); 
+
+          // trace(map.data);
+          map.data.forEach(function(object) {
+            trace(object);
+            // trace(object.feature);
+            // object.feature.overrideStyle({
+            //   editable: true,
+            //   draggable: true
+            // }); 
+          });
+        }
+
+        // Replace the data layer with a new one based on the inputted geoJson.
+        function refreshDataFromGeoJson() {
+          var newData = new google.maps.Data({
+            map: map,
+            style: map.data.getStyle(),
+            controls: ['Polygon']
+          });
+          try {
+            var userObject = JSON.parse(geoJsonInput);
+            var newFeatures = newData.addGeoJson(userObject);
+          } catch (error) {
+            newData.setMap(null);
+            if (geoJsonInput !== "") {
+              setGeoJsonValidity(false);
+            } else {
+              setGeoJsonValidity(true);
+            }
+            return;
+          }
+          // No error means GeoJSON was valid!
+          map.data.setMap(null);
+          map.data = newData;
+          bindDataLayerListeners(newData);
+          setGeoJsonValidity(true);
+        }
+
+        // Refresh download link.
+        // function refreshDownloadLinkFromGeoJson() {
+        //   downloadLink.href = "data:;base64," + btoa(geoJsonInput.value);
+        // }
+
+        // Apply listeners to refresh the GeoJson display on a given data layer.
+        function bindDataLayerListeners(dataLayer) {
+          dataLayer.addListener('addfeature', function(event) {
+            trace('addfeature');
+            trace(event.feature);
+            // map.data.overrideStyle(event.feature, {editable: false});
+            // event.setOptions({editable: false});
+            clearLatestMarker();
+            event.feature.setProperty({inEditMode: false});
+            refreshGeoJsonFromData();
+          });
+          dataLayer.addListener('removefeature', function(event) {
+            trace('removefeature');
+            trace(event);
+            refreshGeoJsonFromData();
+          });
+          dataLayer.addListener('setgeometry', function(event) {
+            trace('setgeometry');
+            trace(event);
+            clearLatestMarker();
+            // event.setEditable(false);
+            event.feature.setProperty({inEditMode: false});
+            refreshGeoJsonFromData();
+          });
+          dataLayer.addListener('click', function(event) {
+            //find out how to get the draggable and edtable property of each geometry
+            // trace(event.feature.getGeometry());
+            // event.feature.toGeoJson(function(geoJson) {
+            //   geoJsonInput = JSON.stringify(geoJson, null, 2);
+            //   trace(geoJsonInput);
+            // });
+            getClickedGeoJson(event);
+          });
+        }
+
+        // Display the validity of geoJson.
+        function setGeoJsonValidity(newVal) {
+          if (!newVal) {
+            geoJsonInput.className = 'invalid';
+          } else {
+            geoJsonInput.className = '';
+          }
+        }
+
+        function getClickedGeoJson(event) {
+            map.data.revertStyle(event.feature, {editable: true});
+            event.feature.toGeoJson(function(geoJson) {
+              clickedGeoJson = JSON.stringify(geoJson, null, 2);
+              // trace(geoJsonInput);
+            });
+        }
+
+        function clearLatestMarker() {
+            map.data.forEach(function(polygon){ 
+                if (polygon.getProperty(inEditMode)){
+                    polygon.setProperty({inEditMode: false});
+                };
+            });
+        }
+
+        function refreshState(state) {
+          trace('overlaycomplete');
+          map.data.setStyle({
+            editable: state,
+            draggable: state
+          });          
+        }
+        // Control the drag and drop panel. Adapted from this code sample:
+        // https://developers.google.com/maps/documentation/javascript/examples/layer-data-dragndrop
+        // function showPanel(e) {
+        //   e.stopPropagation();
+        //   e.preventDefault();
+        //   dropContainer.className = 'visible';
+        //   return false;
+        // }
+
+        // function hidePanel() {
+        //   dropContainer.className = '';
+        // }
+
+        // function handleDrop(e) {
+        //   e.preventDefault();
+        //   e.stopPropagation();
+        //   hidePanel();
+
+        //   var files = e.dataTransfer.files;
+        //   if (files.length) {
+        //     // process file(s) being dropped
+        //     // grab the file data from each file
+        //     for (var i = 0, file; file = files[i]; i++) {
+        //       var reader = new FileReader();
+        //       reader.onload = function(e) {
+        //         map.data.addGeoJson(JSON.parse(e.target.result));
+        //       };
+        //       reader.onerror = function(e) {
+        //         console.error('reading failed');
+        //       };
+        //       reader.readAsText(file);
+        //     }
+        //   } else {
+        //     // process non-file (e.g. text or html) content being dropped
+        //     // grab the plain text version of the data
+        //     var plainText = e.dataTransfer.getData('text/plain');
+        //     if (plainText) {
+        //       map.data.addGeoJson(JSON.parse(plainText));
+        //     }
+        //   };
+        //   // prevent drag event from bubbling further
+        //   return false;
+        // }
+
+        // Styling related functions.
+        // function resizeGeoJsonInput() {
+        //   var geoJsonInputRect = geoJsonInput.getBoundingClientRect();
+        //   var panelRect = panel.getBoundingClientRect();
+        //   geoJsonInput.style.height = panelRect.bottom - geoJsonInputRect.top - 8 + "px";
+        // }
+
+        //trace function for debugging
+        function trace(message) {
+            if (typeof console != 'undefined') {
+              console.log(message);
+            };
+        }
+
+        /**
+        *My Location COntrol
+        */ 
+        function myLocationControl(controlDiv, map) {
+            // Set CSS for the control border
+            var controlUI = document.createElement('div');
+            controlUI.style.backgroundColor = '#fff';
+            controlUI.style.border = '2px solid #fff';
+            controlUI.style.borderRadius = '3px';
+            controlUI.style.boxShadow = '0 2px 6px rgba(0,0,0,.3)';
+            controlUI.style.cursor = 'pointer';
+            controlUI.style.marginLeft = '32px';
+            controlUI.style.textAlign = 'center';
+            controlUI.title = 'My Location';
+            controlDiv.appendChild(controlUI);
+            // Set CSS for the control interior
+            var controlImage = document.createElement('div');
+            controlImage.style.width = '16px';
+            controlImage.style.height = '16px';
+            // trace("{{ url_for('static', filename='images/icon-locate-me.png') }}");
+            controlImage.innerHTML = '<img src= ' + __myLocationIcon + ' />';
+            controlUI.appendChild(controlImage);
+            // Setup the click event listeners: simply set the map to
+            // My Location
+            google.maps.event.addDomListener(controlUI, 'click', function() {
+                myAutoLocate();
+            });        
+        }
+
+        /**
+        *My Location
+        */
+        function myAutoLocate() {
+            var latlng;
+            //Automaticallly findout out the location
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(success, failure);
+                trace("In Geolocation");
+            } 
+            else {
+                trace('Geo Location is not supported');
+            }
+
+            function success(position) {
+                latlng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude); 
+                trace('Success: ' + position.coords.latitude + ' ' + position.coords.longitude);
+                _map.setCenter(latlng);
+                _map.setZoom(10);
+                myDrawCircle(latlng, 1000);
+            }
+
+            function failure() {
+                trace('Failure');
+            }          
+        }
+
+        //draw circle  
+        function myDrawCircle(centerlatlangobj, radius) {
+            var bufferOptions = {
+                strokeColor: "#FF0000",
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: "#FF0000",
+                fillOpacity: 0.35,
+                map: _map,
+                center: centerlatlangobj,
+                radius: radius
+            };                        
+            myLocCircle = new google.maps.Circle(bufferOptions);               
+        }  
+        /**
+        *Search Box
+        */ 
+        function mySearchBox(map) {
+            var markers = [];
+            // Create the search box and link it to the UI element.
+            var input = /** @type {HTMLInputElement} */(
+              document.getElementById('pac-input'));
+            map.controls[google.maps.ControlPosition.TOP_LEFT].push(input);
+
+            var searchBox = new google.maps.places.SearchBox(
+            /** @type {HTMLInputElement} */(input));
+
+            // Listen for the event fired when the user selects an item from the
+            // pick list. Retrieve the matching places for that item.
+            google.maps.event.addListener(searchBox, 'places_changed', function() {
+                var places = searchBox.getPlaces();
+
+                if (places.length == 0) {
+                  return;
+                }
+                for (var i = 0, marker; marker = markers[i]; i++) {
+                  marker.setMap(null);
+                }
+
+                // For each place, get the icon, place name, and location.
+                markers = [];
+                var bounds = new google.maps.LatLngBounds();
+                for (var i = 0, place; place = places[i]; i++) {
+                    var image = {
+                        url: place.icon,
+                        size: new google.maps.Size(71, 71),
+                        origin: new google.maps.Point(0, 0),
+                        anchor: new google.maps.Point(17, 34),
+                        scaledSize: new google.maps.Size(25, 25)
+                    };
+
+                    // Create a marker for each place.
+                    var marker = new google.maps.Marker({
+                        map: map,
+                        icon: image,
+                        title: place.name,
+                        position: place.geometry.location
+                    });
+
+                    markers.push(marker);
+
+                    bounds.extend(place.geometry.location);
+                }
+                map.fitBounds(bounds);
+                map.setZoom(5);
+            });
+
+            // Bias the SearchBox results towards places that are within the bounds of the
+            // current map's viewport.
+            google.maps.event.addListener(map, 'bounds_changed', function() {
+                var bounds = map.getBounds();
+                searchBox.setBounds(bounds);
+            });            
+        }
+
+        /**
+        * Get area of the drawn polygon in acres
+        */
+        function myGetArea(poly) {
+            var result = parseFloat(google.maps.geometry.spherical.computeArea(poly.getPath())) * 0.000247105;
+            return result.toFixed(4);
+        }
+
+        google.maps.event.addDomListener(window, 'load', init);
+    </script>
+  </head>
+  <body>
+    <!-- begin template -->
+    <div class="navbar navbar-custom navbar-fixed-top">
+      <div class="navbar-header"><a class="navbar-brand" href="#">Brand</a>
+        <a class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </a>
+      </div>
+      <div class="navbar-collapse collapse">
+        <ul class="nav navbar-nav">
+          <li class="active"><a href="#">Home</a></li>
+          <li><a href="#">Link</a></li>
+          <li><a href="#">Link</a></li>
+          <li>&nbsp;</li>
+        </ul>
+<!--         <form class="navbar-form">
+          <div class="form-group" style="display:inline;">
+            <div class="input-group">
+              <div class="input-group-btn">
+                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-chevron-down"></span></button>
+                <ul class="dropdown-menu">
+                  <li><a href="#">Category 1</a></li>
+                  <li><a href="#">Category 2</a></li>
+                  <li><a href="#">Category 3</a></li>
+                  <li><a href="#">Category 4</a></li>
+                  <li><a href="#">Category 5</a></li> 
+                </ul>
+              </div>
+              <input type="text" class="form-control" placeholder="What are searching for?">
+              <span class="input-group-addon"><span class="glyphicon glyphicon-search"></span> </span>
+            </div>
+          </div>
+        </form> -->
+      </div>
+    </div>  
+<!--     <table style="width:100%;height:100%;border-style:none;border-collapse:collapse;">
+      <tr>
+        <td style="width:100%;height:80%;border-width:0px;padding:0px;">
+          <div id="map"></div>
+          <div id="buttons">
+            <input type="button" id="delete-button" value="Delete Shape">
+            <input type="button" id="clear-button" value="Clear All Shapes">
+          </div>
+        </td> 
+      </tr>
+      <tr>
+        <td style="width:100%;height:20%;border-width:0px;padding:0px;">
+          <textarea id="console" readonly="readonly" style="width:100%;height:100%;border:0px;margin:0px;background-color:#e0f0a0;"></textarea>
+        </td>
+      </tr>
+    </table> -->
+<!--     <input id="pac-input" class="controls" type="text" placeholder="Search Box">
+    <div id="buttons">
+      <input type="button" id="delete-button" value="Delete Shape">
+      <input type="button" id="clear-button" value="Clear All Shapes">
+    </div>     -->
+    <div id="map-canvas"></div>
+        
+    <div id="footer">
+      <div class="container">
+        <p class="text-muted">&copy; Zeerone 2012</p>
+      </div>
+    </div>    
+  </body>
+</html>

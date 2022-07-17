@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Weather layer</title>
+  <style>
+    html, body{
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    #map-canvas {
+      width: 100%;
+      height: 100%;
+    }
+    .gm-style-iw {
+      text-align: center;
+    }
+  </style>
+  <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js"></script>
+  <script type="text/javascript" src="../static/js/gmaps.js"></script>
+  <script type="text/javascript" src="../static/js/jquery-2.1.3.min.js"></script>
+  <script>
+    var map;
+    $(document).ready(function(){
+      map = new GMaps({
+        div: '#map',
+        lat: 20,
+        lng: 78
+      });
+
+      GMaps.geolocate({
+        success: function(position) {
+          map.setCenter(position.coords.latitude, position.coords.longitude);
+        },
+        error: function(error) {
+          alert('Geolocation failed: '+error.message);
+        },
+        not_supported: function() {
+          alert("Your browser does not support geolocation");
+        },
+        always: function() {
+          alert("Done!");
+        }
+      });
+    });
+  </script>
+</head>
+<body>
+
+<div id="map"></div>
+
+</body>
+</html>

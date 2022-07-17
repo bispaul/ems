@@ -1,0 +1,96 @@
+{% extends "basetemplate.html" %}
+{% block title %}Test Page{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/c3.css') }}">
+    <style>
+      .bars {
+                display: block;
+                width: 20px;
+                height: 3px;    
+                background-color: #333;
+                box-shadow: 0 5px 0 #333, 0 10px 0 #333;
+            }
+      .nav>li>a:hover, .nav>li>a:focus {
+                text-decoration: none;
+                background-color: #fff;
+            }
+      .nav .open>a, .nav .open>a:hover, .nav .open>a:focus {
+                background-color: #fff;
+                border-color: #428bca;
+            }
+      #chart .c3-line-forecast {
+        stroke-width: 4px;
+      }
+      #chart .c3-line-live_demand {
+        stroke-width: 5px;
+      }
+      #chart .c3-line-live_forecast {
+        stroke-width: 3px;
+      }
+      #chart .c3-line-live_demand_NBPDCL {
+        stroke-width: 5px;
+      }
+      #chart .c3-line-live_forecast_NBPDCL {
+        stroke-width: 3px;
+      }
+      #chart .c3-line-live_demand_SBPDCL {
+        stroke-width: 5px;
+      }
+      #chart .c3-line-live_forecast_SBPDCL {
+        stroke-width: 3px;
+      }                                             
+    </style>   
+{% endblock %}
+{% block content %}
+    <div class="container">
+      <div role="tabpanel">
+          <ul class="nav nav-tabs" role="tablist">
+            <li role="presentation" class="active"><a href="#rtf" aria-controls="rtf" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-stats"></span> Real Time Forecast</a></li>
+            <li role="presentation"><a href="#profile" aria-controls="profile" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-list"></span> Profile</a></li>            
+          </ul>      
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane active" id="rtf">
+              <div class="container">
+                <div class="col-md-12 content">
+                  <div id="chart"></div>
+                </div>
+              </div>            
+            </div>
+            <div role="tabpanel" class="tab-pane" id="profile">Test</div>
+          </div>
+
+        </div>        
+
+        <script src="{{ url_for('static', filename='js/d3.min.js') }}"></script>  
+        <script src="{{ url_for('static', filename='js/c3.min.js') }}"></script>   
+        <script>
+          var chart = c3.generate({
+            data: {
+              columns: [
+                ['data1', 1030, 1200, 1100, 1400, 1150, 1250, 1030, 1200, 1100, 1400, 1150, 1250, 1030, 1200, 1100, 1400, 1150, 1250, 1030, 1200, 1100, 1400, 1150, 1250, 1030, 1200, 1100, 1400, 1150, 1250, 1030, 1200, 1100, 1400, 1150, 1250, 1030, 1200, 1100, 1400, 1150, 1250, 1030, 1200, 1100, 1400, 1150, 1250, 1030, 1200, 1100, 1400, 1150, 1250, 1030, 1200, 1100, 1400, 1150, 1250, 1030, 1200, 1100, 1400, 1150, 1250, 1030, 1200, 1100, 1400, 1150, 1250, 1030, 1200, 1100, 1400, 1150, 1250, 1030, 1200, 1100, 1400, 1150, 1250,],
+                ['data2', 2130, 2100, 2140, 2200, 2150, 1850, 2130, 2100, 2140, 2200, 2150, 1850, 2130, 2100, 2140, 2200, 2150, 1850, 2130, 2100, 2140, 2200, 2150, 1850, 2130, 2100, 2140, 2200, 2150, 1850, 2130, 2100, 2140, 2200, 2150, 1850, 2130, 2100, 2140, 2200, 2150, 1850, 2130, 2100, 2140, 2200, 2150, 1850, 2130, 2100, 2140, 2200, 2150, 1850, 2130, 2100, 2140, 2200, 2150, 1850, 2130, 2100, 2140, 2200, 2150, 1850, 2130, 2100, 2140, 2200, 2150, 1850, 2130, 2100, 2140, 2200, 2150, 1850, 2130, 2100, 2140, 2200, 2150, 1850,]
+    //           ['data1', 30, 200, 100, 400, 150, 250],
+    //           ['data2', 130, 100, 140, 200, 150, 50]
+              ],
+              type: 'bar',
+              onclick: function (d, element) { console.log("onclick", d, element); },
+              onmouseover: function (d) { console.log("onmouseover", d); },
+              onmouseout: function (d) { console.log("onmouseout", d); }
+            },
+            axis: {
+              x: {
+                type: 'categorized'
+              }
+            },
+            bar: {
+              width: {
+                ratio: 0.3,
+    //            max: 30
+              },
+            }
+          });
+        </script>
+
+    </div><!-- /.container -->
+{% endblock %}

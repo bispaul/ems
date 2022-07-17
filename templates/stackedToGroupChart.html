@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="description" content="Navigation Page.">
+    <meta name="author" content="">
+    <!-- <link rel="icon" href="../../favicon.ico"> -->
+    <title>Zeerone Landing</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/minisubmenu.css') }}"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sticky-footer-navbar.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.css') }}"> -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/c3.css') }}"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/nv.d3.min.css') }}">
+    <style>
+      .bars {
+                display: block;
+                width: 20px;
+                height: 3px;    
+                background-color: #333;
+                box-shadow: 0 5px 0 #333, 0 10px 0 #333;
+            }
+      .nav>li>a:hover, .nav>li>a:focus {
+                text-decoration: none;
+                background-color: #fff;
+            }
+      .nav .open>a, .nav .open>a:hover, .nav .open>a:focus {
+                background-color: #fff;
+                border-color: #428bca;
+            }
+
+      #chart svg {
+        height: 500px;
+        margin: 10px;
+        min-width: 100px;
+        min-height: 100px;
+      /*
+        Minimum height and width is a good idea to prevent negative SVG dimensions...
+        For example width should be =< margin.left + margin.right + 1,
+        of course 1 pixel for the entire chart would not be very useful, BUT should not have errors
+      */
+      }            
+
+/*      body {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        margin: auto;
+        position: relative;
+        width: 960px;
+      }
+
+      text {
+        font: 10px sans-serif;
+      }*/
+
+/*      .axis path,
+      .axis line {
+        fill: none;
+        stroke: #000;
+        shape-rendering: crispEdges;
+      }*/
+
+/*      form {
+        position: absolute;
+        right: 10px;
+        top: 10px;*/
+      }
+    </style>
+    <script src="{{ url_for('static', filename='js/jquery-2.0.3.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/d3.v3.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/nv.d3.min.js') }}"></script> 
+    <!-- // <script src="{{ url_for('static', filename='js/require.js') }}"></script> -->
+    <script>
+      // for nvd3.js
+      //var pos_data = [];
+      //for c3js
+      var pos_data = [];
+      var pos_data2 = {};
+      $(function() {
+        // log('07-10-2014');
+        log();
+        function log() {
+          $.ajax( {url: "{{ url_for('get_stacked_data') }}",// "nrldcdata/RAJASTHAN/" + message,
+                   dataType: "json",
+                   //data: "FD_16-11-2009",
+                   //type: "GET",
+                   contentType: "application/json; charset=utf-8",
+                   dataFilter: function(data) { return data; },
+                   success: function(data) {
+                                            //console.log(data);
+                                            console.log("success");
+                                            // for nvd3.js
+                                            //pos_data.push({'key':message, 'values':data});
+                                            //for c3js
+                                            //pos_data.push({'key': message, message : data});
+                                            //pos_data2['x']=data.map(function(a){return a.x});
+                                            //pos_data2=data.map(function(a){return pos_data2[a.station_name]=a.y});
+                                            // var y = [];
+                                            // var x = [];
+                                            // var stations = [];
+                                            // var length = Object.keys(data).length;
+                                            // //var length = 384;
+                                            // var starttime = new Date();
+                                            // for (var i = 0; i < length; i++){
+                                            //   var temp_station;
+                                            //   if ((i != 0 && temp_station != data[i]['drawl_type']) || (i == length - 1)){
+                                            //       //console.log("Inside String");
+                                            //       //console.log(temp_station);
+                                            //       //console.log(i);
+                                            //       pos_data['key'] = data[i]['drawl_type'];
+                                            //       pos_data['values'][i] = [data[i]['x'], data[i]['y']];
+                                            //       y = [];
+                                            //       x = [];
+                                            //       stations.push(temp_station);
+                                            //   }
+                                            //   //console.log(item.y);
+                                            //   y.push(data[i]['y']);
+                                            //   x.push(data[i]['x']);
+                                            //   //console.log(y);
+                                            //   temp_station = data[i]['drawl_type'];
+                                            // } 
+                                            // var stoptime = new Date();
+                                            // console.log((stoptime.getTime() - starttime.getTime())/1000);
+                                            //len = Object.keys(pos_data2).length;
+                                            //keys = Object.keys(pos_data2);
+                                            // types = {};
+                                            // axes = {};
+                                            //console.log(pos_data2[]);
+                                            //console.log([stations]);
+                                            //console.log(pos_data2['x']);
+                                            d3cht(data);
+                                            // c3cht(types, axes, [stations]);
+                    },
+                   error: function(XMLHttpRequest, textStatus, errorThrown) {
+                    alert(textStatus);
+                    }
+               });
+                function d3cht(data){
+                  console.log(data);
+                  console.log(Object.keys(data).length);
+                  var nested_data = d3.nest()
+                  .key(function(d) { return d.drawl_type; })
+                  .entries(data);
+                  console.log(nested_data);
+                    
+                  nv.addGraph(function() {
+                      var chart = nv.models.multiBarChart();
+
+                      chart.xAxis
+                          .tickFormat(d3.format(',f'));
+
+                      chart.yAxis
+                          .tickFormat(d3.format(',.1f'));
+
+                      d3.select('#chart svg')
+                          .datum(nested_data)
+                          .transition().duration(500)
+                          .call(chart)
+                          ;
+
+                      nv.utils.windowResize(chart.update);
+
+                      return chart;
+                  });
+              };
+          };
+      });          
+    </script>
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+<!--   <div id="tooltip" class="hidden">
+        <p><span id="value"></p>
+  </div> -->
+  <body>
+    <header class="top" role="header">
+      <div class="container">
+        <nav class="navbar" role="navigation">
+          <div class="container-fluid">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              <a href="#" class="navbar-brand">
+                <img style="margin-top:-20px;" src="/static/images/logo.png" alt="Z-matics">
+              </a>
+            </div>
+
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+              <ul class="nav navbar-nav">
+                <li class="dropdown">
+                  <a href="#" class="dropdown-toggle" data-toggle="dropdown">Menu <b class="caret"></b></a>
+                  <ul class="dropdown-menu">
+                    <li><a href="{{ url_for('index') }}">NR Gen</a></li>
+                    <li><a href="{{ url_for('nrmarket') }}">NR Market</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('tenisgs') }}">ISGS Tentative Data</a></li>
+                    <li><a href="{{ url_for('tenint') }}">Internal Tentative Data</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('rajmislive') }}">Live MIS Data</a></li>
+                    <li><a href="{{ url_for('rajlive') }}">Live Data Breakup</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('forecast') }}">Forecast</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('possuply') }}">Position Map</a></li>
+                    <li><a href="{{ url_for('possuplychart') }}">Position Map Chart</a></li>                    
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('chart') }}">Comparison Report</a></li>
+                    <li><a href="{{ url_for('chart3') }}">ISGS Tentative Stack</a></li>
+                    <li><a href="{{ url_for('stacked') }}">Total Generation Stack</a></li>
+                    <li><a href="{{ url_for('treemap') }}">Treemap Report</a></li>
+                    <li><a href="{{ url_for('heat') }}">Heatmap Report</a></li>                    
+                  </ul>
+                </li>
+              </ul>
+<!--               <form class="navbar-form navbar-left">
+                <div class="form-group">
+                  <label><input type="radio" name="mode" value="grouped"> Grouped</label> 
+                  <label><input type="radio" name="mode" value="stacked" checked> Stacked</label>
+                </div>
+              </form>     -->          
+  <!--             <form class="navbar-form navbar-left" role="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" placeholder="Search">
+                </div>
+                <button type="submit" class="btn btn-default">Submit</button>
+              </form> -->
+              <ul class="nav navbar-nav navbar-right">
+                <li><a href="http://zeerone.com/">About</a></li>
+                <li><a href="http://zeerone.com/contact_us.html">Contact</a></li>
+                <li>
+                  <a href="login.html">Logout </a>
+                </li>
+<!--                 <li><a href="#">Link</a></li>
+                <li class="dropdown">
+                  <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
+                  <ul class="dropdown-menu">
+                    <li><a href="#">Action</a></li>
+                    <li><a href="#">Another action</a></li>
+                    <li><a href="#">Something else here</a></li>
+                    <li class="divider"></li>
+                    <li><a href="#">Separated link</a></li>
+                  </ul>
+                </li> -->
+              </ul>
+            </div><!-- /.navbar-collapse -->
+          </div><!-- /.container-fluid -->
+        </nav>
+      </div>
+    </header>
+    <div class="middle">
+      <div class="container">
+        <div class="col-md-12 content">    
+          <script>
+          //   var n = 4, // number of layers
+          //       m = 58, // number of samples per layer
+          //       stack = d3.layout.stack(),
+          //       layers = stack(d3.range(n).map(function() { return bumpLayer(m, .1); })),
+          //       yGroupMax = d3.max(layers, function(layer) { return d3.max(layer, function(d) { return d.y; }); }),
+          //       yStackMax = d3.max(layers, function(layer) { return d3.max(layer, function(d) { return d.y0 + d.y; }); });
+
+          //   var margin = {top: 40, right: 10, bottom: 20, left: 10},
+          //       width = 960 - margin.left - margin.right,
+          //       height = 500 - margin.top - margin.bottom;
+
+          //   var x = d3.scale.ordinal()
+          //       .domain(d3.range(m))
+          //       .rangeRoundBands([0, width], .08);
+
+          //   var y = d3.scale.linear()
+          //       .domain([0, yStackMax])
+          //       .range([height, 0]);
+
+          //   var color = d3.scale.linear()
+          //       .domain([0, n - 1])
+          //       .range(["#aad", "#556"]);
+
+          //   var xAxis = d3.svg.axis()
+          //       .scale(x)
+          //       .tickSize(0)
+          //       .tickPadding(6)
+          //       .orient("bottom");
+
+          //   var svg = d3.select("body").append("svg")
+          //       .attr("width", width + margin.left + margin.right)
+          //       .attr("height", height + margin.top + margin.bottom)
+          //     .append("g")
+          //       .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+          //   var layer = svg.selectAll(".layer")
+          //       .data(layers)
+          //     .enter().append("g")
+          //       .attr("class", "layer")
+          //       .style("fill", function(d, i) { return color(i); });
+
+          //   var rect = layer.selectAll("rect")
+          //       .data(function(d) { return d; })
+          //     .enter().append("rect")
+          //       .attr("x", function(d) { return x(d.x); })
+          //       .attr("y", height)
+          //       .attr("width", x.rangeBand())
+          //       .attr("height", 0);
+
+          //   rect.transition()
+          //       .delay(function(d, i) { return i * 10; })
+          //       .attr("y", function(d) { return y(d.y0 + d.y); })
+          //       .attr("height", function(d) { return y(d.y0) - y(d.y0 + d.y); });
+
+          //   svg.append("g")
+          //       .attr("class", "x axis")
+          //       .attr("transform", "translate(0," + height + ")")
+          //       .call(xAxis);
+
+          //   d3.selectAll("input").on("change", change);
+
+          //   var timeout = setTimeout(function() {
+          //     d3.select("input[value=\"grouped\"]").property("checked", true).each(change);
+          //   }, 2000);
+
+          //   function change() {
+          //     clearTimeout(timeout);
+          //     if (this.value === "grouped") transitionGrouped();
+          //     else transitionStacked();
+          //   }
+
+          //   function transitionGrouped() {
+          //     y.domain([0, yGroupMax]);
+
+          //     rect.transition()
+          //         .duration(500)
+          //         .delay(function(d, i) { return i * 10; })
+          //         .attr("x", function(d, i, j) { return x(d.x) + x.rangeBand() / n * j; })
+          //         .attr("width", x.rangeBand() / n)
+          //       .transition()
+          //         .attr("y", function(d) { return y(d.y); })
+          //         .attr("height", function(d) { return height - y(d.y); });
+          //   }
+
+          //   function transitionStacked() {
+          //     y.domain([0, yStackMax]);
+
+          //     rect.transition()
+          //         .duration(500)
+          //         .delay(function(d, i) { return i * 10; })
+          //         .attr("y", function(d) { return y(d.y0 + d.y); })
+          //         .attr("height", function(d) { return y(d.y0) - y(d.y0 + d.y); })
+          //       .transition()
+          //         .attr("x", function(d) { return x(d.x); })
+          //         .attr("width", x.rangeBand());
+          //   }
+
+          //   // Inspired by Lee Byron's test data generator.
+          //   function bumpLayer(n, o) {
+
+          //     function bump(a) {
+          //       var x = 1 / (.1 + Math.random()),
+          //           y = 2 * Math.random() - .5,
+          //           z = 10 / (.1 + Math.random());
+          //       for (var i = 0; i < n; i++) {
+          //         var w = (i / n - y) * z;
+          //         a[i] += x * Math.exp(-w * w);
+          //       }
+          //     }
+
+          //     var a = [], i;
+          //     for (i = 0; i < n; ++i) a[i] = o + o * Math.random();
+          //     for (i = 0; i < 5; ++i) bump(a);
+          //     return a.map(function(d, i) { return {x: i, y: Math.max(0, d)}; });
+          //   }
+          </script>
+          <!-- <div id="chart"></div> -->
+          <div class='with-3d-shadow with-transitions'>
+            <div id="chart">
+              <svg></svg>
+            </div>
+          </div>
+        </div>  
+      </div> 
+    </div>
+  </body>        
+  <footer class="footer">
+    <div class="container">
+      <p class="text-muted">
+          Zeerone © 2012
+          http://www.zeerone.com</p>
+      </div>
+    </div>      
+  </footer>
+</html>    

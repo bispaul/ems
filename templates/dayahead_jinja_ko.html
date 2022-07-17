@@ -1,0 +1,939 @@
+{% extends "basetemplate.html" %}
+{% block title %}Day Ahead{% endblock %}
+{% block script %}
+    {{ super() }}
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.vertical-tabs.min.css') }}">     -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/c3.min.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.dataTables.css') }}"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dataTables.bootstrap.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/buttons.bootstrap.min.css') }}">    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/nv.d3.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-datepicker3.css') }}">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fileinput.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-toggle.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.splitter.css') }}">
+<!--     <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.loadmask.css') }}">   -->      
+<!--     <link rel="stylesheet" href="{{ url_for('static', filename='css/normalize.css') }}">   -->
+<!--     <link rel="stylesheet" href="{{ url_for('static', filename='css/tabs.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tabstyles.css') }}">    -->         
+    <style>
+      .bars {
+                display: block;
+                width: 20px;
+                height: 3px;    
+                background-color: #333;
+                box-shadow: 0 5px 0 #333, 0 10px 0 #333;
+      }
+      .nav>li>a:hover, .nav>li>a:focus {
+                text-decoration: none;
+                background-color: #fff;
+      }
+      .nav .open>a, .nav .open>a:hover, .nav .open>a:focus {
+                background-color: #fff;
+                border-color: #428bca;
+      }
+
+      .ui-autocomplete-loading {
+          background: white url("/static/images/ui-anim_basic_16x16.gif") right center no-repeat;
+      }
+
+      .btn-custom {
+          width: 78px !important;
+      }
+
+      /*.btn-default.active {*/
+          /*background-color: #9bd668;*/
+        /*background-color: #337ab7;  */
+      /*}*/
+      /* No wrap for datatables */
+      /*th, td { white-space: nowrap; }      */
+      div.DTTT { margin-bottom: 0.5em; float: right; }
+      div.dt-buttons { margin-bottom: 0.5em; float: right; }
+      div.dataTables_wrapper { clear: both; }
+
+/*      #forecastchart svg {
+        height: 400px;
+        margin: 10px;
+        min-width: 100px;
+        min-height: 100px;
+      }*/
+/*      .btn-primary.active {
+          background-color: limegreen;
+      } */     
+      #forecasttable, #forecasttabtable, #tenisgstable, #tenisgsgentab2 {
+        display: none; // you're using display!
+      }
+/*      #tenisgsgraph, #tenisgsgengraph2 {
+        display: none; // you're using diaplay!
+      }*/
+/*      #tenisgsgentab{
+        visibility: hidden;
+      }*/
+
+      .ui-autocomplete {
+          max-height: 100px;
+          overflow-y: auto;
+          /* prevent horizontal scrollbar */
+          overflow-x: hidden;
+      }
+
+
+      body {
+        overflow-y:scroll;
+      }
+
+      text {
+        font: 12px sans-serif;
+      }
+
+ 
+      .c3-region.foo {
+        fill: red;
+      }
+      select option {
+      color: black;
+      }
+      select option:first-child {
+      color: grey;
+      }
+      select.empty {
+      color: grey;
+      }
+      #chart2 .c3-line-Forecast {
+        stroke-width: 5px;
+      }
+
+
+      /* custom inclusion of right, left and below tabs */
+
+      .tabs-below > .nav-tabs,
+      .tabs-right > .nav-tabs,
+      .tabs-left > .nav-tabs {
+        border-bottom: 0;
+      }
+
+      .tab-content > .tab-pane,
+      .pill-content > .pill-pane {
+        display: none;
+      }
+
+      .tab-content > .active,
+      .pill-content > .active {
+        display: block;
+      }
+
+      .tabs-below > .nav-tabs {
+        border-top: 1px solid #ddd;
+      }
+
+      .tabs-below > .nav-tabs > li {
+        margin-top: -1px;
+        margin-bottom: 0;
+      }
+
+      .tabs-below > .nav-tabs > li > a {
+        -webkit-border-radius: 0 0 4px 4px;
+           -moz-border-radius: 0 0 4px 4px;
+                border-radius: 0 0 4px 4px;
+      }
+
+      .tabs-below > .nav-tabs > li > a:hover,
+      .tabs-below > .nav-tabs > li > a:focus {
+        border-top-color: #ddd;
+        border-bottom-color: transparent;
+      }
+
+      .tabs-below > .nav-tabs > .active > a,
+      .tabs-below > .nav-tabs > .active > a:hover,
+      .tabs-below > .nav-tabs > .active > a:focus {
+        border-color: transparent #ddd #ddd #ddd;
+      }
+
+      .tabs-left > .nav-tabs > li,
+      .tabs-right > .nav-tabs > li {
+        float: none;
+      }
+
+      .tabs-left > .nav-tabs > li > a,
+      .tabs-right > .nav-tabs > li > a {
+        min-width: 74px;
+        margin-right: 0;
+        margin-bottom: 3px;
+      }
+
+      .tabs-left > .nav-tabs {
+        float: left;
+        margin-right: 19px;
+        border-right: 1px solid #ddd;
+      }
+
+      .tabs-left > .nav-tabs > li > a {
+        margin-right: -1px;
+        -webkit-border-radius: 4px 0 0 4px;
+           -moz-border-radius: 4px 0 0 4px;
+                border-radius: 4px 0 0 4px;
+      }
+
+      .tabs-left > .nav-tabs > li > a:hover,
+      .tabs-left > .nav-tabs > li > a:focus {
+        border-color: #eeeeee #dddddd #eeeeee #eeeeee;
+      }
+
+      .tabs-left > .nav-tabs .active > a,
+      .tabs-left > .nav-tabs .active > a:hover,
+      .tabs-left > .nav-tabs .active > a:focus {
+        border-color: #ddd transparent #ddd #ddd;
+        *border-right-color: #ffffff;
+      }
+
+      .tabs-right > .nav-tabs {
+        float: right;
+        margin-left: 19px;
+        border-left: 1px solid #ddd;
+      }
+
+      .tabs-right > .nav-tabs > li > a {
+        margin-left: -1px;
+        -webkit-border-radius: 0 4px 4px 0;
+           -moz-border-radius: 0 4px 4px 0;
+                border-radius: 0 4px 4px 0;
+      }
+
+      .tabs-right > .nav-tabs > li > a:hover,
+      .tabs-right > .nav-tabs > li > a:focus {
+        border-color: #eeeeee #eeeeee #eeeeee #dddddd;
+      }
+
+      .tabs-right > .nav-tabs .active > a,
+      .tabs-right > .nav-tabs .active > a:hover,
+      .tabs-right > .nav-tabs .active > a:focus {
+        border-color: #ddd #ddd #ddd transparent;
+        *border-left-color: #ffffff;
+      }
+      /*Custom INclusion for Circular Tabs*/
+      .wizard {
+          margin: 10px auto;
+          background: #fff;
+      }
+
+      .wizard .nav-tabs {
+          position: relative;
+          margin: 10px auto;
+          margin-bottom: 0;
+          border-bottom-color: #e0e0e0;
+      }
+
+      .wizard > div.wizard-inner {
+          position: relative;
+      }
+
+      .connecting-line {
+          height: 2px;
+          background: #e0e0e0;
+          position: absolute;
+          width: 80%;
+          margin: 0 auto;
+          left: 0;
+          right: 0;
+          top: 50%;
+          z-index: 1;
+      }
+
+      .wizard .nav-tabs > li.active > a, .wizard .nav-tabs > li.active > a:hover, .wizard .nav-tabs > li.active > a:focus {
+          color: #555555;
+          cursor: default;
+          border: 0;
+          border-bottom-color: transparent;
+      }
+
+      span.round-tab {
+          width: 70px;
+          height: 70px;
+          line-height: 70px;
+          display: inline-block;
+          border-radius: 100px;
+          background: #fff;
+          border: 2px solid #e0e0e0;
+          z-index: 2;
+          position: absolute;
+          left: 0;
+          text-align: center;
+      /*     font-size: 25px; */
+      }
+      span.round-tab i{
+          color:#555555;
+      }
+      .wizard li.active span.round-tab {
+          background: #fff;
+          /*border: 2px solid #5bc0de;*/
+          border: 2px solid #337ab7;
+      }
+      .wizard li.active span.round-tab i{
+          /*color: #5bc0de;*/
+          color: #337ab7;
+      }
+
+      span.round-tab:hover {
+          color: #333;
+          border: 2px solid #333;
+      }
+
+      .wizard .nav-tabs > li {
+          width: 25%;
+      }
+
+      .wizard li:after {
+          content: " ";
+          position: absolute;
+          left: 46%;
+          opacity: 0;
+          margin: 0 auto;
+          bottom: 0px;
+          border: 5px solid transparent;
+          /*border-bottom-color: #5bc0de;*/
+          border-bottom-color: #337ab7;
+          transition: 0.1s ease-in-out;
+      }
+
+      .wizard li.active:after {
+          content: " ";
+          position: absolute;
+          left: 46%;
+          opacity: 1;
+          margin: 0 auto;
+          bottom: 0px;
+          border: 10px solid transparent;
+          /*border-bottom-color: #5bc0de;*/
+          border-bottom-color: #337ab7;
+      }
+
+      .wizard .nav-tabs > li a {
+          width: 70px;
+          height: 70px;
+          margin: 20px auto;
+          border-radius: 100%;
+          padding: 0;
+      }
+
+      .wizard .nav-tabs > li a:hover {
+          background: transparent;
+      }
+
+      .wizard .tab-pane {
+          position: relative;
+          padding-top: 50px;
+      }
+
+      .wizard h3 {
+          margin-top: 0;
+      }
+
+      @media( max-width : 585px ) {
+
+          .wizard {
+              width: 90%;
+              height: auto !important;
+          }
+
+          span.round-tab {
+              font-size: 16px;
+              width: 50px;
+              height: 50px;
+              line-height: 50px;
+          }
+
+          .wizard .nav-tabs > li a {
+              width: 50px;
+              height: 50px;
+              line-height: 50px;
+          }
+
+          .wizard li.active:after {
+              content: " ";
+              position: absolute;
+              left: 35%;
+          } 
+      }
+
+      @media screen and (min-width: 768px) {
+        #myModal .modal-dialog{
+          width:98%;
+          overflow-y: auto;
+          /*max-height: 900px;*/
+        }
+      }
+
+      #mySplitter .vsplitter {
+        width: 4px;
+      }
+
+        #chart1 {
+            /*background-color: #F7F2C5;*/
+            width: 960px;
+            height: 500px;
+        }
+
+/*        circle, .line {
+          fill: none;
+          stroke: steelblue;
+          stroke-width: 1.5px;
+        }*/
+
+        circle {
+          /*fill: #fff;*/
+          cursor: move;
+        }
+
+        circle.selected {
+          /*stroke: #ff7f0e;*/
+          fill-opacity: .001;
+          stroke: #666;
+        }
+
+        circle:hover {
+          /*fill: #666;*/
+          stroke: #666; 
+        }
+
+        circle.selected:hover {
+          fill: #666;
+          stroke: #666; 
+        }  
+
+        .hover-line { 
+          stroke: #ccc;  
+          fill: none;
+          stroke-width: 1px;
+        }
+
+        .yAxis-line line,
+        .xAxis-line line {
+          fill: none;
+          stroke: #000;
+          shape-rendering: crispEdges;
+          stroke-width: 1.5;
+        }
+
+        .x line,
+        .y line {
+            fill: none;
+            shape-rendering: crispEdges;
+            stroke: #ccc;
+            stroke-dasharray: 4px;
+            stroke-width: 1px;
+        }
+
+        .xticks line,
+        .yticks line { 
+          fill: none;
+          stroke: #000;
+          shape-rendering: crispEdges;
+          stroke-width: 1.5;
+        } 
+
+/*        #mouse-tracker {
+          stroke: #E6E7E8;
+          stroke-width: 1px;
+        }*/
+
+        .hover-line { 
+          stroke: #E6E7E8;
+          fill: none;
+          stroke-width: 1px;
+          left: 10px;
+          shape-rendering: crispEdges;
+          opacity: 1e-6;
+        }
+
+        .hover-text {
+          stroke: none;
+          font-size: 30px;
+          font-weight: bold;
+          fill: #000000;
+        }
+
+        .tooltip {
+          font-weight: normal;
+        }      
+    </style>        
+{% endblock %}
+{% block header %}
+    <form id="defaultForm" method="post" class="navbar-form navbar-left form-inline" role="form">   
+      <!-- <div class='col-sm-2'>     -->
+        <div class="form-group">
+          <!-- <div class="input-group date"> -->
+            <input  class="form-control" type="text" placeholder="dd-mm-yyyy"  id="dateselector" name="date">
+<!--             <span class="input-group-addon">
+                <span class="glyphicon glyphicon-calendar"></span>
+            </span>    -->    
+          <!-- </div>                    -->
+        </div>
+      <!-- </div>       -->
+<!--                   <div class="form-group">
+          <button type="submit" class="btn btn-primary">Go</button>
+        </div>  -->
+      <div class="form-group">
+        <!-- <label for="disabledSelect">select menu</label> -->
+        <select id="selectmodel" class="form-control" placeholder="Select Model" name="modelname">
+          <option selected disabled>Select Model</option>
+          <option>NNET</option>
+          <option>MLP</option>
+          <option>GLM</option>
+          <option>HYBRID</option>
+          <!-- <option>ALL</option> -->
+        </select>
+        <select id="selectdiscom" class="form-control" placeholder="Select Discom" name="discomname">
+          <option selected disabled>Select Discom</option>
+          <option>BPDCL</option>
+          <option>SBPDCL</option>
+          <option>NBPDCL</option>
+          <!-- <option>ALL</option> -->
+        </select>        
+      </div>                          
+    </form>     
+{% endblock %}
+{% block content %}
+    <div class="container">
+      <div role="tabpanel">
+        <ul id="myTab" class="nav nav-tabs" role="tablist">
+          <li role="presentation"  class="active"><a href="#uploaddata" aria-controls="uploaddata" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-upload"></span> Upload Data</a></li>
+          <li role="presentation"><a href="#genforecast" aria-controls="genforecast" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-tasks"></span> Gen Forecast</a></li>
+<!--           <li role="presentation"><a href="#tenisgsgentab" aria-controls="tenisgsgentab" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-list"></span> Ten ISGS Tab</a></li> -->
+          <li role="presentation"><a href="#tenisgsgentab" aria-controls="#tenisgsgengraph" role="tab" data-toggle="tab"><span id="tenisgsgraph" class="glyphicon glyphicon-stats"></span><span id="tenisgstable" class="glyphicon glyphicon-list"></span> Tentative ISGS</a></li>
+          <li role="presentation"><a href="#forecasttab" aria-controls="#forecasttab" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-list"></span> Forecast</a></li>
+          <li role="presentation"><a href="#positionmaptab" aria-controls="#positionmaptab" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-list"></span> Pos Map Tab</a></li>
+          <li role="presentation"><a href="#positionmapgraph" aria-controls="#positionmapgraph" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-stats"></span> Pos Map Graph</a></li>
+          <li role="presentation"><a href="#forecasttab2" aria-controls="#forecasttab2" role="tab" data-toggle="tab"><span id="forecastgraph" class="glyphicon glyphicon-stats"></span><span id="forecasttable" class="glyphicon glyphicon-list"></span> Forecast 2</a></li>          
+        </ul>      
+        <div class="tab-content">
+
+          <div role="tabpanel" class="tab-pane active" id="uploaddata">
+<!--             <br>
+            <ul class="nav nav-pills nav-justified">
+              <li role="presentation" class="active"><a href="#historicalload">Historical Load Data</a></li>
+              <li role="presentation"><a href="#tisgs">Tentative ISGS Load</a></li>
+              <li role="presentation"><a href="#weather">Weather Load</a></li>
+              <li role="presentation"><a href="#exprices">Exchange Prices Load</a></li>
+            </ul>
+            <div class="tab-content">
+              <hr>
+              <div role="tabpanel" class="tab-pane active" id="historicalload">
+                  <form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data">
+                  <div class="row">
+                    <div class="col-sm-8">
+                      <label class="control-label">Select File</label>
+                      <input id="input-4" type="file" multiple="" name="file[]">
+                    </div>
+                  </div>
+                </form>              
+              </div>
+              <div role="tabpanel" class="tab-pane" id="tisgs">
+                <div class="container">
+                  <div class="col-md-12 content">
+                    <button type="button" class="btn btn-default btn-sm btn-custom" id="start-bg-job">LOAD</button><br><br>
+                    <div id="progress"></div>                    
+                  </div>
+                </div>
+              </div>
+              <div role="tabpanel" class="tab-pane" id="weather">
+                <div class="container">
+                  <div class="col-md-12 content">
+                    <button type="button" class="btn btn-default btn-sm btn-custom" id="start-weather-job">LOAD</button><br><br>
+                    <div id="bsebweatherload"></div>        
+                  </div> 
+                </div>                
+              </div>
+              <div role="tabpanel" class="tab-pane" id="exprices">
+                <div class="container">
+                  <div class="col-md-12 content">
+                    <button type="button" class="btn btn-default btn-sm btn-custom" id="start-exchange-job">LOAD</button><br><br>
+                    <div id="exchangeload"></div>        
+                  </div> 
+                </div>             
+              </div>
+            </div>                                            
+          </div> -->
+<!--             <br>
+            <div role="tabpanel" id="tabsleft" class="tabbable tabs-left">
+              <ul>
+                <li><a href="#historicalload" data-toggle="tab">Historical Load Data</a></li>
+                <li><a href="#tisgs" data-toggle="tab">Tentative ISGS Load</a></li>
+                <li><a href="#weather" data-toggle="tab">Weather Load</a></li>
+                <li><a href="#exprices" data-toggle="tab">Exchange Prices Load</a>
+                </li>
+              </ul>
+              <div class="progress">
+                <div id="progressbar" class="progress-bar progress-bar-striped active">
+                </div>
+              </div>  
+              <div class="tab-content">
+                <div class="tab-pane" id="historicalload">
+                  <form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data">
+                        <label class="control-label">Select File</label>
+                        <input id="input-4" type="file" multiple="" name="file[]">
+                  </form>  
+                </div>
+                <div class="tab-pane" id="tisgs">
+                      <button type="button" class="btn btn-default btn-sm btn-custom" id="start-bg-job">LOAD</button><br><br>
+                      <div id="progress"></div>                    
+                </div>
+                <div class="tab-pane" id="weather">
+                      <button type="button" class="btn btn-default btn-sm btn-custom" id="start-weather-job">LOAD</button><br><br>
+                      <div id="bsebweatherload"></div>        
+                </div>
+                <div class="tab-pane" id="exprices">
+                      <button type="button" class="btn btn-default btn-sm btn-custom" id="start-exchange-job">LOAD</button><br><br>
+                      <div id="exchangeload"></div>        
+                </div>
+                <div class="col-md-9">
+                  <ul class="pager wizard">
+                    <li class="previous first"><a href="#">First</a></li>
+                    <li class="previous"><a href="#">Previous</a></li>
+                    <li class="next last"><a href="#">Last</a></li>
+                    <li class="next"><a href="#">Next</a></li>
+                    <li class="next finish"><a href="#">Finish</a></li>
+                  </ul>
+                </div>      
+              </div>  
+            </div>   -->        
+            <div class="wizard">
+              <div class="wizard-inner">
+                  <div class="connecting-line"></div>
+                  <ul class="nav nav-tabs" role="tablist">
+                      <li role="presentation" class="active">
+                          <a href="#historicalload" data-toggle="tab" aria-controls="step1" role="tab" title="Step 1">
+                            <span class="round-tab">
+                                <i class="glyphicon glyphicon-cloud-upload"><p class="small">Historical Load Data</p></i>
+                            </span>
+                          </a>
+                      </li>
+                      <li role="presentation" class="disabled">
+                          <a href="#tisgs" data-toggle="tab" aria-controls="step2" role="tab" title="Step 2">
+                            <span class="round-tab">
+                                <i class="glyphicon glyphicon-cloud-download"><p class="small">Tentative ISGS Load</p></i>
+                            </span>
+                          </a>
+                      </li>
+                      <li role="presentation" class="disabled">
+                          <a href="#weather" data-toggle="tab" aria-controls="step3" role="tab" title="Step 3">
+                            <span class="round-tab">
+                                <i class="glyphicon glyphicon-cloud"><p class="small">Weather Load</p></i>
+                            </span>
+                          </a>
+                      </li>
+                      <li role="presentation" class="disabled">
+                          <a href="#exprices" data-toggle="tab" aria-controls="complete" role="tab" title="Complete">
+                            <span class="round-tab">
+                                <i class="glyphicon glyphicon-euro"><p class="small">Exchange Prices Load</p></i>
+                            </span>
+                          </a>
+                      </li>
+                  </ul>
+              </div>
+              <div class="tab-content">
+                <div class="tab-pane active" role="tabpanel" id="historicalload">
+                  <form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data">
+                        <label class="control-label">Select File</label>
+                        <input id="input-4" type="file" multiple="" name="file[]">
+                  </form> 
+                  <ul class="list-inline pull-right">
+                      <li><button type="button" class="btn btn-primary next-step">Continue</button></li>
+                  </ul>
+                </div>
+                <div class="tab-pane" role="tabpanel" id="tisgs">
+                  <button type="button" class="btn btn-default btn-sm btn-custom" id="start-bg-job">LOAD</button><br><br>
+                  <div id="progress"></div>  
+                  <ul class="list-inline pull-right">
+                      <li><button type="button" class="btn btn-default prev-step">Previous</button></li>
+                      <li><button type="button" class="btn btn-primary next-step">Continue</button></li>
+                  </ul>
+                </div>
+                <div class="tab-pane" role="tabpanel" id="weather">
+                  <button type="button" class="btn btn-default btn-sm btn-custom" id="start-weather-job">LOAD</button><br><br>
+                  <div id="bsebweatherload"></div>  
+                  <ul class="list-inline pull-right">
+                      <li><button type="button" class="btn btn-default prev-step">Previous</button></li>
+                      <li><button type="button" class="btn btn-default next-step">Skip</button></li>
+                      <li><button type="button" class="btn btn-primary btn-info-full next-step">Continue</button></li>
+                  </ul>
+                </div>
+                <div class="tab-pane" role="tabpanel" id="exprices">
+                  <button type="button" class="btn btn-default btn-sm btn-custom" id="start-exchange-job">LOAD</button><br><br>
+                  <div id="exchangeload"></div> 
+                </div>
+              </div>
+            </div>
+          </div>
+          <div role="tabpanel" class="tab-pane" id="genforecast">
+            <br>
+            <div class="container">
+              <div class="row">
+                <div class="col-md-1 content">
+                  <label class="control-label">NNET</label>
+                </div>
+                <div class="col-md-2 content">
+<!--                   <div class="btn-group" data-toggle="buttons">
+                    <label class="btn btn-default btn-sm active">
+                      <input type="radio" autocomplete="off" id="nnetscore" checked> Score
+                    </label>
+                    <label class="btn btn-default btn-sm">
+                      <input type="radio" autocomplete="off" id="nnettrain"> Train
+                    </label>
+                  </div> -->
+                  <input type="checkbox" checked data-toggle="toggle" data-on="Score" data-off="Train" data-onstyle="success" data-offstyle="info" data-width="80" data-size="small">
+                </div>
+                <div class="col-md-9 content">
+                    <button type="button" class="btn btn-default btn-sm btn-custom" id="start-rforecastnnet-job">Run</button><br><br>
+                    <div id="rforecastloadnnet"></div>                
+                </div>
+              </div>
+              <hr>
+              <div class="row">
+                <div class="col-md-1 content">
+                  <label class="control-label">MLP</label>
+                </div>
+                <div class="col-md-2 content">
+<!--                   <div class="btn-group" data-toggle="buttons">
+                    <label class="btn btn-default btn-sm active">
+                      <input type="radio" autocomplete="off" id="mlpscore" checked> Score
+                    </label>
+                    <label class="btn btn-default btn-sm">
+                      <input type="radio" autocomplete="off" id="mlptrain"> Train
+                    </label>
+                  </div> -->
+                <input type="checkbox" checked data-toggle="toggle" data-on="Score" data-off="Train" data-onstyle="success" data-offstyle="info" data-width="80" data-size="small">                                
+                </div>
+                <div class="col-md-9 content">
+                    <button type="button" class="btn btn-default btn-sm btn-custom" id="start-rforecastmlp-job">Run</button><br><br>
+                    <div id="rforecastloadmlp"></div>                
+                </div>
+              </div>
+              <hr>
+              <div class="row">
+                <div class="col-md-1 content">
+                  <label class="control-label">GLM</label>
+                </div>
+                <div class="col-md-2 content">
+<!--                   <div class="btn-group" data-toggle="buttons">
+                    <label class="btn btn-default btn-sm active">
+                      <input type="radio" autocomplete="off" id="glmscore" checked> Score
+                    </label>
+                    <label class="btn btn-default btn-sm">
+                      <input type="radio" autocomplete="off" id="glmtrain"> Train
+                    </label>
+                  </div>  -->
+                <input type="checkbox" checked data-toggle="toggle" data-on="Score" data-off="Train" data-onstyle="success" data-offstyle="info" data-width="80" data-size="small">                               
+                </div>
+                <div class="col-md-9 content">
+                    <button type="button" class="btn btn-default btn-sm btn-custom" id="start-rforecastglm-job">Run</button><br><br>
+                    <div id="rforecastloadglm"></div>                
+                </div>
+              </div> 
+              <hr>
+              <div class="row">
+                <div class="col-md-1 content">
+                  <label class="control-label">HYBRID</label>
+                </div>
+                <div class="col-md-2 content">
+<!--                   <div class="btn-group" data-toggle="buttons">
+                    <label class="btn btn-default btn-sm active">
+                      <input type="radio" autocomplete="off" id="hybridscore" checked> Score
+                    </label>
+                    <label class="btn btn-default btn-sm">
+                      <input type="radio" autocomplete="off" id="hybridtrain"> Train
+                    </label>
+                  </div>  --> 
+                <input type="checkbox" checked data-toggle="toggle" data-on="Score" data-off="Train" data-onstyle="success" data-offstyle="info" data-width="80" data-size="small">                              
+                </div>
+                <div class="col-md-9 content">
+                    <button type="button" class="btn btn-default btn-sm btn-custom" id="start-forecast-job">Run</button><br><br>
+                    <div id="forecastload"></div>                
+                </div>
+              </div>                                          
+            </div>                        
+          </div>                  
+<!--           <div role="tabpanel" class="tab-pane" id="tenisgsgentab">
+            <div class="container">
+              <div class="col-md-12 content">    
+                <table id="tenisgs" class="table table-striped table-bordered table-condensed table-hover" cellspacing="0" width="100%">
+                  <thead>
+                    <tr>
+                      {% for col in tenisgs_columns %}
+                      <th>{{ col }}</th>
+                      {% endfor %}
+                    </tr>
+                  </thead>
+                </table>            
+              </div>
+            </div>
+          </div> -->
+          <div role="tabpanel" class="tab-pane" id="tenisgsgentab">
+            <div id="tenisgsgengraph2">
+              <div class="container">
+                <div class="col-md-12 content">
+<!--                   <div id="loading">
+                    <div style="position: fixed; top: 40%; width: 100%;
+                        font-size: 600%; text-align: center; z-index: 11;">loading...
+                    </div>
+                    <div style="position: fixed; height: 100%; width: 100%;
+                        z-index: 10; background-color: #c8ebf0; opacity: 0.3;">
+                    </div>
+                  </div> --> 
+                  <!-- <div id="spinner"></div>                -->
+                  <div id="chart"></div>
+                </div>
+              </div>
+            </div>
+            <div id="tenisgsgentab2">
+              <div class="container">
+                <div class="col-md-12 content">    
+                  <table id="tenisgs" class="display nowrap table table-striped table-bordered table-condensed table-hover" cellspacing="0" width="100%">
+                    <thead>
+                      <tr>
+                        {% for col in tenisgs_columns %}
+                        <th>{{ col }}</th>
+                        {% endfor %}
+                      </tr>
+                    </thead>
+                  </table>            
+                </div>
+              </div>
+            </div>            
+          </div>
+          <div role="tabpanel" class="tab-pane" id="forecasttab">
+            <div class="container">
+              <div class="col-md-12 content">    
+                <table id="forecast" class="table table-striped table-bordered table-condensed table-hover" cellspacing="0" width="100%">
+                  <thead>
+                    <tr>
+                      {% for col in forecast_columns %}
+                      <th>{{ col }}</th>
+                      {% endfor %}
+                    </tr>
+                  </thead>
+                </table>            
+              </div>
+            </div>
+          </div>
+          <div role="tabpanel" class="tab-pane" id="positionmaptab">
+            <div class="container">
+              <div class="col-md-12 content">    
+                <table id="positionmap" class="table table-striped table-bordered table-condensed table-hover" cellspacing="0" width="100%">
+                  <thead>
+                    <tr>
+                      {% for col in positionmap_columns %}
+                      <th>{{ col }}</th>
+                      {% endfor %}
+                    </tr>
+                  </thead>
+                </table>            
+              </div>
+            </div>
+          </div>
+          <div role="tabpanel" class="tab-pane" id="positionmapgraph">
+            <div class="container">
+              <div class="col-md-12 content">
+                <div id="chart2"></div>
+              </div>
+            </div>
+          </div>
+          <div role="tabpanel" class="tab-pane" id="forecasttab2">
+            <div id="forecasttabgraph">
+              <div class="container">
+                <div class="col-md-12 content">
+                  <!-- <div class='with-3d-shadow with-transitions' id="forecastchart"></div> -->
+                  <div id="forecastchart"></div> 
+                </div>
+              </div>              
+            </div>
+            <div id="forecasttabtable">
+              <div class="container">
+                <div class="col-md-12 content">    
+                  <table id="forecasttwo" class="display nowrap table table-striped table-bordered table-condensed table-hover" cellspacing="0" width="100%">
+                    <thead>
+                      <tr>
+                        {% for col in forecast_columns2 %}
+                        <th>{{ col }}</th>
+                        {% endfor %}
+                      </tr>
+                    </thead>
+<!--                     <tbody>
+                    </tbody> -->
+                    <!-- <tbody data-bind='//foreach: items()'> -->
+                    <tbody data-bind="DataTablesForEach: items()">                    
+                      <tr>
+                        <td><span data-bind="text: Date()"></span></td>
+                        <td><span data-bind="text: Discom_Name()"></span></td>
+                        <td><span data-bind="text: Model_Name()"></span></td>
+                        <td><span data-bind="text: Block_No()"></span></td>
+                        <td><span data-bind="text: Demand_Forecast()"></span></td>
+                        <td><span data-bind="text: Demand_Bias()"></span></td>
+                        <td><span data-bind="text: Total()"></span></td>
+                      </tr>
+                    </tbody>                     
+                  </table> 
+<!--                   <div class="col-md-offset-6 col-sm-12">
+                    <button type="button" class="btn btn-primary" data-bind="click: edit">Edit</button>
+                  </div>   -->                          
+                </div>
+              </div>              
+            </div>
+            <div class="col-md-12 center-block">
+              <button class="btn btn-primary center-block" data-toggle="modal" data-target="#myModal" data-bind="enable: items().length > 0" >Edit</button>
+            </div>
+              <!-- Modal -->
+              <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">
+                <div class="modal-dialog modal-lg">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                      <h4 class="modal-title" id="myModalLabel">Forecast Edit Mode</h4>
+                    </div>
+                    <div class="modal-body">
+                      <!-- <div class="container"> -->
+                        <!-- <div class="col-md-12 content">                     -->
+                          <div id="mySplitter">
+                            <div id="tablesplit">
+                              <table id="forecasttableedit" class="display nowrap table table-striped table-bordered table-condensed table-hover" cellspacing="0" width="100%" data-bind="visible: items().length > 0">
+                                <thead>
+                                  <tr>
+                                    {% for col in forecast_columns2 %}
+                                    <th>{{ col }}</th>
+                                    {% endfor %}
+                                  </tr>
+                                </thead>
+                                <tbody data-bind="DataTablesForEach: items()">                    
+                                  <tr>
+                                    <td><span data-bind="text: Date"></span></td>
+                                    <td><span data-bind="text: Discom_Name"></span></td>
+                                    <td><span data-bind="text: Model_Name"></span></td>
+                                    <td><span data-bind="text: Block_No"></span></td>
+                                    <td><span data-bind="text: Demand_Forecast"></span></td>
+                                    <td><input size="7" data-bind="value: Demand_Bias, valueUpdate: 'afterkeydown'"></td>
+                                    <td><input size="10" data-bind="value: Total, valueUpdate: 'keyup'"></td>
+                                  </tr>
+                                </tbody>                     
+                              </table>                            
+                            </div>
+                            <div id="graphsplit">
+                               <div id="chart1" class="chart"></div>
+                            </div>
+                          </div>
+                        <!-- </div> -->
+                      <!-- </div> -->
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-default" data-dismiss="modal">Cancel and Close</button>
+                      <button type="button" class="btn btn-primary">Save changes</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Modal -->             
+          </div>                                                                    
+        </div>
+      </div>        
+    </div><!-- /.container -->
+          
+{% endblock %}

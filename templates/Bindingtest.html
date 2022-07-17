@@ -1,0 +1,290 @@
+<!DOCTYPE html> 
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <!-- <link rel="stylesheet" href="../static/css/bootstrap.min.css"> -->
+    <link rel="stylesheet" href="../static/css/sticky-footer-navbar.css">  
+    <!-- <link rel="stylesheet" href="../static/css/dataTables.bootstrap.css">  -->
+    <style type="text/css">
+      div.DTTT { margin-bottom: 0.5em; float: right; }
+      div.dt-buttons { margin-bottom: 0.5em; float: right; }
+      div.dataTables_wrapper { clear: both; }      
+    </style>
+        
+    <script src="../static/js/jquery-2.1.3.min.js"></script>
+    <script src="../static/js/knockout-3.3.0.js"></script> 
+    <!-- // <script src="../static/js/bootstrap.min.js"></script> -->
+    <script src="../static/js/d3.min.js"></script> 
+    <script src="../static/js/jquery.bootstrap.wizard.min.js"></script>     
+    <script src="../static/js/jquery.dataTables.min.js"></script>
+    <script src="../static/js/dataTables.tableTools.min.js"></script>
+    <script src="../static/js/dataTables.bootstrap.min.js"></script>
+    <script src="../static/js/dataTables.buttons.min.js"></script>
+    <script src="../static/js/buttons.bootstrap.min.js"></script>
+    <script src="../static/js/zach-knockout.debug.js"></script>
+    <script src="../static/js/knockout.mapping.js"></script>
+    <script src="../static/js/DatatablesForEach.js"></script>
+    <script src="../static/js/jquery-ui.js"></script>              
+</head>
+<body>
+    <button data-bind="click: add">ADD</button>&nbsp;&nbsp;Toggle Editing Mode <span data-bind="text: getEditMode"></span>
+
+    <input type="checkbox" data-bind="checked: inline" />
+    <br />
+    <br />
+    <div id="wrapper">
+        <table id="example" style="width:100%">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Favorite</th>
+                    <th>Favorite 2</th>
+                    <th>Remove</th>
+                    <th>Edit</th>
+                </tr>
+            </thead>
+            <tbody data-bind="DataTablesForEach: {data: people, options: {scrollY:200,paging:false,scrollCollapse:true, dom: 'rti'}}">
+                <tr>
+                    <td><span data-bind="text: id" />
+                    </td>
+                    <td> <span data-bind="text: first, visible:!isEdit()"></span>
+
+                        <input data-bind="textInput: first, visible: isEdit()" style="width:95%" />
+                    </td>
+                    <td> <span data-bind="text: age, visible:!isEdit()"></span>
+
+                        <input data-bind="textInput: age, visible: isEdit()" style="width:95%" />
+                    </td>
+                    <td>
+                        <input type="radio" data-bind="checked: $parent.favoritePerson, value: $data.id" />
+                    </td>
+                    <td>
+                        <input type="radio" data-bind="checked: $parent.secondFavorite, value: $data.id" />
+                    </td>
+                    <td>
+                        <button class="pull-right" data-bind="click: $parent.remove">Remove</button>
+                    </td>
+                    <td>
+                        <button class="pull-right" data-bind="click: $parent.edit, text: editButtonText"></button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <br />
+        <br />
+        <div>
+            <button id="AddPerson">ADD</button>
+        </div>
+        <br/>
+        <br/>
+        <div>
+            <textarea rows="20" cols="100" data-bind="text: ko.toJSON({favorite1:$data.favoritePerson,favorite2:$data.secondFavorite,people:$data.people}, null, 2)"></textarea>
+        </div>
+        <div id="dialog" title="Add New Person" style="display:none">
+            <label for="Name">First Name</label>
+            <br />
+            <input type="text" name="Name" id="Name" />
+            <br />
+            <label for="Last">Last Name</label>
+            <br />
+            <input type="text" name="Last" id="Last" />
+            <br />
+            <label for="Age">Age</label>
+            <br />
+            <input type="text" name="Age" id="Age" />
+            <br />
+        </div>
+        <div id="editdialog" title="Edit Person" style="display:none">
+            <label for="editName">First Name</label>
+            <br />
+            <input type="text" name="editName" id="editName" />
+            <br />
+            <label for="editLast">Last Name</label>
+            <br />
+            <input type="text" name="editLast" id="editLast" />
+            <br />
+            <label for="editAge">Age</label>
+            <br />
+            <input type="text" name="editAge" id="editAge" />
+            <br />
+        </div>
+    </div>
+</body>
+<footer>
+    <script type="text/javascript">
+        // Person ViewModel
+         var Person = function (data, parent) {
+             var that = this;
+             this.id = data.id;
+             this.isEdit = ko.observable(false);
+             this.first = ko.observable(data.first);
+             this.last = ko.observable(data.last);
+             this.age = ko.observable(data.age);
+             this.editButtonText = ko.computed(function () {
+                 return that.isEdit() ? 'Save' : 'Edit';
+             });
+             this.favorite = ko.computed(function () {
+
+                 return that.id === parent.favoritePerson();
+             });
+             this.favorite2 = ko.computed(function () {
+                 return that.id === parent.secondFavorite();
+             });
+             this.full = ko.computed(function () {
+                 return this.first() + " " + this.last();
+             }, this);
+
+             // Subscribe a listener to the observable properties for the table
+             // and invalidate the DataTables row when they change so it will redraw
+
+
+         };
+         //Main ViewModel
+         var ViewModel = new function () {
+                 var that = this;
+                 this.people = ko.mapping.fromJS([]);
+                 this.favoritePerson = ko.observable(0);
+                 this.secondFavorite = ko.observable(0);
+                 this.inline = ko.observable(true);
+                 this.add = function () {
+                     $('#dialog').dialog('open');
+                 };
+                 this.getEditMode = ko.computed(function () {
+                     return that.inline() ? '(Inline)' : '(Dialog)';
+                 });
+                 this.remove = function (person, event) {
+                     that.people.remove(person);
+                 };
+                 this.edit = function (person, event) {
+                     if (that.inline()) {
+                         if (person.isEdit()) person.isEdit(false);
+                         else person.isEdit(true);
+                     } else {
+                         $('#editdialog').data('id', person.id);
+                         $('#editName').val(person.first());
+                         $('#editLast').val(person.last());
+                         $('#editAge').val(person.age());
+                         $('#editdialog').dialog('open');
+                     }
+                 };
+             };
+
+         var count = 3;
+
+         // Initial data set
+         var data = [{
+             id: 1,
+             first: "Allan",
+             last: "Jardine",
+             age: 86
+         }, {
+             id: 2,
+             first: "Bob",
+             last: "Smith",
+             age: 54
+         }, {
+             id: 3,
+             first: "Jimmy",
+             last: "Jones",
+             age: 32
+         }];
+
+
+         $(document).ready(function () {
+
+             // Convert the data set into observable objects, and will also add the
+             // initial data to the table
+             ko.mapping.fromJS(
+             data, {
+                 key: function (data) {
+                     return ko.utils.unwrapObservable(data.id);
+                 },
+                 create: function (options) {
+                     return new Person(options.data, ViewModel);
+                 }
+             },
+             ViewModel.people);
+
+
+
+             $('#dialog').dialog({
+                 modal: true,
+                 autoOpen: false,
+                 height: 350,
+                 width: 460,
+                 buttons: {
+                     'Add Person': function () {
+
+                         ViewModel.people.push(new Person({
+                             id: ++count,
+                             first: $('#Name').val(),
+                             last: $('#Last').val(),
+                             age: $('#Age').val()
+
+                         }, ViewModel));
+                         $('#ID').closest('div').find('input').val('');
+                         $(this).dialog('close');
+                     },
+                         'Close': function () {
+                         $(this).dialog('close');
+                     }
+                 }
+             });
+
+             $('#editdialog').dialog({
+                 modal: true,
+                 autoOpen: false,
+                 height: 350,
+                 width: 460,
+                 buttons: {
+                     'Edit Person': function () {
+                         var id = $(this).data('id');
+
+                         ko.utils.arrayForEach(ViewModel.people(), function (person) {
+
+                             if (id == person.id) {
+                                 person.first($('#editName').val());
+                                 person.last($('#editLast').val());
+                                 person.age($('#editAge').val());
+
+                             }
+                         });
+
+                         $('#editName').closest('div').find('input').val('');
+                         $(this).dialog('close');
+                     },
+                         'Close': function () {
+                         $(this).dialog('close');
+                     }
+                 }
+             });
+
+             ko.applyBindings(ViewModel);
+
+
+
+
+
+             $('#AddPerson').click(function () {
+
+                 ViewModel.people.push(new Person({
+                     id: ++count,
+                     first: 'NEW',
+                     last: 'NEW',
+                     age: '99'
+
+                 }, ViewModel));
+
+
+             });
+
+
+
+
+
+         });    
+    </script>      
+</footer>
+</html>

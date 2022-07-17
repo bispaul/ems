@@ -1,0 +1,292 @@
+<!DOCTYPE html> 
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../static/css/sticky-footer-navbar.css">  
+    <link rel="stylesheet" href="../static/css/dataTables.bootstrap.css"> 
+    <style type="text/css">
+      div.DTTT { margin-bottom: 0.5em; float: right; }
+      div.dt-buttons { margin-bottom: 0.5em; float: right; }
+      div.dataTables_wrapper { clear: both; }      
+    </style>
+        
+    <script src="../static/js/jquery-2.1.3.min.js"></script>
+    <script src="../static/js/knockout-3.3.0.js"></script> 
+    <script src="../static/js/bootstrap.min.js"></script>
+    <script src="../static/js/d3.min.js"></script> 
+    <script src="../static/js/jquery.bootstrap.wizard.min.js"></script>     
+    <script src="../static/js/jquery.dataTables.min.js"></script>
+    <script src="../static/js/dataTables.tableTools.min.js"></script>
+    <script src="../static/js/dataTables.bootstrap.min.js"></script>
+    <script src="../static/js/dataTables.buttons.min.js"></script>
+    <script src="../static/js/buttons.bootstrap.min.js"></script>
+    <!-- // <script src="../static/js/zach-knockout.debug.js"></script> -->
+    <script src="../static/js/knockout.mapping.js"></script>
+    <!-- // <script src="../static/js/DatatablesForEach.js"></script> -->
+    <!-- // <script src="../static/js/jquery-ui.js"></script>   -->
+    <script type="text/javascript" charset="utf-8">
+        // // Helper function so we know what has changed
+        // // http://stackoverflow.com/questions/12166982
+        // ko.observableArray.fn.subscribeArrayChanged = function(addCallback, deleteCallback) {
+        //     var previousValue = undefined;
+        //     this.subscribe(function(_previousValue) {
+        //         previousValue = _previousValue.slice(0);
+        //     }, undefined, 'beforeChange');
+        //     this.subscribe(function(latestValue) {
+        //         var editScript = ko.utils.compareArrays(previousValue, latestValue);
+        //         for (var i = 0, j = editScript.length; i < j; i++) {
+        //             switch (editScript[i].status) {
+        //                 case "retained":
+        //                     break;
+        //                 case "deleted":
+        //                     if (deleteCallback)
+        //                         deleteCallback(editScript[i].value);
+        //                     break;
+        //                 case "added":
+        //                     if (addCallback)
+        //                         addCallback(editScript[i].value);
+        //                     break;
+        //             }
+        //         }
+        //         previousValue = undefined;
+        //     });
+        // };
+
+
+
+        // // Person object
+        // var Person = function(data, dt) {
+        //     this.id    = data.id;
+        //     this.first = ko.observable(data.first);
+        //     this.last  = ko.observable(data.last);
+        //     this.age   = ko.observable(data.age);
+        //     this.full  = ko.computed(function() {
+        //         return this.first() + " " + this.last();
+        //     }, this);     
+
+        //     // Subscribe a listener to the observable properties for the table
+        //     // and invalidate the DataTables row when they change so it will redraw
+        //     var that = this;
+        //     $.each( [ 'first', 'last', 'age' ], function (i, prop) {
+        //         that[ prop ].subscribe( function (val) {
+        //             // Find the row in the DataTable and invalidate it, which will
+        //             // cause DataTables to re-read the data
+        //             var rowIdx = dt.column( 0 ).data().indexOf( that.id );
+        //             dt.row( rowIdx ).invalidate();
+        //         } );
+        //     } );
+        // };
+
+
+        // // Initial data set
+        // var data = [
+        //     { id: 0, first: "Allan", last: "Jardine", age: 86 },
+        //     { id: 1, first: "Bob", last: "Smith", age: 54 },
+        //     { id: 2, first: "Jimmy", last: "Jones", age: 32 }
+        // ];
+
+
+        // $(document).ready(function() {
+        //     var people = ko.mapping.fromJS( [] );
+        //     var dt = $('#example').DataTable( {
+        //         columns: [
+        //             { data: 'id' },
+        //             { data: 'first()' },
+        //             { data: 'age()' }
+        //         ]
+        //     } );
+
+        //     // Update the table when the `people` array has items added or removed
+        //     people.subscribeArrayChanged(
+        //         function ( addedItem ) {
+        //             dt.row.add( addedItem ).draw();
+        //         },
+        //         function ( deletedItem ) {
+        //             var rowIdx = dt.column( 0 ).data().indexOf( deletedItem.id );
+        //             dt.row( rowIdx ).remove().draw();
+        //         }
+        //     );
+
+        //     // Convert the data set into observable objects, and will also add the
+        //     // initial data to the table
+        //     ko.mapping.fromJS(
+        //         data,
+        //         {
+        //             key: function(data) {
+        //                 return ko.utils.unwrapObservable(data.id);        
+        //             },
+        //             create: function(options) {
+        //                 return new Person(options.data, dt);
+        //             }    
+        //         },
+        //         people
+        //     );
+
+        //     // Examples:
+            
+        //     // Update a field
+        //     people()[0].first( 'Allan3' );
+
+        //     // Add an item
+        //     people.push( new Person( {
+        //         id: 3,
+        //         first: "John",
+        //         last: "Smith",
+        //         age: 34
+        //     }, dt ) );
+
+        //     // Remove an item
+        //     // people.shift();
+        // } );
+    </script>  
+    <script type="text/javascript">
+        ko.observableArray.fn.subscribeArrayChanged = function(addCallback, deleteCallback) {
+            var previousValue = undefined;
+            this.subscribe(function(_previousValue) {
+                previousValue = _previousValue.slice(0);
+            }, undefined, 'beforeChange');
+            this.subscribe(function(latestValue) {
+                var editScript = ko.utils.compareArrays(previousValue, latestValue);
+                for (var i = 0, j = editScript.length; i < j; i++) {
+                    switch (editScript[i].status) {
+                        case "retained":
+                            break;
+                        case "deleted":
+                            if (deleteCallback)
+                                deleteCallback(editScript[i].value);
+                            break;
+                        case "added":
+                            if (addCallback)
+                                addCallback(editScript[i].value);
+                            break;
+                    }
+                }
+                previousValue = undefined;
+            });
+        }
+
+
+         var data = [
+            { id: 0, first: "Allan", last: "Jardine", age: 86 },
+            { id: 1, first: "Bob", last: "Smith", age: 54 },
+            { id: 2, first: "Jimmy", last: "Jones", age: 32 }
+        ]
+
+        var Person = function(data, dt) {
+            var self = this;
+            
+            self.id    = data.id;
+            self.first = ko.observable(data.first);
+            self.last  = ko.observable(data.last);
+            self.age   = ko.observable(data.age);
+
+            // Subscribe a listener to the observable properties for the table
+            // and invalidate the DataTables row when they change so it will redraw
+            $.each( [ 'first', 'last', 'age' ], function (i, prop) {
+                self[ prop ].subscribe( function (val) {
+                    // Find the row in the DataTable and invalidate it, which will
+                    // cause DataTables to re-read the data
+                    var rowIdx = dt.column( 0 ).data().indexOf( self.id );
+                    dt.row( rowIdx ).invalidate();
+                } );
+            } ); 
+        }
+
+        $(document).ready(function() {
+
+            var people = ko.mapping.fromJS( [] );
+            
+            var dt = $('#example').DataTable( {
+                    "bPaginate": false,
+                    "bInfo" : false,
+                    "bAutoWidth" : false,
+                    "sDom" : 't',
+                    "columns": [
+                        { "data": 'id' },
+                        { "data": 'first' },
+                        { "data": 'age',
+                            "mRender": function (data, type, row ) {    
+                                 var id = "age_input_" + row.id;
+                                 var html = '<div style="display:inline-flex">' + 
+                                               '<input type="text" class="headerStyle h5Style" id="' + id + '" value="' + data() + '" data-bind="value: "/>' + 
+                                            '</div>';
+                                
+                                $('#' + id).off('change.grid')
+                                $('#' + id).on('change.grid', function() {
+                                    row.age($(this).val());
+                                });
+                                return html;
+                             } 
+                         }
+                    ]
+            } );
+
+            // Update the table when the `people` array has items added or removed
+            people.subscribeArrayChanged(
+                function ( addedItem ) {
+                    dt.row.add( addedItem ).draw();
+                },
+                function ( deletedItem ) {
+                    var rowIdx = dt.column( 0 ).data().indexOf( deletedItem.id );
+                    dt.row( rowIdx ).remove().draw();
+                }
+            );
+
+            // Convert the data set into observable objects, and will also add the
+            // initial data to the table
+            ko.mapping.fromJS(
+                data,
+                {
+                    key: function(data) {
+                        var d = data;
+                        return ko.utils.unwrapObservable(d.id);        
+                    },
+                    create: function(options) {
+                        return new Person(options.data, dt);
+                    }    
+                },
+                people
+            );
+            
+            //Temp for demo purposes
+            $('#update').on('click', function(){
+                $('#model_data').html($.map(people(), function(val){ return val.age(); }).join('; '));
+            });
+        } );    
+    </script>              
+</head>
+<body id="dt_example">
+    <div id="container">
+        <div class="full_width big">
+            DataTables with Knockout Observables
+        </div>
+        
+        <h1>Preamble</h1>
+        <p>An example of how DataTables 1.10 can be used with Knockout.JS observables. The table below will automatically update as the values of the underlying data in the Knockout <code>observableArray</code> is updated, new rows added and old rows deleted.</p>
+
+        <h1>Live example</h1>
+        <div id="demo">
+            <table cellpadding="0" cellspacing="0" border="0" class="display cell-border" id="example">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Age</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div>
+        <button id="update">Update</button>
+    </div> 
+    <div class="spacer"></div>
+    <div id = "model_data" ></div>    
+</body>
+<footer>
+    
+</footer>
+</html>

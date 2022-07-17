@@ -1,0 +1,242 @@
+
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <link rel="stylesheet" href="../static/css/bootstrap.min.css">
+        <link rel="stylesheet" href="../static/css/bootstrap-select.min.css">
+        <link rel="stylesheet" href="../static/css/fileinput.min.css" media="all" type="text/css">
+        <!-- <link rel="stylesheet" href="/static/css/minisubmenu.css"> -->
+        <link rel="stylesheet" href="../static/css/sticky-footer-navbar.css">
+        <!-- <link rel="stylesheet" href="/static/css/font-awesome.css"> -->
+        <script src="../static/js/jquery-2.1.3.min.js"></script>
+        <script src="../static/js/fileinput.min.js"></script>
+        <script src="../static/js/bootstrap.min.js"></script>
+            <style type="text/css">
+                /**** element styles ****/
+                /*hr { border-color: #cccccc; margin: 0px; }*/
+
+                /**** header, main and footer divs ****/
+                .header-title { font-size: 30px; }
+
+                /**** class-based style modifiers ****/
+
+                .no-margins { margin: 0px; }
+
+                .with-margins { margin: 10px; }
+
+                .col-centered { float: none; margin: 0 auto; }
+
+                .bars {
+                        display: block;
+                        width: 20px;
+                        height: 3px;    
+                        background-color: #333;
+                        box-shadow: 0 5px 0 #333, 0 10px 0 #333;
+                    }
+                .nav>li>a:hover, .nav>li>a:focus {
+                        text-decoration: none;
+                        background-color: #fff;
+                    }
+                .nav .open>a, .nav .open>a:hover, .nav .open>a:focus {
+                        background-color: #fff;
+                        border-color: #428bca;
+                    }                   
+            </style>
+
+    <script>
+    // $(document).on('ready', function() {
+    $(document).ready(function() {
+        $("#input-22").fileinput({
+            previewFileType: "text",
+            allowedFileExtensions: ["txt", "md", "ini", "text", "csv"],
+            previewClass: "bg-warning"
+        });  
+        $("#input-23").fileinput({
+            showUpload: false,
+            layoutTemplates: {
+                main1: "{preview}\n" +
+                "<div class=\'input-group {class}\'>\n" +
+                "   <div class=\'input-group-btn\'>\n" +
+                "       {browse}\n" +
+                "       {upload}\n" +
+                "       {remove}\n" +
+                "   </div>\n" +
+                "   {caption}\n" +
+                "</div>"
+            }
+        });
+
+        $("#input-5").fileinput({
+            uploadUrl: "/ems/tmanualdataupload", // server upload action
+            uploadAsync: false,
+            minFileCount: 1,
+            maxFileCount: 2,
+            validateInitialCount: true,
+            uploadExtraData: {'_csrf_token': "1467147873##b049c15bc1ea1a8e18313087216103f50d7a3eda"},
+            initialPreviewAsData: true,
+            allowedPreviewTypes: ['text'],
+            allowedFileExtensions: ['csv'],
+            showBrowse: false,
+            browseOnZoneClick: true,
+            elErrorContainer: "kv-error-5",
+            overwriteInitial: true,
+            // fileActionSettings : {
+            //     showUpload: false
+            // },
+            layoutTemplates: {
+                main1: '{preview}\n' +
+                    '<div class="input-group {class}">\n' +
+                    '   {caption}\n' +
+                    '   <div class="input-group-btn">\n' +
+                    '       {remove}\n' +
+                    '       {cancel}\n' +
+                    '       {upload}\n' +
+                    '       {browse}\n' +
+                    '   </div>\n' +
+                    '</div>\n' +
+                    '<!--<div class="kv-upload-progress hide"></div>-->',        
+                actions: '<div class="file-actions">\n' +
+                    '    <div class="file-footer-buttons">\n' +
+                    '               {delete} {zoom} {other}' +
+                    '    </div>\n' +
+                    '    {drag}\n' +
+                    '    <div class="file-upload-indicator" title="{indicatorTitle}">{indicator}</div>\n' +
+                    '    <div class="clearfix"></div>\n' +
+                    '</div>'      
+            },
+            dropZoneTitle: 'Drag & drop tentative generation csv files here …',
+            uploadClass: 'btn btn-primary',
+            previewFileIconSettings: {
+                'csv': '<i class="fa fa-file-excel-o text-success"></i>'
+            }                                      
+        }).on('filebatchpreupload', function(event, data, id, index) {
+            console.log('filebatchpreupload', event, data, id, index);
+            $('#tmanual > ul > li:nth-child(1) > button').prop('disabled', true);
+            $('#tmanual > ul > li:nth-child(2) > button').prop('disabled', true);
+        }).on('filebatchuploadsuccess', function(event, data){
+            console.log('filebatchuploadsuccess', event, data);
+            var out = '';
+            $.each(data.files, function(key, file) {
+                var fname = file.name;
+                out = out + '<li>' + 'Uploaded file # ' + (key + 1) + ' - '  +  fname + ' successfully.' + '</li>';
+            });
+            if (data){
+                console.log(data.response.status_url);
+                tentative_upload_progress(data.response.status_url);
+            }    
+        }).on('filebatchuploadcomplete', function(event, data){
+            console.log('filebatchuploadcomplete', event, data);
+        }).on('filebatchuploaderror', function(event, data){
+            console.log('filebatchuploaderror', event, data);
+            $('#tmanual > ul > li:nth-child(1) > button').prop('disabled', false);
+            $('#tmanual > ul > li:nth-child(2) > button').prop('disabled', false);
+        }); 
+
+       $("#input-4").fileinput({
+            uploadUrl: "/ems/loadupload", // server upload action
+            uploadAsync: false,
+            minFileCount: 1,
+            maxFileCount: 4,
+            validateInitialCount: true,
+            uploadExtraData: {'_csrf_token': "1467147873##b049c15bc1ea1a8e18313087216103f50d7a3eda"},
+            initialPreviewAsData: true,
+            allowedPreviewTypes: ['text'],
+            allowedFileExtensions: ['csv'],
+            showBrowse: false,
+            browseOnZoneClick: true,
+            elErrorContainer: "kv-error-4",
+            overwriteInitial: true,
+            // fileActionSettings : {
+            //     showUpload: false
+            // },
+            layoutTemplates: {
+                main1: '{preview}\n' +
+                    '<div class="input-group {class}">\n' +
+                    '   {caption}\n' +
+                    '   <div class="input-group-btn">\n' +
+                    '       {remove}\n' +
+                    '       {cancel}\n' +
+                    '       {upload}\n' +
+                    '       {browse}\n' +
+                    '   </div>\n' +
+                    '</div>\n' +
+                    '<!--<div class="kv-upload-progress hide"></div>-->',        
+                actions: '<div class="file-actions">\n' +
+                    '    <div class="file-footer-buttons">\n' +
+                    '               {delete} {zoom} {other}' +
+                    '    </div>\n' +
+                    '    {drag}\n' +
+                    '    <div class="file-upload-indicator" title="{indicatorTitle}">{indicator}</div>\n' +
+                    '    <div class="clearfix"></div>\n' +
+                    '</div>'      
+            },
+            dropZoneTitle: 'Drag & drop Demand and Powercut csv files here …',
+            uploadClass: 'btn btn-primary',
+            previewFileIconSettings: {
+                'csv': '<i class="fa fa-file-excel-o text-success"></i>'
+            }                                      
+        }).on('filebatchpreupload', function(event, data, id, index) {
+            console.log('filebatchpreupload', event, data, id, index);
+            $('#historicalload > ul > li > button').prop('disabled', true);
+        }).on('filebatchuploadsuccess', function(event, data){
+            console.log('filebatchuploadsuccess', event, data);
+            var out = '';
+            $.each(data.files, function(key, file) {
+                var fname = file.name;
+                out = out + '<li>' + 'Uploaded file # ' + (key + 1) + ' - '  +  fname + ' successfully.' + '</li>';
+            });
+            if (data){
+                console.log(data.response.status_url);
+                historical_upload_progress(data.response.status_url);
+            }    
+        }).on('filebatchuploadcomplete', function(event, data){
+            console.log('filebatchuploadcomplete', event, data);
+        }).on('filebatchuploaderror', function(event, data){
+            console.log('filebatchuploaderror', event, data);
+            $('#historicalload > ul > li > button').prop('disabled', false);
+        }); 
+        $('#tabs').tab();   
+    });
+    </script>    
+  </head>
+  <body>
+        <div class="container">
+            <div id="content">
+                <ul id="tabs" class="nav nav-tabs" data-tabs="tabs">
+                    <li class="active"><a href="#red" data-toggle="tab">Red</a></li>
+                    <li><a href="#orange" data-toggle="tab">Orange</a></li>
+                    <li><a href="#yellow" data-toggle="tab">Yellow</a></li>
+                    <li><a href="#green" data-toggle="tab">Green</a></li>
+                    <li><a href="#blue" data-toggle="tab">Blue</a></li>
+                </ul>
+                <div id="my-tab-content" class="tab-content">
+                    <div class="tab-pane active" id="red">
+                        <input id="input-4" name="file-4[]" type="file" multiple class="file-loading"> 
+                        <div id="kv-error-4" style="margin-top:10px;display:none"></div>
+                    </div>
+                    <div class="tab-pane" id="orange">
+                        <input id="input-5" name="file-5[]" type="file" multiple class="file-loading">
+                        <div id="kv-error-5" style="margin-top:10px;display:none"></div> 
+                    </div>
+                    <div class="tab-pane" id="yellow">
+                        <h1>Yellow</h1>
+                        <p>yellow yellow yellow yellow yellow</p>
+                    </div>
+                    <div class="tab-pane" id="green">
+                        <h1>Green</h1>
+                        <p>green green green green green</p>
+                    </div>
+                    <div class="tab-pane" id="blue">
+                        <h1>Blue</h1>
+                        <p>blue blue blue blue blue</p>
+                    </div>
+                </div>
+            </div>   
+        </div> <!-- container -->
+  </body>

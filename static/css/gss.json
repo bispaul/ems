@@ -1,0 +1,77 @@
+{
+   "name": "Rajasthan",
+   "children": [
+                  {
+                     "name": "Jaipur",
+                     "children": [
+                                    {"name": "ALWAR+ALWAR MIA ", "size": 110.0000},
+                                    {"name": "BHARTPUR ", "size": 6.3333},
+                                    {"name": "BHIWADI ", "size": 40.6667},
+                                    {"name": "CHOMU ", "size": 20.6667},
+                                    {"name": "DAUSA ", "size": 60.3333},
+                                    {"name": "DAYRA+BARAN+KAWAI ", "size": 137.0000},
+                                    {"name": "DHOLPUR ", "size": 50.0000},
+                                    {"name": "HEERAPURA+JAGATPURA ", "size": -24.0000},
+                                    {"name": "HINDAUN ", "size": 96.6667},
+                                    {"name": "JHALWAR ", "size": 47.0000},
+                                    {"name": "KOTA+DUNI ", "size": 121.6667},
+                                    {"name": "KOTAPUTLI ", "size": 46.0000},
+                                    {"name": "KUKAS+VKIA ", "size": 56.0000},
+                                    {"name": "MANDAWAR ", "size": 15.3333},
+                                    {"name": "MODAK ", "size": 56.3333},
+                                    {"name": "NIMRN+Khuskheda ", "size": 84.0000},
+                                    {"name": "PHULERA+BAGRU+SEZ ", "size": 9.6667},
+                                    {"name": "RENWAL ", "size": 30.3333},
+                                    {"name": "S.MADHOPUR+CHAKSU ", "size": 71.6667},
+                                    {"name": "SANGANER ", "size": -14.6667}
+                         ]
+                  },
+                  {
+                     "name": "Ajmer",
+                     "children": [
+                                    {"name": "AJMER+KISHANGARH ", "size": 77.0000},
+                                    {"name": "BASWARA ", "size": 27.0000},
+                                    {"name": "BEAWAR+GULABPURA ", "size": 34.6667},
+                                    {"name": "BHILWARA ", "size": 68.6667},
+                                    {"name": "CHITTORGARH ", "size": 72.6667},
+                                    {"name": "DEBARI ", "size": 54.3333},
+                                    {"name": "GAUR+BARSINGSAR ", "size": 2.6667},
+                                    {"name": "JHUNJHUNU ", "size": -19.6667},
+                                    {"name": "KANKROLI ", "size": 49.0000},
+                                    {"name": "KHETRI ", "size": 50.0000},
+                                    {"name": "KUCHAMAN+DHODH ", "size": 92.6667},
+                                    {"name": "MAKRA ", "size": 21.3333},
+                                    {"name": "METRA ", "size": 105.6667},
+                                    {"name": "NIMBAHERA ", "size": 62.0000},
+                                    {"name": "REENGUS ", "size": 35.0000},
+                                    {"name": "SIKAR ", "size": 79.3333}
+                         ]
+                  }, 
+                  {
+                     "name": "Jodhpur",
+                     "children": [
+                            {"name": "AMARSAGAR(JSLMR) ", "size": 18.0000},
+                            {"name": "BALI ", "size": 6.3333},
+                            {"name": "BHADRA ", "size": 5.3333},
+                            {"name": "BHINMAL ", "size": 84.3333},
+                            {"name": "BHPL+KHINWSAR ", "size": 45.3333},
+                            {"name": "BIKANER ", "size": -9.6667},
+                            {"name": "BILARA ", "size": 11.0000},
+                            {"name": "BLTR+BARMR+DHRMN+SANCH ", "size": 151.3333},
+                            {"name": "DUNGARGARH+NOKHA ", "size": 12.3333},
+                            {"name": "HANUMANGARH ", "size": -6.0000},
+                            {"name": "JALORE ", "size": 58.6667},
+                            {"name": "JODHPUR ", "size": 42.0000},
+                            {"name": "PALI ", "size": -17.0000},
+                            {"name": "PHALODI ", "size": 1.0000},
+                            {"name": "PINDWARA ", "size": 35.0000},
+                            {"name": "RATANGARH ", "size": 2.0000},
+                            {"name": "S GANGAGAR ", "size": -19.3333},
+                            {"name": "SIROHI ", "size": 30.3333},
+                            {"name": "SUJANGRAH ", "size": 8.3333},
+                            {"name": "SURATGARH ", "size": 7.3333},
+                            {"name": "TINWARI ", "size": 88.6667}
+                         ]
+                  }                                                                            
+     ]
+}

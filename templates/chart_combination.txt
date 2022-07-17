@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+<head>
+  <title>Comparing Forecasting</title>
+  
+  <!-- Meta -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery-ui.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-tagsinput.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/c3.css') }}">
+    <style>
+        .ui-autocomplete-loading {
+            background: white url("/static/images/ui-anim_basic_16x16.gif") right center no-repeat;
+        }
+        .ui-autocomplete {
+            max-height: 100px;
+            overflow-y: auto;
+            /* prevent horizontal scrollbar */
+            overflow-x: hidden;
+        }
+
+        body {
+          overflow-y:scroll;
+        }
+
+        text {
+          font: 12px sans-serif;
+        }
+
+        #chart3 svg {
+          height: 500px;
+          margin: 10px;
+          min-width: 100px;
+          min-height: 100px;
+        /*
+          Minimum height and width is a good idea to prevent negative SVG dimensions...
+          For example width should be =< margin.left + margin.right + 1,
+          of course 1 pixel for the entire chart would not be very useful, BUT should not have errors
+        */
+        }
+        .c3-region.foo {
+          fill: red;
+        }
+
+    </style>    
+    <script src="{{ url_for('static', filename='js/jquery-2.0.3.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery.dataTables.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery-ui.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap-tagsinput.min.js') }}"></script>    
+    <script src="{{ url_for('static', filename='js/require.js') }}"></script>
+    <script>
+      // for nvd3.js
+      //var pos_data = [];
+      //for c3js
+      var pos_data = [];
+      var pos_data2 = {};
+      $(function() {
+
+        function log( message ) {
+          $.ajax( {url: "/fulldata/" + message ,
+                   dataType: "json",
+                   //data: "FD_16-11-2009",
+                   //type: "GET",
+                   contentType: "application/json; charset=utf-8",
+                   dataFilter: function(data) { return data; },
+                   success: function(data) {
+                                            console.log(data);
+                                            console.log("success");
+                                            // for nvd3.js
+                                            pos_data.push({'key':message, 'values':data});
+                                            //for c3js
+                                            //pos_data.push({'key': message, message : data});
+                                            pos_data2['x']=data.map(function(a){return a.x});
+                                            pos_data2[message]=data.map(function(a){return a.y});
+                                            len = Object.keys(pos_data2).length;
+                                            keys = Object.keys(pos_data2);
+                                            types = {};
+                                            axes = {};
+                                            if (len >= 3) {
+                                                  for (var i = 1; i <= len - 2; i++){
+                                                    for (var j = i+1 ; j <= len - 1; j++){
+                                                      var sub= []
+                                                      for( var k = 0; k < pos_data2[keys[i]].length; k++){
+                                                        sub[k] = pos_data2[keys[i]][k] - pos_data2[keys[j]][k];
+                                                       };
+                                                       pos_data2[keys[i]+ "-" + keys[j]] = sub;
+                                                       types[keys[i]+ "-" + keys[j]] = 'bar';  
+                                                       axes[keys[i]+ "-" + keys[j]] = 'y2'  
+                                                };
+                                               }; 
+                                            };
+                                            console.log(pos_data2);
+                                            console.log(types);
+                                            c3cht(types, axes);
+                    },
+                   error: function(XMLHttpRequest, textStatus, errorThrown) {
+                    alert(textStatus);
+                    }
+               });
+          $( "<div>" ).text( message ).prependTo( "#log" );
+          $( "#log" ).scrollTop( 0 );
+          $( "#log" ).hide();
+          //$( "<option selected value =" + "'" + message + "'" + ">").text(message).prependTo( "#newtag" );
+          $( "#newtag" ).tagsinput( 'add', message );
+          //$( "#newtag" ).scrollTop( 0 );
+        }
+        function split( val ) {
+          return val.split( /,\s*/ );
+        }
+        function extractLast( term ) {
+          return split( term ).pop();
+        }
+        $( "#tags" )
+          // don't navigate away from the field on tab when selecting an item
+          .bind( "keydown", function( event ) {
+            if ( event.keyCode === $.ui.keyCode.TAB &&
+                $( this ).autocomplete( "instance" ).menu.active ) {
+              event.preventDefault();
+            }
+          })
+          .autocomplete({
+            source: function( request, response ) {
+              $.getJSON( "{{ url_for('quick_search') }}", {
+                term: extractLast( request.term )
+              }, response );
+            },
+            search: function() {
+              // custom minLength
+              var term = extractLast( this.value );
+              if ( term.length < 2 ) {
+                return false;
+              }
+            },
+            focus: function() {
+              // prevent value inserted on focus
+              return false;
+            },
+            select: function( event, ui ) {
+              /*log( ui.item ?
+                  "Selected: " + ui.item.value + " aka " + ui.item.id :
+                  "Nothing selected, input was " + this.value );*/
+              log( ui.item ? ui.item.value :
+                  "Nothing selected, input was " + this.value );
+              var terms = split( this.value );
+              // remove the current input
+              terms.pop();
+              // add the selected item
+              terms.push( ui.item.value );
+              // add placeholder to get the comma-and-space at the end
+              terms.push( "" );
+              this.value = terms.join( ", " );
+              return false;
+            }
+          });
+      });
+
+function c3cht(type_arg, axes_arg){
+    require.config({
+      baseUrl: '/static/js'
+    });
+    require(["d3", "c3"], function(d3, c3) {
+        var chart = c3.generate({
+                    bindto: "#chart1",
+                    size: {
+                            //height: 240,
+                            //width: 480
+                    },
+                    data: {
+                      x : 'x',
+                      json : pos_data2
+                      /*json: [{"date": "06-03-2013", "x": 1, "y": 7344.0}, {"date": "06-03-2013", "x": 2, "y": 7242.0}, {"date": "06-03-2013", "x": 3, "y": 7167.0}, {"date": "06-03-2013", "x": 4, "y": 7164.0}, {"date": "06-03-2013", "x": 5, "y": 7138.0}, {"date": "06-03-2013", "x": 6, "y": 7123.0}, {"date": "06-03-2013", "x": 7, "y": 7099.0}, {"date": "06-03-2013", "x": 8, "y": 7091.0}, {"date": "06-03-2013", "x": 9, "y": 7065.0}, {"date": "06-03-2013", "x": 10, "y": 7021.0}, {"date": "06-03-2013", "x": 11, "y": 6918.0}, {"date": "06-03-2013", "x": 12, "y": 6863.0}, {"date": "06-03-2013", "x": 13, "y": 6714.0}, {"date": "06-03-2013", "x": 14, "y": 6708.0}, {"date": "06-03-2013", "x": 15, "y": 6630.0}, {"date": "06-03-2013", "x": 16, "y": 6543.0}, {"date": "06-03-2013", "x": 17, "y": 6159.0}, {"date": "06-03-2013", "x": 18, "y": 6166.0}, {"date": "06-03-2013", "x": 19, "y": 6267.0}, {"date": "06-03-2013", "x": 20, "y": 6344.0}, {"date": "06-03-2013", "x": 21, "y": 6442.0}, {"date": "06-03-2013", "x": 22, "y": 6849.0}, {"date": "06-03-2013", "x": 23, "y": 7168.0}, {"date": "06-03-2013", "x": 24, "y": 7417.0}, {"date": "06-03-2013", "x": 25, "y": 7686.0}, {"date": "06-03-2013", "x": 26, "y": 8016.0}, {"date": "06-03-2013", "x": 27, "y": 7856.0}, {"date": "06-03-2013", "x": 28, "y": 7894.0}, {"date": "06-03-2013", "x": 29, "y": 7928.0}, {"date": "06-03-2013", "x": 30, "y": 8080.0}, {"date": "06-03-2013", "x": 31, "y": 8165.0}, {"date": "06-03-2013", "x": 32, "y": 8172.0}, {"date": "06-03-2013", "x": 33, "y": 8091.0}, {"date": "06-03-2013", "x": 34, "y": 7992.0}, {"date": "06-03-2013", "x": 35, "y": 7916.0}, {"date": "06-03-2013", "x": 36, "y": 7918.0}, {"date": "06-03-2013", "x": 37, "y": 7782.0}, {"date": "06-03-2013", "x": 38, "y": 7751.0}, {"date": "06-03-2013", "x": 39, "y": 7694.0}, {"date": "06-03-2013", "x": 40, "y": 7635.0}, {"date": "06-03-2013", "x": 41, "y": 7447.0}, {"date": "06-03-2013", "x": 42, "y": 7511.0}, {"date": "06-03-2013", "x": 43, "y": 7490.0}, {"date": "06-03-2013", "x": 44, "y": 7492.0}, {"date": "06-03-2013", "x": 45, "y": 7450.0}, {"date": "06-03-2013", "x": 46, "y": 7481.0}, {"date": "06-03-2013", "x": 47, "y": 7487.0}, {"date": "06-03-2013", "x": 48, "y": 7434.0}, {"date": "06-03-2013", "x": 49, "y": 7418.0}, {"date": "06-03-2013", "x": 50, "y": 7420.0}, {"date": "06-03-2013", "x": 51, "y": 7352.0}, {"date": "06-03-2013", "x": 52, "y": 7377.0}, {"date": "06-03-2013", "x": 53, "y": 7268.0}, {"date": "06-03-2013", "x": 54, "y": 7236.0}, {"date": "06-03-2013", "x": 55, "y": 7210.0}, {"date": "06-03-2013", "x": 56, "y": 7200.0}, {"date": "06-03-2013", "x": 57, "y": 7130.0}, {"date": "06-03-2013", "x": 58, "y": 7159.0}, {"date": "06-03-2013", "x": 59, "y": 7189.0}, {"date": "06-03-2013", "x": 60, "y": 7123.0}, {"date": "06-03-2013", "x": 61, "y": 7092.0}, {"date": "06-03-2013", "x": 62, "y": 6986.0}, {"date": "06-03-2013", "x": 63, "y": 7021.0}, {"date": "06-03-2013", "x": 64, "y": 7008.0}, {"date": "06-03-2013", "x": 65, "y": 6921.0}, {"date": "06-03-2013", "x": 66, "y": 6923.0}, {"date": "06-03-2013", "x": 67, "y": 6887.0}, {"date": "06-03-2013", "x": 68, "y": 6827.0}, {"date": "06-03-2013", "x": 69, "y": 6561.0}, {"date": "06-03-2013", "x": 70, "y": 6286.0}, {"date": "06-03-2013", "x": 71, "y": 6186.0}, {"date": "06-03-2013", "x": 72, "y": 6066.0}, {"date": "06-03-2013", "x": 73, "y": 5950.0}, {"date": "06-03-2013", "x": 74, "y": 6006.0}, {"date": "06-03-2013", "x": 75, "y": 6228.0}, {"date": "06-03-2013", "x": 76, "y": 6705.0}, {"date": "06-03-2013", "x": 77, "y": 7182.0}, {"date": "06-03-2013", "x": 78, "y": 7387.0}, {"date": "06-03-2013", "x": 79, "y": 7422.0}, {"date": "06-03-2013", "x": 80, "y": 7363.0}, {"date": "06-03-2013", "x": 81, "y": 7170.0}, {"date": "06-03-2013", "x": 82, "y": 7083.0}, {"date": "06-03-2013", "x": 83, "y": 6970.0}, {"date": "06-03-2013", "x": 84, "y": 6872.0}, {"date": "06-03-2013", "x": 85, "y": 7140.0}, {"date": "06-03-2013", "x": 86, "y": 7416.0}, {"date": "06-03-2013", "x": 87, "y": 7376.0}, {"date": "06-03-2013", "x": 88, "y": 7367.0}, {"date": "06-03-2013", "x": 89, "y": 7778.0}, {"date": "06-03-2013", "x": 90, "y": 7883.0}, {"date": "06-03-2013", "x": 91, "y": 7626.0}, {"date": "06-03-2013", "x": 92, "y": 7580.0}, {"date": "06-03-2013", "x": 93, "y": 7569.0}, {"date": "06-03-2013", "x": 94, "y": 7464.0}, {"date": "06-03-2013", "x": 95, "y": 7435.0}, {"date": "06-03-2013", "x": 96, "y": 7482.0}]*/,
+                        type: "spline",
+                        //keys: {
+                        //          x: 'x',
+                        //          value: ['y']
+                        //}
+                        types: type_arg,
+                        axes: axes_arg//,
+                        //labels: true
+                    },
+                    axis: {
+                            x: {
+                          //    type: 'categorized'
+                                label: {
+                                         text: 'Block No',
+                                         position: 'outer-center'
+                                },
+                                tick: {
+                                        //fit: true
+                                        //count: 96//,
+                                        //format: 
+                                }
+                            },
+                            y: {
+                                label: {
+                                         text: 'Demand (MW)',
+                                         position: 'outer-middle'
+                                }
+                            }                  
+                    },
+                    grid: {
+                            y: {
+                              show: true
+                            },
+                            x: {
+                              show: true
+                            },
+                            focus: {
+                              show: true
+                            }
+                    },
+                    legend: {
+                              //position: 'right',
+                              show: true
+                    },
+                    point: {
+                              show: true
+                    },
+                    transition: {
+                                  duration: 100
+                    },
+                    tooltip: {
+                                format: {
+                                          title: function (d) { return 'Block_No ' + d; }
+                                }
+                    },
+                    regions: [
+                    {axis: 'x', start: 76, end: 88, class: 'foo'}
+                    ]
+                });
+        //console.log(axes_arg);
+        //if (axes_arg){
+        //chart.data.axes(axes_arg);
+        //}
+        /*
+        c3.generate({
+                    bindto: "#chart",
+                    data: {
+                      columns: [
+                        ['data1', 30, 20, 50, 40, 60, 50],
+                        ['data2', 200, 130, 90, 240, 130, 220],
+                        ['data3', 300, 200, 160, 400, 250, 250],
+                        ['data4', 200, 130, 90, 240, 130, 220],
+                        ['data5', 130, 120, 150, 140, 160, 150],
+                        ['data6', 90, 70, 20, 50, 60, 120],
+                      ],
+                      types: {
+                        data1: 'bar',
+                        data2: 'bar',
+                        data3: 'spline',
+                        data4: 'line',
+                        data5: 'bar',
+                        data6: 'area'
+                      },
+                      groups: [
+                        ['data1','data2']
+                      ]
+                    },
+                    axis: {
+                      x: {
+                        type: 'categorized'
+                      }
+                    }
+                });*/
+      }); 
+}                  
+  </script> 
+  </head>
+    <body data-twttr-rendered="true">
+        <!-- Start Content -->
+      <div class="container-fluid left-menu"><!--menu position change-->
+        <div class="navbar main">
+          <div class="innerpx">
+            <button type="button" class="btn btn-navbar hidden-desktop hidden-tablet">
+              <span class="icon-bar"></span> <span class="icon-bar"></span> <span class="icon-bar"></span>
+            </button>
+            <div class="positionWrapper">
+              <span class="line"></span>
+                <div class="profile"> 
+                  <img style="margin-top:-10px;" src="/static/images/logo.png" alt="Z-matics">
+                </div>
+                <ul class="topnav hidden-phone">
+                  <li>
+                    <a href="login.html" class="logout glyphicons lock"><i></i><span>Logout</span></a>
+                  </li>
+                </ul>
+            </div>
+          </div>
+        </div>
+        <div class="ui-widget">
+          <label for="tags">Tags: </label>
+          <input id="tags" size="50">
+        </div>
+        <div class="ui-widget" style="margin-top:2em; font-family:Arial; display: none;">
+          Result:
+        <div id="log" style="height: 200px; width: 300px; overflow: auto;"  class="ui-widget-content"></div>
+        </div>
+        <div class="ui-widget" style="margin-top:2em; font-family:Arial;">
+            <!--<input id = "newtag" type="text" data-role="tagsinput" placeholder="Add tags" />-->
+            <select id = "newtag" multiple data-role="tagsinput">
+            </select>
+        </div>
+        <div id="chart1" >
+        </div>
+        <div id="chart" >
+        </div>
+    </body>
+  <footer class="footer">
+    <div class="container">
+    <ul class="footer-links">
+        <li>© 2013</li>
+        <li><a href='https://github.com/imwilsonxu/flask-datatables'>About</a></li>
+    </ul>
+    </div>
+    <!--script>/*
+      var chart = c3.generate({
+        bindto: "#chart3",
+        data: {
+          columns: [
+            ['data1', 30, 20, 50, 40, 60, 50],
+            ['data2', 200, 130, 90, 240, 130, 220],
+            ['data3', 300, 200, 160, 400, 250, 250],
+            ['data4', 200, 130, 90, 240, 130, 220],
+            ['data5', 130, 120, 150, 140, 160, 150],
+            ['data6', 90, 70, 20, 50, 60, 120],
+          ],
+          types: {
+            data1: 'bar',
+            data2: 'bar',
+            data3: 'spline',
+            data4: 'line',
+            data5: 'bar',
+            data6: 'area'
+          },
+          groups: [
+            ['data1','data2']
+          ]
+        },
+        axis: {
+          x: {
+            type: 'categorized'
+          }
+        }
+    });*/
+    </script-->    
+</footer>
+</html>

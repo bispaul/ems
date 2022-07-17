@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Zeerone App</title>
+	<link href="/static/css/main.css" rel="stylesheet" media="screen">
+    <script src="/static/js/jquery-2.0.3.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+    <script src="/static/js/moment.min.js"></script>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  </head>
+  <body>
+
+  <header>
+    <div class="container">
+      <h1 class="logo">Zeerone App</h1>
+      <nav>
+      </nav>
+    </div>
+  </header>
+
+    <div class="container">
+      {% block content %}
+      {% endblock %}
+    </div>
+
+  </body>
+</html>

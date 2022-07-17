@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="description" content="Login Page.">
+    <meta name="author" content="">
+    <title>Zeerone Map Services</title>
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}"> -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+    <style type="text/css">
+/*      #map, html, body {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+      }*/
+ 
+      #buttons {
+        position: fixed;
+        top: 50px;
+        right: 5px;
+        font-family: Roboto;
+        font-size: 15px;
+        font-weight: 300;        
+        margin-left: 12px;
+        padding: 0 11px 0 13px;
+        text-overflow: ellipsis;        
+      }
+
+      html,body{
+        padding: 0;
+        margin: 0;
+        height: 100%;
+      }
+
+      body{
+        padding-top:50px; /*padding for navbar*/
+      }
+
+      .navbar-custom .icon-bar {
+        background-color: #5cb85c;
+      }
+
+      .navbar-custom {
+        background-color: #5cb85c;
+        color: #5cb85c;
+      }
+
+      .navbar-custom li>a:hover,.navbar-custom li>a:focus {
+        background-color:#005C37;
+      }
+
+      .navbar-custom a{
+          color:#fefefe;
+      }
+
+      .navbar-custom .form-control:focus {
+        border-color: #49bfff;
+        outline: 0;
+        -webkit-box-shadow: inset 0 0 0;
+        box-shadow: inset 0 0 0;
+      }
+
+      #main, #main>.row {
+        height:100%;
+      }
+
+      #main>.row {
+          overflow-y:scroll;
+      }
+
+      #left {
+        height:100%;
+      }
+
+      img { 
+          max-width: 100%; 
+      }
+
+      #map-canvas img { 
+          max-width: none; 
+      }
+
+      #map-canvas {
+        /*width:74%;*/
+        width:100%;
+        height:calc(100% - 0);
+        position:absolute;
+        /*right:10px;*/
+        top:50px;
+        bottom:20px;
+        overflow:hidden;
+      }        
+
+/*      html, body, #map-canvas {
+          height: 100%;
+          margin: 0px;
+          padding: 0px;
+      }*/
+
+      #footer {
+        height: 20px;
+        background-color: #5cb85c;
+        margin-top: 5px;
+        padding-top: 2px;
+        padding-bottom: 2px;
+        bottom: 0;
+        position: fixed;
+        width: 100%;
+      }
+
+      .fixed {
+          position: fixed;
+          bottom:25px;
+       }
+
+      #plotModal, #editplotModal { 
+        width: 100%;
+        left: 39%;
+        top: 7%;
+        /*top: 25px;*/
+        background-color: transparent; 
+        max-height: 91%;
+        height: auto;
+        /*position: absolute;*/
+      }
+
+      #plotModal .modal-body, #editplotModal .modal-body {
+          max-height: calc(100vh - 260px);
+          overflow-y: scroll;
+          height: auto;
+          /*position: relative;*/
+      }
+
+      .controls {
+        margin-top: 6px;
+        border: 1px solid transparent;
+        border-radius: 2px 0 0 2px;
+        box-sizing: border-box;
+        -moz-box-sizing: border-box;
+        height: 32px;
+        outline: none;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      }
+
+      #pac-input {
+        background-color: #fff;
+        font-family: Roboto;
+        font-size: 15px;
+        font-weight: 300;
+        margin-left: 12px;
+        padding: 0 11px 0 13px;
+        text-overflow: ellipsis;
+        width: 400px;
+      }
+
+      #pac-input:focus {
+        border-color: #4d90fe;
+      }
+
+      .pac-container {
+        font-family: Roboto;
+      }
+
+      #type-selector {
+        color: #fff;
+        background-color: #4d90fe;
+        padding: 5px 11px 0px 11px;
+      }
+
+      #type-selector label {
+        font-family: Roboto;
+        font-size: 13px;
+        font-weight: 300;
+      }      
+    </style>
+    <script type="text/javascript" src="http://maps.google.co.in/maps/api/js?sensor=false&libraries=places,geometry,drawing"></script> 
+    <script src="{{ url_for('static', filename='js/jquery-2.1.3.min.js') }}"></script>
+    <!-- // <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>  -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/shape-save.js') }}"></script>
+    <script type="text/javascript">
+      function initialize() {
+          var shapesMap = new ShapesMap(
+              document.getElementById("map-canvas"), 
+              document.getElementById("delete-button"),
+              document.getElementById("clear-button"),
+              document.getElementById("console"),
+              "{{ url_for('static', filename='images/icon-locate-me.png') }}");
+      }
+        
+      google.maps.event.addDomListener(window, 'load', initialize);
+    </script>
+  </head>
+  <body>
+    <!-- begin template -->
+    <div class="navbar navbar-custom navbar-fixed-top">
+      <div class="navbar-header"><a class="navbar-brand" href="#">Brand</a>
+        <a class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </a>
+      </div>
+      <div class="navbar-collapse collapse">
+        <ul class="nav navbar-nav">
+          <li class="active"><a href="#">Home</a></li>
+          <li><a href="#">Link</a></li>
+          <li><a href="#">Link</a></li>
+          <li>&nbsp;</li>
+        </ul>
+<!--         <form class="navbar-form">
+          <div class="form-group" style="display:inline;">
+            <div class="input-group">
+              <div class="input-group-btn">
+                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-chevron-down"></span></button>
+                <ul class="dropdown-menu">
+                  <li><a href="#">Category 1</a></li>
+                  <li><a href="#">Category 2</a></li>
+                  <li><a href="#">Category 3</a></li>
+                  <li><a href="#">Category 4</a></li>
+                  <li><a href="#">Category 5</a></li> 
+                </ul>
+              </div>
+              <input type="text" class="form-control" placeholder="What are searching for?">
+              <span class="input-group-addon"><span class="glyphicon glyphicon-search"></span> </span>
+            </div>
+          </div>
+        </form> -->
+      </div>
+    </div>  
+<!--     <table style="width:100%;height:100%;border-style:none;border-collapse:collapse;">
+      <tr>
+        <td style="width:100%;height:80%;border-width:0px;padding:0px;">
+          <div id="map"></div>
+          <div id="buttons">
+            <input type="button" id="delete-button" value="Delete Shape">
+            <input type="button" id="clear-button" value="Clear All Shapes">
+          </div>
+        </td> 
+      </tr>
+      <tr>
+        <td style="width:100%;height:20%;border-width:0px;padding:0px;">
+          <textarea id="console" readonly="readonly" style="width:100%;height:100%;border:0px;margin:0px;background-color:#e0f0a0;"></textarea>
+        </td>
+      </tr>
+    </table> -->
+    <input id="pac-input" class="controls" type="text" placeholder="Search Box">
+    <div id="buttons">
+      <input type="button" id="delete-button" value="Delete Shape">
+      <input type="button" id="clear-button" value="Clear All Shapes">
+    </div>    
+    <div id="map-canvas"></div>
+    <textarea id="console" readonly="readonly" style="display: none"></textarea>        
+    <div id="footer">
+      <div class="container">
+        <p class="text-muted">&copy; Zeerone 2012</p>
+      </div>
+    </div>    
+  </body>
+</html>

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="description" content="Navigation Page.">
+    <meta name="author" content="">
+    <!-- <link rel="icon" href="../../favicon.ico"> -->
+    <title>Zeerone Landing</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/minisubmenu.css') }}"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sticky-footer-navbar.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.css') }}"> -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/c3.css') }}"> -->
+    <style>
+      .bars {
+                display: block;
+                width: 20px;
+                height: 3px;    
+                background-color: #333;
+                box-shadow: 0 5px 0 #333, 0 10px 0 #333;
+            }
+      .nav>li>a:hover, .nav>li>a:focus {
+                text-decoration: none;
+                background-color: #fff;
+            }
+      .nav .open>a, .nav .open>a:hover, .nav .open>a:focus {
+                background-color: #fff;
+                border-color: #428bca;
+            } 
+
+      .chart {
+        display: block;
+        margin: auto;
+        margin-top: 40px;
+      }
+
+      text {
+        font-size: 8px;
+      }
+
+/*      rect {
+        fill: none;
+      }*/
+    </style>        
+    <script src="{{ url_for('static', filename='js/jquery-2.0.3.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/d3.v3.js') }}"></script>
+    <!-- // <script src="{{ url_for('static', filename='js/require.js') }}"></script> -->
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <header class="top" role="header">
+      <div class="container">
+        <nav class="navbar" role="navigation">
+          <div class="container-fluid">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              <a href="#" class="navbar-brand">
+                <img style="margin-top:-20px;" src="/static/images/logo.png" alt="Z-matics">
+              </a>
+            </div>
+
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+              <ul class="nav navbar-nav">
+                <li class="dropdown">
+                  <a href="#" class="dropdown-toggle" data-toggle="dropdown">Menu <b class="caret"></b></a>
+                  <ul class="dropdown-menu">
+                    <li><a href="{{ url_for('index') }}">NR Gen</a></li>
+                    <li><a href="{{ url_for('nrmarket') }}">NR Market</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('tenisgs') }}">ISGS Tentative Data</a></li>
+                    <li><a href="{{ url_for('tenint') }}">Internal Tentative Data</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('rajmislive') }}">Live MIS Data</a></li>
+                    <li><a href="{{ url_for('rajlive') }}">Live Data Breakup</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('forecast') }}">Forecast</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('possuply') }}">Position Map</a></li>
+                    <li><a href="{{ url_for('possuplychart') }}">Position Map Chart</a></li>                    
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('chart') }}">Comparison Report</a></li>
+                    <li><a href="{{ url_for('chart3') }}">ISGS Tentative Stack</a></li>
+                    <li><a href="{{ url_for('stacked') }}">Total Generation Stack</a></li>
+                    <li><a href="{{ url_for('treemap') }}">Treemap Report</a></li>
+                    <li><a href="{{ url_for('heat') }}">Heatmap Report</a></li>                    
+                  </ul>
+                </li>
+              </ul>
+              <ul class="nav navbar-nav navbar-right">
+                <li><a href="http://zeerone.com/">About</a></li>
+                <li><a href="http://zeerone.com/contact_us.html">Contact</a></li>
+                <li><a href="login.html">Logout </a></li>
+              </ul>
+            </div><!-- /.navbar-collapse -->
+          </div><!-- /.container-fluid -->
+        </nav>
+      </div>
+    </header>
+    <body>
+      <div class="middle">
+        <div class="container">
+          <div class="col-md-12 content">    
+            <div id="body">
+              <div id="footer">
+                <div class="hint">click or option-click to descend or ascend</div>
+                <div>
+                  <select>
+                    <option value="size">Size</option>
+                    <option value="count">Count</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <script type="text/javascript">    
+          var tree = {
+                       "name": "Rajasthan",
+                       "children": [
+                                      {
+                                         "name": "Jaipur", "size":1,
+                                         "children": [
+                                                        {name: 'ALWAR+ALWAR MIA ', size:216},
+                                                        {name: 'BHARTPUR ', size:98},
+                                                        {name: 'BHIWADI ', size:149},
+                                                        {name: 'CHOMU ', size:109},
+                                                        {name: 'DAUSA ', size:107},
+                                                        {name: 'DAYRA+BARAN+KAWAI ', size:217},
+                                                        {name: 'DHOLPUR ', size:72},
+                                                        {name: 'HEERAPURA+JAGATPURA ', size:129},
+                                                        {name: 'HINDAUN ', size:185},
+                                                        {name: 'JHALWAR ', size:92},
+                                                        {name: 'KOTA+DUNI ', size:283},
+                                                        {name: 'KOTAPUTLI ', size:116},
+                                                        {name: 'KUKAS+VKIA ', size:178},
+                                                        {name: 'MODAK ', size:102},
+                                                        {name: 'PHULERA+BAGRU+SEZ ', size:80},
+                                                        {name: 'SANGANER ', size:58},
+                                                        {name: 'S.MADHOPUR+CHAKSU ', size:141},
+                                                        {name: 'MANDAWAR ', size:94},
+                                                        {name: 'NIMRN+Khuskheda ', size:299},
+                                                        {name: 'RENWAL ', size:72},
+                                                        {name: 'ALWAR+ALWAR MIA ', size:57},
+                                                        {name: 'BHARTPUR ', size:-38},
+                                                        {name: 'BHIWADI ', size:-15},
+                                                        {name: 'CHOMU ', size:-22},
+                                                        {name: 'DAUSA ', size:37},
+                                                        {name: 'DAYRA+BARAN+KAWAI ', size:100},
+                                                        {name: 'DHOLPUR ', size:39},
+                                                        {name: 'HEERAPURA+JAGATPURA ', size:-99},
+                                                        {name: 'HINDAUN ', size:51},
+                                                        {name: 'JHALWAR ', size:23},
+                                                        {name: 'KOTA+DUNI ', size:42},
+                                                        {name: 'KOTAPUTLI ', size:11},
+                                                        {name: 'KUKAS+VKIA ', size:-4},
+                                                        {name: 'MODAK ', size:34},
+                                                        {name: 'PHULERA+BAGRU+SEZ ', size:-27},
+                                                        {name: 'SANGANER ', size:-51},
+                                                        {name: 'S.MADHOPUR+CHAKSU ', size:38},
+                                                        {name: 'MANDAWAR ', size:-23},
+                                                        {name: 'NIMRN+Khuskheda ', size:-23},
+                                                        {name: 'RENWAL ', size:9},
+                                                        {name: 'ALWAR+ALWAR MIA ', size:57},
+                                                        {name: 'BHARTPUR ', size:-41},
+                                                        {name: 'BHIWADI ', size:-12},
+                                                        {name: 'CHOMU ', size:-25},
+                                                        {name: 'DAUSA ', size:37},
+                                                        {name: 'DAYRA+BARAN+KAWAI ', size:94},
+                                                        {name: 'DHOLPUR ', size:39},
+                                                        {name: 'HEERAPURA+JAGATPURA ', size:-102},
+                                                        {name: 'HINDAUN ', size:54},
+                                                        {name: 'JHALWAR ', size:26},
+                                                        {name: 'KOTA+DUNI ', size:40},
+                                                        {name: 'KOTAPUTLI ', size:11},
+                                                        {name: 'KUKAS+VKIA ', size:-6},
+                                                        {name: 'MODAK ', size:33},
+                                                        {name: 'PHULERA+BAGRU+SEZ ', size:-24},
+                                                        {name: 'SANGANER ', size:-51},
+                                                        {name: 'S.MADHOPUR+CHAKSU ', size:36},
+                                                        {name: 'MANDAWAR ', size:-25},
+                                                        {name: 'NIMRN+Khuskheda ', size:-24},
+                                                        {name: 'RENWAL ', size:10}
+                                             ]
+                                      },
+                                      {
+                                         "name": "Ajmer", "size":1,
+                                         "children": [
+                                                      {name: 'AJMER+KISHANGARH ', size:207},
+                                                      {name: 'BASWARA ', size:64},
+                                                      {name: 'BEAWAR+GULABPURA ', size:199},
+                                                      {name: 'BHILWARA ', size:160},
+                                                      {name: 'CHITTORGARH ', size:140},
+                                                      {name: 'DEBARI ', size:150},
+                                                      {name: 'JHUNJHUNU ', size:36},
+                                                      {name: 'KANKROLI ', size:119},
+                                                      {name: 'KHETRI ', size:202},
+                                                      {name: 'KUCHAMAN+DHODH ', size:156},
+                                                      {name: 'MAKRA ', size:55},
+                                                      {name: 'METRA ', size:151},
+                                                      {name: 'GAUR+BARSINGSAR ', size:77},
+                                                      {name: 'NIMBAHERA ', size:120},
+                                                      {name: 'REENGUS ', size:79},
+                                                      {name: 'SIKAR ', size:157},
+                                                      {name: 'AJMER+KISHANGARH ', size:12},
+                                                      {name: 'BASWARA ', size:9},
+                                                      {name: 'BEAWAR+GULABPURA ', size:-47},
+                                                      {name: 'BHILWARA ', size:23},
+                                                      {name: 'CHITTORGARH ', size:41},
+                                                      {name: 'DEBARI ', size:7},
+                                                      {name: 'JHUNJHUNU ', size:-51},
+                                                      {name: 'KANKROLI ', size:14},
+                                                      {name: 'KHETRI ', size:-24},
+                                                      {name: 'KUCHAMAN+DHODH ', size:60},
+                                                      {name: 'MAKRA ', size:5},
+                                                      {name: 'METRA ', size:84},
+                                                      {name: 'GAUR+BARSINGSAR ', size:-35},
+                                                      {name: 'NIMBAHERA ', size:34},
+                                                      {name: 'REENGUS ', size:13},
+                                                      {name: 'SIKAR ', size:36},
+                                                      {name: 'AJMER+KISHANGARH ', size:12},
+                                                      {name: 'BASWARA ', size:8},
+                                                      {name: 'BEAWAR+GULABPURA ', size:-48},
+                                                      {name: 'BHILWARA ', size:23},
+                                                      {name: 'CHITTORGARH ', size:37},
+                                                      {name: 'DEBARI ', size:6},
+                                                      {name: 'JHUNJHUNU ', size:-44},
+                                                      {name: 'KANKROLI ', size:14},
+                                                      {name: 'KHETRI ', size:-28},
+                                                      {name: 'KUCHAMAN+DHODH ', size:62},
+                                                      {name: 'MAKRA ', size:4},
+                                                      {name: 'METRA ', size:82},
+                                                      {name: 'GAUR+BARSINGSAR ', size:-34},
+                                                      {name: 'NIMBAHERA ', size:32},
+                                                      {name: 'REENGUS ', size:13},
+                                                      {name: 'SIKAR ', size:45}
+                                             ]
+                                      }, 
+                                      {
+                                         "name": "Jodhpur", "size":1,
+                                         "children": [
+                                                      {name: 'BALI ', size:33},
+                                                      {name: 'BLTR+BARMR+DHRMN+SANCH ', size:248},
+                                                      {name: 'BHINMAL ', size:111},
+                                                      {name: 'BHPL+KHINWSAR ', size:123},
+                                                      {name: 'BIKANER ', size:108},
+                                                      {name: 'BILARA ', size:42},
+                                                      {name: 'HANUMANGARH ', size:46},
+                                                      {name: 'AMARSAGAR(JSLMR) ', size:84},
+                                                      {name: 'JALORE ', size:79},
+                                                      {name: 'JODHPUR ', size:185},
+                                                      {name: 'PALI ', size:26},
+                                                      {name: 'PHALODI ', size:82},
+                                                      {name: 'PINDWARA ', size:55},
+                                                      {name: 'RATANGARH ', size:74},
+                                                      {name: 'SIROHI ', size:63},
+                                                      {name: 'S GANGAGAR ', size:40},
+                                                      {name: 'SUJANGRAH ', size:74},
+                                                      {name: 'SURATGARH ', size:80},
+                                                      {name: 'TINWARI ', size:155},
+                                                      {name: 'DUNGARGARH+NOKHA ', size:218},
+                                                      {name: 'BHADRA ', size:42},
+                                                      {name: 'BALI ', size:-7},
+                                                      {name: 'BLTR+BARMR+DHRMN+SANCH ', size:103},
+                                                      {name: 'BHINMAL ', size:71},
+                                                      {name: 'BHPL+KHINWSAR ', size:7},
+                                                      {name: 'BIKANER ', size:-68},
+                                                      {name: 'BILARA ', size:-5},
+                                                      {name: 'HANUMANGARH ', size:-32},
+                                                      {name: 'AMARSAGAR(JSLMR) ', size:-15},
+                                                      {name: 'JALORE ', size:48},
+                                                      {name: 'JODHPUR ', size:-25},
+                                                      {name: 'PALI ', size:-38},
+                                                      {name: 'PHALODI ', size:-40},
+                                                      {name: 'PINDWARA ', size:24},
+                                                      {name: 'RATANGARH ', size:-34},
+                                                      {name: 'SIROHI ', size:14},
+                                                      {name: 'S GANGAGAR ', size:-49},
+                                                      {name: 'SUJANGRAH ', size:-24},
+                                                      {name: 'SURATGARH ', size:-29},
+                                                      {name: 'TINWARI ', size:55},
+                                                      {name: 'DUNGARGARH+NOKHA ', size:-85},
+                                                      {name: 'BHADRA ', size:-14},
+                                                      {name: 'BALI ', size:-7},
+                                                      {name: 'BLTR+BARMR+DHRMN+SANCH ', size:103},
+                                                      {name: 'BHINMAL ', size:71},
+                                                      {name: 'BHPL+KHINWSAR ', size:6},
+                                                      {name: 'BIKANER ', size:-69},
+                                                      {name: 'BILARA ', size:-4},
+                                                      {name: 'HANUMANGARH ', size:-32},
+                                                      {name: 'AMARSAGAR(JSLMR) ', size:-15},
+                                                      {name: 'JALORE ', size:49},
+                                                      {name: 'JODHPUR ', size:-34},
+                                                      {name: 'PALI ', size:-39},
+                                                      {name: 'PHALODI ', size:-39},
+                                                      {name: 'PINDWARA ', size:26},
+                                                      {name: 'RATANGARH ', size:-34},
+                                                      {name: 'SIROHI ', size:14},
+                                                      {name: 'S GANGAGAR ', size:-49},
+                                                      {name: 'SUJANGRAH ', size:-25},
+                                                      {name: 'SURATGARH ', size:-29},
+                                                      {name: 'TINWARI ', size:56},
+                                                      {name: 'DUNGARGARH+NOKHA ', size:-96},
+                                                      {name: 'BHADRA ', size:-12}
+                                             ]
+                                      },                                                                            
+                         ]
+                    }; 
+ 
+            var w = 1280 - 80,
+                h = 800 - 180,
+                x = d3.scale.linear().range([0, w]),
+                y = d3.scale.linear().range([0, h]),
+                color = d3.scale.category20c(),
+                root,
+                node;
+
+            var treemap = d3.layout.treemap()
+                .round(false)
+                .size([w, h])
+                .sticky(true)
+                .value(function(d) { return d.size; });
+
+            var svg = d3.select("#body").append("div")
+                .attr("class", "chart")
+                .style("width", w + "px")
+                .style("height", h + "px")
+              .append("svg:svg")
+                .attr("width", w)
+                .attr("height", h)
+              .append("svg:g")
+                .attr("transform", "translate(.5,.5)");
+
+            d3.json("static/css/gss.json", function(data) {
+              node = root = data;
+              console.log(data);
+              var nodes = treemap.nodes(root)
+                  .filter(function(d) { return !d.children; });
+
+              var cell = svg.selectAll("g")
+                  .data(nodes)
+                .enter().append("svg:g")
+                  .attr("class", "cell")
+                  .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
+                  .on("click", function(d) { return zoom(node == d.parent ? root : d.parent); });
+
+              cell.append("svg:rect")
+                  .attr("width", function(d) { return d.dx - 1; })
+                  .attr("height", function(d) { return d.dy - 1; })
+                  .style("fill", function(d) { return color(d.parent.name); });
+
+              cell.append("svg:text")
+                  .attr("x", function(d) { return d.dx / 2; })
+                  .attr("y", function(d) { return d.dy / 2; })
+                  .attr("dy", ".35em")
+                  .attr("text-anchor", "middle")
+                  .text(function(d) { return d.name; })
+                  .style("opacity", function(d) { d.w = this.getComputedTextLength(); return d.dx > d.w ? 1 : 0; });
+
+              d3.select(window).on("click", function() { zoom(root); });
+
+              d3.select("select").on("change", function() {
+                treemap.value(this.value == "size" ? size : count).nodes(root);
+                zoom(node);
+              });
+            });
+
+            function size(d) {
+              return d.size;
+            }
+
+            function count(d) {
+              return 1;
+            }
+
+            function zoom(d) {
+              var kx = w / d.dx, ky = h / d.dy;
+              x.domain([d.x, d.x + d.dx]);
+              y.domain([d.y, d.y + d.dy]);
+
+              var t = svg.selectAll("g.cell").transition()
+                  .duration(d3.event.altKey ? 7500 : 750)
+                  .attr("transform", function(d) { return "translate(" + x(d.x) + "," + y(d.y) + ")"; });
+
+              t.select("rect")
+                  .attr("width", function(d) { return kx * d.dx - 1; })
+                  .attr("height", function(d) { return ky * d.dy - 1; })
+
+              t.select("text")
+                  .attr("x", function(d) { return kx * d.dx / 2; })
+                  .attr("y", function(d) { return ky * d.dy / 2; })
+                  .style("opacity", function(d) { return kx * d.dx > d.w ? 1 : 0; });
+
+              node = d;
+              d3.event.stopPropagation();
+            } 
+ 
+
+          // var width = innerWidth-40,
+          //     height = innerHeight-40,
+          //     color = d3.scale.category20c(),
+          //     // div = d3.select("body").append("div")
+          //     //    .style("position", "relative");
+          //     div = d3.select("body").append("div")
+          //        .style("position", "relative");
+          // var treemap = d3.layout.treemap()
+          //     .size([width, height])
+          //     .sticky(true)
+          //     .value(function(d) { return d.size; });
+           
+          // var node = div.datum(tree).selectAll(".node")
+          //       .data(treemap.nodes)
+          //     .enter().append("div")
+          //       .attr("class", "node")
+          //       .call(position)
+          //       .style("background-color", function(d) {
+          //           return d.name == 'tree' ? '#fff' : color(d.name); })
+          //       .append('div')
+          //       .style("font-size", function(d) {
+          //           // compute font size based on sqrt(area)
+          //           return Math.max(20, 0.18*Math.sqrt(d.area))+'px'; })
+          //       .text(function(d) { return d.children ? null : d.name; });
+           
+          // function position() {
+          //   this.style("left", function(d) { return d.x + "px"; })
+          //       .style("top", function(d) { return d.y + "px"; })
+          //       .style("width", function(d) { return Math.max(0, d.dx - 1) + "px"; })
+          //       .style("height", function(d) { return Math.max(0, d.dy - 1) + "px"; });
+          // }        
+        </script>
+<!--       </div>
+    </div>  -->    
+  </body>        
+  <footer class="footer">
+    <div class="container">
+      <p class="text-muted">
+          Zeerone © 2012
+          http://www.zeerone.com</p>
+      </div>
+    </div>      
+  </footer>
+</html>

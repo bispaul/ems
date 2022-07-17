@@ -1,0 +1,17 @@
+{% extends "layout.html" %}
+{% block content %}
+<h1>ISGS DETAILS</h1>
+    <p><a href="javascript:void();" id="calculate">Table</a>
+    <script src="/static/js/jquery.dataTables.min.js"></script>
+    <script type=text/javascript>
+        $('#calculate').dataTable( {
+                                    "bProcessing": true,
+                                    "bServerSide": true,
+                                    "sPaginationType": "full_numbers",
+                                    "bjQueryUI": true,
+                                    "sAjaxSource": "/retrieve_server_data"
+                                    }
+        );
+    </script>
+    <div id="tablecontent"></div>
+{% endblock %}

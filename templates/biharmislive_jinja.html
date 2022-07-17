@@ -1,0 +1,98 @@
+{% extends "basetemplate.html" %}
+{% block title %}Test Page{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dataTables.bootstrap.css') }}">
+    <style>
+      .bars {
+                display: block;
+                width: 20px;
+                height: 3px;    
+                background-color: #333;
+                box-shadow: 0 5px 0 #333, 0 10px 0 #333;
+            }
+      .nav>li>a:hover, .nav>li>a:focus {
+                text-decoration: none;
+                background-color: #fff;
+            }
+      .nav .open>a, .nav .open>a:hover, .nav .open>a:focus {
+                background-color: #fff;
+                border-color: #428bca;
+            }
+      body { font-size: 140%; }
+      div.DTTT { margin-bottom: 0.5em; float: right; }
+      div.dataTables_wrapper { clear: both; }           
+    </style>    
+    <script src="{{ url_for('static', filename='js/jquery.dataTables.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dataTables.tableTools.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dataTables.bootstrap.js') }}"></script>
+    <!-- // <script src="{{ url_for('static', filename='js/jquery-ui.js') }}"></script> -->
+    <script>
+      /*
+       * Example initialisation
+       */
+      $(document).ready( function () {
+          var table = $('#example').dataTable( {
+            "fnRowCallback": function( nRow, aData, iDisplayIndex ) {
+                    $('td', nRow).attr('nowrap','nowrap');
+                    return nRow;
+                    },              
+            // "dom": 'Tlfrtip',
+            // "sDom": "<'row-fluid'<'span6 toolbar'><'span6'>r>t<'row-fluid'<'span6'f><'span6'p>>",
+            // "tableTools": {
+         //                 "sSwfPath": "/static/swf/copy_csv_xls_pdf.swf"
+          //                },        
+            // "scrollY": true,
+            "scrollX": "600px",
+            // "scrollCollapse": true,
+            "responsive": true,
+            //"paging": true,
+            "deferRender": true,
+            "aLengthMenu": [[96, 182], [96, 182]],
+            // "aaSorting": [[0,'desc'],[2,'desc']],
+            "iDisplayLength": 96,
+            "sAjaxSource": "{{ url_for('get_biharsurrender_data') }}"
+          } );
+          // var tt = new $.fn.dataTable.TableTools( table );
+          // $( tt.fnContainer() ).insertAfter('div.middle');
+          var tt = new $.fn.dataTable.TableTools( table, {
+                          "sSwfPath": "/static/swf/copy_csv_xls_pdf.swf"
+                          } );
+          $( tt.fnContainer() ).insertBefore('div.dataTables_wrapper');
+      } );
+    </script>     
+{% endblock %}
+{% block content %}
+    <div class="container">
+      <div role="tabpanel">
+          <ul class="nav nav-tabs" role="tablist">
+            <li role="presentation"><a href="#rtf" aria-controls="rtf" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-stats"></span> Real Time Forecast</a></li>
+            <li role="presentation" class="active"><a href="#profile" aria-controls="profile" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-list"></span> Profile</a></li>    
+          </ul>      
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane active" id="rtf">
+              <div class="container">
+                <div class="col-md-12 content">
+                  <div id="chart"></div>
+                </div>
+              </div>            
+            </div>
+            <div role="tabpanel" class="tab-pane active" id="profile">
+              <div class="container">
+                <div class="col-md-12 content">    
+                  <table id="example" class="table table-striped table-bordered table-condensed table-hover" cellspacing="0" width="100%">
+                    <thead>
+                      <tr>
+                        {% for col in columns %}
+                        <th>{{ col }}</th>
+                        {% endfor %}
+                      </tr>
+                    </thead>
+                  </table>            
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>        
+    </div><!-- /.container -->
+{% endblock %}

@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="description" content="Navigation Page.">
+    <meta name="author" content="Biswadip Paul">
+    <!-- <meta name="viewport" content="width=device-width"> -->
+    <!-- <link rel="icon" href="../../favicon.ico"> -->
+    <!-- <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}"> -->
+    <title>Zeerone Landing</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/minisubmenu.css') }}"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sticky-footer-navbar.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.css') }}"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/c3.css') }}">
+    <style>
+      .bars {
+                display: block;
+                width: 20px;
+                height: 3px;    
+                background-color: #333;
+                box-shadow: 0 5px 0 #333, 0 10px 0 #333;
+            }
+      .nav>li>a:hover, .nav>li>a:focus {
+                text-decoration: none;
+                background-color: #fff;
+            }
+      .nav .open>a, .nav .open>a:hover, .nav .open>a:focus {
+                background-color: #fff;
+                border-color: #428bca;
+            }
+      #chart .c3-line-forecast {
+        stroke-width: 4px;
+      }
+      #chart .c3-line-live_demand {
+        stroke-width: 5px;
+      }
+      #chart .c3-line-live_forecast {
+        stroke-width: 3px;
+      }
+      #chart .c3-line-live_demand_NBPDCL {
+        stroke-width: 5px;
+      }
+      #chart .c3-line-live_forecast_NBPDCL {
+        stroke-width: 3px;
+      }
+      #chart .c3-line-live_demand_SBPDCL {
+        stroke-width: 5px;
+      }
+      #chart .c3-line-live_forecast_SBPDCL {
+        stroke-width: 3px;
+      }                                             
+    </style>        
+    <script src="{{ url_for('static', filename='js/jquery-2.0.3.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/require.js') }}"></script>
+    <script>
+      // for nvd3.js
+      //var pos_data = [];
+      //for c3js
+      var pos_data = [];
+      var pos_data2 = {};
+      $(function() {
+        $.ajax( {url: "{{ url_for('get_biharlive_data') }}",
+                 dataType: "json",
+                 contentType: "application/json; charset=utf-8",
+                 dataFilter: function(data) { return data; },
+                 success: function(data) {
+                                          console.log(data);
+                                          console.log("success");
+                                          types = {};
+                                          axes = {};
+                                          group_arg = []
+                                          pos_data2 = JSON.parse(JSON.stringify(data));
+                                          pos_data = JSON.parse(JSON.stringify(pos_data2));
+                                          var length = Object.keys(pos_data2).length;
+                                          // for (var i = 0; i < length; i++){
+                                            // pos_data[i]["live_demand"] = null;
+                                            // console.log(i);
+                                            // for (var j = i; j < length; j++){
+                                              // console.log("j" + j);
+                                              // pos_data = JSON.parse(JSON.stringify(data));
+                                              // pos_data[j]["live_demand"] = null;
+                                            // };
+                                            // if (i > 0){
+                                            //   setTimeout(function(){
+                                            //     c3cht(types, axes, group_arg);
+                                            //   }, 10000);
+                                            // }
+                                            // else{
+                                            //   c3cht(types, axes, group_arg);
+                                            // }
+                                          // };                                          
+                                          c3cht(types, axes, group_arg);
+                          },
+                 error: function(XMLHttpRequest, textStatus, errorThrown) {
+                          alert(textStatus);
+                        }
+        });
+      });
+      function c3cht(type_arg, axes_arg, group_arg){
+        require.config({
+          baseUrl: '/static/js'
+        });
+
+        require(["d3", "c3"], function(d3, c3) {
+           var chart = c3.generate({
+                      bindto: "#chart",
+                      size: {
+                              height: 480 - 50,
+                              width: 960 + 150
+                      },
+                      data: {
+                        json : pos_data,
+                        keys : {
+                                x: 'block_no',
+                                value: ['int_gen', 'ER_gen', 'forecast', 'live_demand', 'live_forecast', 'live_demand_NBPDCL', 
+                                'live_forecast_NBPDCL', 'live_demand_SBPDCL', 'live_forecast_SBPDCL', 'revised_position_BPDCL']
+                              },
+                        type: "area-spline", 
+                        types: {
+                                forecast: 'line',
+                                live_forecast: 'line',
+                                live_demand: 'line',
+                                live_demand_NBPDCL: 'line', 
+                                live_forecast_NBPDCL: 'line',
+                                live_demand_SBPDCL: 'line',
+                                live_forecast_SBPDCL: 'line',
+                                revised_position_BPDCL: 'bar'
+                              },
+                        groups: [['int_gen', 'ER_gen']],
+                        colors: {
+                                  // live_forecast: d3.rgb('#ff0000').darker(2)
+                                },                              
+                        axes: axes_arg,
+                        labels: false,
+                        regions: {live_forecast: [{'start':1, 'end':96, 'style': 'dashed'}],
+                                  live_forecast_NBPDCL: [{'start':1, 'end':96, 'style': 'dashed'}],
+                                  live_forecast_SBPDCL: [{'start':1, 'end':96, 'style': 'dashed'}]}                        
+                      },
+                      axis: {
+                              x: {
+                            //    type: 'categorized'
+                                  label: {
+                                           text: 'Block No',
+                                           position: 'outer-center'
+                                  },
+                                  tick: {
+                                          //fit: true
+                                          //count: 96//,
+                                          //format: 
+                                  }
+                              },
+                              y: {
+                                  label: {
+                                           text: 'Quantum (MW)',
+                                           position: 'outer-middle'
+                                  }
+                              }                  
+                      },
+                      grid: {
+                              y: {
+                                show: true
+                              },
+                              x: {
+                                show: true
+                              },
+                              focus: {
+                                show: true
+                              }
+                      },
+                      legend: {
+                                //position: 'right',
+                                show: true
+                      },
+                      point: {
+                                show: false
+                      },
+                      transition: {
+                                    duration: 100
+                      },
+                      tooltip: {
+                                  format: {
+                                            title: function (d) { return 'Block_No ' + d; }
+                                  }
+                      },
+                      regions: [
+                        {axis: 'x', start: 21, end: 31},
+                        {axis: 'x', start: 73, end: 92}
+                      ],
+                      color: {
+                              //pattern: ['#1f77b4', '#aec7e8', '#ff7f0e', '#ffbb78', '#2ca02c', '#98df8a' ]
+                              // patttern: [
+                              //             '#ecb796',
+                              //             '#dc8f70',
+                              //             '#b2a470',
+                              //             '#92875a',
+                              //             '#716c49',
+                              //             '#d2ed82',
+                              //             '#bbe468',
+                              //             '#a1d05d',
+                              //             '#e7cbe6',
+                              //             '#d8aad6',
+                              //             '#a888c2',
+                              //             '#9dc2d3',
+                              //             '#649eb9',
+                              //             '#387aa3'
+                              //           ]
+                      }
+                  });
+                  // function myTimer(j) {
+                  //         console.log("In here"+j)
+                  //         chart.load({
+                  //               json : pos_data,
+                  //               keys : {
+                  //                       x: 'block_no',
+                  //                       value: ['int_gen', 'NR_gen', 'OA', 'Wind','Solar', 'forecast', 'position_gap', 'live_demand', 'live_forecast']
+                  //                     }
+                  //             });
+                  // }; 
+                  // var length = Object.keys(pos_data2).length;
+                  // // var myVar = setInterval(function(){myTimer()}, 5000);
+                  // for (var i = 1; i < length; i++){
+                  //   pos_data = JSON.parse(JSON.stringify(pos_data2));
+                  //   pos_data[i]["live_demand"] = null;
+                  //   setTimeout(myTimer(i),20000);
+                  // };
+                  // function liveforecast(){
+                  //   for (j=0; j < 96; j++){
+                  //     if(j == 0) {
+                  //       pos_data[j]["live_forecast"] = pos_data[j]["live_demand"];
+                  //     }
+                  //     else{
+                  //       pos_data[j]["live_forecast"] =
+                  //       (pos_data[j-1]["live_demand"] == 0 || pos_data[j-1]["live_demand"] == null ? 
+                  //         pos_data[j-1]["live_forecast"]*pos_data[j]["forecast"]/pos_data[j-1]["forecast"] + 
+                  //         .01* (pos_data[j]["forecast"]-pos_data[j-1]["live_forecast"]): 
+                  //         pos_data[j-1]["live_demand"]*pos_data[j]["forecast"]/pos_data[j-1]["forecast"] +
+                  //         .01* (pos_data[j]["forecast"]-pos_data[j-1]["live_forecast"]));
+                  //     }
+                  //   };
+                  // }  
+  
+                
+                  setTimeout(function () {
+                    pos_data = JSON.parse(JSON.stringify(pos_data2));
+                    console.log('Timer0') ;
+                    // for (var i = 5; i < 96; i++){
+                    //   pos_data[i]["live_demand"] = null;
+                    //   console.log(i);
+                    // };
+                    // liveforecast();
+                      console.log('Timer1') ;                       
+                      chart.load({
+                            json : pos_data,
+                            keys : {
+                                    x: 'block_no',
+                                    value: ['int_gen', 'ER_gen', 'forecast', 'live_demand', 'live_forecast', 'live_demand_NBPDCL', 
+                                    'live_forecast_NBPDCL', 'live_demand_SBPDCL', 'live_forecast_SBPDCL', 'revised_position_BPDCL']
+                                  }
+                          });
+                    },5000); 
+                  // setTimeout(function () {
+                  //   pos_data = JSON.parse(JSON.stringify(pos_data2));
+                  //   console.log('Timer0') ;
+                  //   for (var i = 10; i < 96; i++){
+                  //     pos_data[i]["live_demand"] = null;
+                  //     console.log(i);
+                  //   };
+                  //   liveforecast();                    
+                  //     console.log('Timer1') ;                       
+                  //     chart.load({
+                  //           json : pos_data,
+                  //           keys : {
+                  //                   x: 'block_no',
+                  //                   value: ['int_gen', 'NR_gen', 'OA', 'Wind','Solar', 'forecast', 'position_gap', 'live_demand', 'live_forecast']
+                  //                 }
+                  //         });
+                  //   },5000);                                          
+                  // setTimeout(function () {
+                  //   pos_data = JSON.parse(JSON.stringify(pos_data2));
+                  //   console.log('Timer0') ;
+                  //   for (var i = 15; i < 96; i++){
+                  //     pos_data[i]["live_demand"] = null;
+                  //     console.log(i);
+                  //   };
+                  //   liveforecast();                    
+                  //     console.log('Timer1') ;                       
+                  //     chart.load({
+                  //           json : pos_data,
+                  //           keys : {
+                  //                   x: 'block_no',
+                  //                   value: ['int_gen', 'NR_gen', 'OA', 'Wind','Solar', 'forecast', 'position_gap', 'live_demand', 'live_forecast']
+                  //                 }
+                  //         });
+                  //   },5000); 
+                  // setTimeout(function () {
+                  //   pos_data = JSON.parse(JSON.stringify(pos_data2));
+                  //   console.log('Timer0') ;
+                  //   for (var i = 20; i < 96; i++){
+                  //     pos_data[i]["live_demand"] = null;
+                  //     console.log(i);
+                  //   };
+                  //   liveforecast();                    
+                  //     console.log('Timer1') ;                       
+                  //     chart.load({
+                  //           json : pos_data,
+                  //           keys : {
+                  //                   x: 'block_no',
+                  //                   value: ['int_gen', 'NR_gen', 'OA', 'Wind','Solar', 'forecast', 'position_gap', 'live_demand', 'live_forecast']
+                  //                 }
+                  //         });
+                  //   },5000); 
+                  // setTimeout(function () {
+                  //   pos_data = JSON.parse(JSON.stringify(pos_data2));
+                  //   console.log('Timer0') ;
+                  //   for (var i = 25; i < 96; i++){
+                  //     pos_data[i]["live_demand"] = null;
+                  //     console.log(i);
+                  //   };
+                  //   liveforecast();                    
+                  //     console.log('Timer1') ;                       
+                  //     chart.load({
+                  //           json : pos_data,
+                  //           keys : {
+                  //                   x: 'block_no',
+                  //                   value: ['int_gen', 'NR_gen', 'OA', 'Wind','Solar', 'forecast', 'position_gap', 'live_demand', 'live_forecast']
+                  //                 }
+                  //         });
+                  //   },5000); 
+                  // setTimeout(function () {
+                  //   pos_data = JSON.parse(JSON.stringify(pos_data2));
+                  //   console.log('Timer0') ;
+                  //   for (var i = 30; i < 96; i++){
+                  //     pos_data[i]["live_demand"] = null;
+                  //     console.log(i);
+                  //   };
+                  //   liveforecast();                    
+                  //     console.log('Timer1') ;                       
+                  //     chart.load({
+                  //           json : pos_data,
+                  //           keys : {
+                  //                   x: 'block_no',
+                  //                   value: ['int_gen', 'NR_gen', 'OA', 'Wind','Solar', 'forecast', 'position_gap', 'live_demand', 'live_forecast']
+                  //                 }
+                  //         });
+                  //   },5000);                                          
+                  // setTimeout(function () {
+                  //   pos_data = JSON.parse(JSON.stringify(pos_data2));
+                  //   console.log('Timer0') ;
+                  //   for (var i = 35; i < 96; i++){
+                  //     pos_data[i]["live_demand"] = null;
+                  //     console.log(i);
+                  //   };
+                  //   liveforecast();                    
+                  //     console.log('Timer1') ;                       
+                  //     chart.load({
+                  //           json : pos_data,
+                  //           keys : {
+                  //                   x: 'block_no',
+                  //                   value: ['int_gen', 'NR_gen', 'OA', 'Wind','Solar', 'forecast', 'position_gap', 'live_demand', 'live_forecast']
+                  //                 }
+                  //         });
+                  //   },5000); 
+                  // setTimeout(function () {
+                  //   pos_data = JSON.parse(JSON.stringify(pos_data2));
+                  //   console.log('Timer0') ;
+                  //   for (var i = 40; i < 96; i++){
+                  //     pos_data[i]["live_demand"] = null;
+                  //     console.log(i);
+                  //   };
+                  //   liveforecast();                    
+                  //     console.log('Timer1') ;                       
+                  //     chart.load({
+                  //           json : pos_data,
+                  //           keys : {
+                  //                   x: 'block_no',
+                  //                   value: ['int_gen', 'NR_gen', 'OA', 'Wind','Solar', 'forecast', 'position_gap', 'live_demand', 'live_forecast']
+                  //                 }
+                  //         });
+                  //   },5000); 
+                  // setTimeout(function () {
+                  //   pos_data = JSON.parse(JSON.stringify(pos_data2));
+                  //   console.log('Timer0') ;
+                  //   for (var i = 45; i < 96; i++){
+                  //     pos_data[i]["live_demand"] = null;
+                  //     console.log(i);
+                  //   };
+                  //   liveforecast();                    
+                  //     console.log('Timer1') ;                       
+                  //     chart.load({
+                  //           json : pos_data,
+                  //           keys : {
+                  //                   x: 'block_no',
+                  //                   value: ['int_gen', 'NR_gen', 'OA', 'Wind','Solar', 'forecast', 'position_gap', 'live_demand', 'live_forecast']
+                  //                 }
+                  //         });
+                  //   },5000); 
+                  // setTimeout(function () {
+                  //   pos_data = JSON.parse(JSON.stringify(pos_data2));
+                  //   console.log('Timer0') ;
+                  //   for (var i = 50; i < 96; i++){
+                  //     pos_data[i]["live_demand"] = null;
+                  //     console.log(i);
+                  //   };
+                  //   liveforecast();                    
+                  //     console.log('Timer1') ;                       
+                  //     chart.load({
+                  //           json : pos_data,
+                  //           keys : {
+                  //                   x: 'block_no',
+                  //                   value: ['int_gen', 'NR_gen', 'OA', 'Wind','Solar', 'forecast', 'position_gap', 'live_demand', 'live_forecast']
+                  //                 }
+                  //         });
+                  //   },5000);                                          
+                  // setTimeout(function () {
+                  //   pos_data = JSON.parse(JSON.stringify(pos_data2));
+                  //   console.log('Timer0') ;
+                  //   for (var i = 55; i < 96; i++){
+                  //     pos_data[i]["live_demand"] = null;
+                  //     console.log(i);
+                  //   };
+                  //   liveforecast();                    
+                  //     console.log('Timer1') ;                       
+                  //     chart.load({
+                  //           json : pos_data,
+                  //           keys : {
+                  //                   x: 'block_no',
+                  //                   value: ['int_gen', 'NR_gen', 'OA', 'Wind','Solar', 'forecast', 'position_gap', 'live_demand', 'live_forecast']
+                  //                 }
+                  //         });
+                  //   },5000); 
+                  // setTimeout(function () {
+                  //   pos_data = JSON.parse(JSON.stringify(pos_data2));
+                  //   console.log('Timer0') ;
+                  //   for (var i = 60; i < 96; i++){
+                  //     pos_data[i]["live_demand"] = null;
+                  //     console.log(i);
+                  //   };
+                  //   liveforecast();                    
+                  //     console.log('Timer1') ;                       
+                  //     chart.load({
+                  //           json : pos_data,
+                  //           keys : {
+                  //                   x: 'block_no',
+                  //                   value: ['int_gen', 'NR_gen', 'OA', 'Wind','Solar', 'forecast', 'position_gap', 'live_demand', 'live_forecast']
+                  //                 }
+                  //         });
+                  //   },5000); 
+                  // setTimeout(function () {
+                  //   pos_data = JSON.parse(JSON.stringify(pos_data2));
+                  //   console.log('Timer0') ;
+                  //   for (var i = 65; i < 96; i++){
+                  //     pos_data[i]["live_demand"] = null;
+                  //     console.log(i);
+                  //   };
+                  //   liveforecast();                    
+                  //     console.log('Timer1') ;                       
+                  //     chart.load({
+                  //           json : pos_data,
+                  //           keys : {
+                  //                   x: 'block_no',
+                  //                   value: ['int_gen', 'NR_gen', 'OA', 'Wind','Solar', 'forecast', 'position_gap', 'live_demand', 'live_forecast']
+                  //                 }
+                  //         });
+                  //   },5000); 
+                  // setTimeout(function () {
+                  //   pos_data = JSON.parse(JSON.stringify(pos_data2));
+                  //   console.log('Timer0') ;
+                  //   for (var i = 70; i < 96; i++){
+                  //     pos_data[i]["live_demand"] = null;
+                  //     console.log(i);
+                  //   };
+                  //   liveforecast();                    
+                  //     console.log('Timer1') ;                       
+                  //     chart.load({
+                  //           json : pos_data,
+                  //           keys : {
+                  //                   x: 'block_no',
+                  //                   value: ['int_gen', 'NR_gen', 'OA', 'Wind','Solar', 'forecast', 'position_gap', 'live_demand', 'live_forecast']
+                  //                 }
+                  //         });
+                  //   },5000);                                          
+                  // setTimeout(function () {
+                  //   pos_data = JSON.parse(JSON.stringify(pos_data2));
+                  //   console.log('Timer0') ;
+                  //   for (var i = 75; i < 96; i++){
+                  //     pos_data[i]["live_demand"] = null;
+                  //     console.log(i);
+                  //   };
+                  //   liveforecast();                    
+                  //     console.log('Timer1') ;                       
+                  //     chart.load({
+                  //           json : pos_data,
+                  //           keys : {
+                  //                   x: 'block_no',
+                  //                   value: ['int_gen', 'NR_gen', 'OA', 'Wind','Solar', 'forecast', 'position_gap', 'live_demand', 'live_forecast']
+                  //                 }
+                  //         });
+                  //   },5000); 
+                  // setTimeout(function () {
+                  //   pos_data = JSON.parse(JSON.stringify(pos_data2));
+                  //   console.log('Timer0') ;
+                  //   for (var i = 80; i < 96; i++){
+                  //     pos_data[i]["live_demand"] = null;
+                  //     console.log(i);
+                  //   };
+                  //   liveforecast();                    
+                  //     console.log('Timer1') ;                       
+                  //     chart.load({
+                  //           json : pos_data,
+                  //           keys : {
+                  //                   x: 'block_no',
+                  //                   value: ['int_gen', 'NR_gen', 'OA', 'Wind','Solar', 'forecast', 'position_gap', 'live_demand', 'live_forecast']
+                  //                 }
+                  //         });
+                  //   },5000);                  
+                  // setTimeout(function () {
+                  //   pos_data = JSON.parse(JSON.stringify(pos_data2));
+                  //   console.log('Timer0') ;
+                  //   for (var i = 85; i < 96; i++){
+                  //     pos_data[i]["live_demand"] = null;
+                  //     console.log(i);
+                  //   };             
+                  //   liveforecast();       
+                  //     console.log('Timer1') ;                       
+                  //     chart.load({
+                  //           json : pos_data,
+                  //           keys : {
+                  //                   x: 'block_no',
+                  //                   value: ['int_gen', 'NR_gen', 'OA', 'Wind','Solar', 'forecast', 'position_gap', 'live_demand', 'live_forecast']
+                  //                 }
+                  //         });
+                  //   },5000); 
+                  // setTimeout(function () {
+                  //   pos_data = JSON.parse(JSON.stringify(pos_data2));
+                  //   console.log('Timer0') ;
+                  //   for (var i = 90; i < 96; i++){
+                  //     pos_data[i]["live_demand"] = null;
+                  //     console.log(i);
+                  //   };             
+                  //   liveforecast();       
+                  //     console.log('Timer1') ;                       
+                  //     chart.load({
+                  //           json : pos_data,
+                  //           keys : {
+                  //                   x: 'block_no',
+                  //                   value: ['int_gen', 'NR_gen', 'OA', 'Wind','Solar', 'forecast', 'position_gap', 'live_demand', 'live_forecast']
+                  //                 }
+                  //         });
+                  //   },5000); 
+                  // setTimeout(function () {
+                  //   pos_data = JSON.parse(JSON.stringify(pos_data2));
+                  //   console.log('Timer0') ;
+                  //   // for (var i = 95; i < 96; i++){
+                  //   //   pos_data[i]["live_demand"] = null;
+                  //   //   console.log(i);
+                  //   // };  
+                  //   liveforecast();                  
+                  //     console.log('Timer1') ;                       
+                  //     chart.load({
+                  //           json : pos_data,
+                  //           keys : {
+                  //                   x: 'block_no',
+                  //                   value: ['int_gen', 'NR_gen', 'OA', 'Wind','Solar', 'forecast', 'position_gap', 'live_demand', 'live_forecast']
+                  //                 }
+                  //         });
+                  //   },5000); 
+               
+          }); 
+
+        };                 
+    </script>
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <header class="top" role="header">
+      <div class="container">
+        <nav class="navbar" role="navigation">
+          <div class="container-fluid">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              <a href="#" class="navbar-brand">
+                <img style="margin-top:-20px;" src="/static/images/logo.png" alt="Z-matics">
+              </a>
+            </div>
+
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+              {% include "menu.html" %}
+<!--               <ul class="nav navbar-nav">
+                <li class="dropdown">
+                  <a href="#" class="dropdown-toggle" data-toggle="dropdown">Menu <b class="caret"></b></a>
+                  <ul class="dropdown-menu">
+                    <li><a href="{{ url_for('biharlive') }}">Bihar Live</a></li>                     
+                    <li><a href="{{ url_for('index') }}">NR Gen</a></li>
+                    <li><a href="{{ url_for('nrmarket') }}">NR Market</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('tenisgs') }}">ISGS Tentative Data</a></li>
+                    <li><a href="{{ url_for('tenint') }}">Internal Tentative Data</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('rajmislive') }}">Live MIS Data</a></li>
+                    <li><a href="{{ url_for('rajlive') }}">Live Data Breakup</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('forecast') }}">Forecast</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('possuply') }}">Position Map</a></li>
+                    <li><a href="{{ url_for('possuplychart') }}">Position Map Chart</a></li>                    
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('chart') }}">Comparison Report</a></li>
+                    <li><a href="{{ url_for('chart3') }}">ISGS Tentative Stack</a></li>
+                    <li><a href="{{ url_for('stacked') }}">Total Generation Stack</a></li>
+                    <li><a href="{{ url_for('treemap') }}">Treemap Report</a></li>
+                    <li><a href="{{ url_for('heat') }}">Heatmap Report</a></li>                    
+                  </ul>
+                </li>
+              </ul>
+ -->  <!--             <form class="navbar-form navbar-left" role="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" placeholder="Search">
+                </div>
+                <button type="submit" class="btn btn-default">Submit</button>
+              </form> -->
+              <ul class="nav navbar-nav navbar-right">
+                <li><a href="http://zeerone.com/">About</a></li>
+                <li><a href="http://zeerone.com/contact_us.html">Contact</a></li>
+                <li>
+                  <a href="login.html">Logout </a>
+                </li>
+<!--                 <li><a href="#">Link</a></li>
+                <li class="dropdown">
+                  <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
+                  <ul class="dropdown-menu">
+                    <li><a href="#">Action</a></li>
+                    <li><a href="#">Another action</a></li>
+                    <li><a href="#">Something else here</a></li>
+                    <li class="divider"></li>
+                    <li><a href="#">Separated link</a></li>
+                  </ul>
+                </li> -->
+              </ul>
+            </div><!-- /.navbar-collapse -->
+          </div><!-- /.container-fluid -->
+        </nav>
+      </div>
+    </header>
+<!--     <div class="container">
+      <div class="col-md-12 content">
+        <div id="chart1"></div>
+        <div id="chart"></div>
+      </div>
+    </div>  -->   
+    <div class="container">
+      <div class="container-fluid">
+        <div role="tabpanel">
+
+
+          <ul class="nav nav-tabs nav-justified" role="tablist">
+            <li role="presentation" class="active"><a href="#rtf" aria-controls="rtf" role="tab" data-toggle="tab">Real Time Forecast</a></li>
+            <li role="presentation"><a href="#profile" aria-controls="profile" role="tab" data-toggle="tab">Profile</a></li>
+          </ul>
+
+
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane active" id="rtf">
+              <div class="container">
+                <div class="col-md-12 content">
+                  <div id="chart"></div>
+                </div>
+              </div>            
+            </div>
+            <div role="tabpanel" class="tab-pane" id="profile">Test</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </body>
+  <footer class="footer">
+    <div class="container">
+      <p class="text-muted">
+          Zeerone © 2012
+          http://www.zeerone.com</p>
+      </div>
+    </div>      
+  </footer>
+</html>

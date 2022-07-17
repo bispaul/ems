@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Editable Spline</title>
+    <meta name="description" content="This is a d3js ediatble spline test">
+    <meta name="author" content="biswadip">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.dataTables.css') }}"> -->
+    <link rel="stylesheet" href="../static/css/bootstrap.min.css">    
+    <link rel="stylesheet" href="../static/css/dataTables.bootstrap.css">
+    <link rel="stylesheet" href="../static/css/jquery.splitter.css"> 
+    <style>
+        div {
+            padding: 20px 0 0 10px;
+        }
+
+        #mySplitter .vsplitter {
+          width: 4px;
+        }
+
+
+
+/*        circle, .line {
+          fill: none;
+          stroke: steelblue;
+          stroke-width: 1.5px;
+        }*/
+
+        circle {
+          /*fill: #fff;*/
+          cursor: move;
+        }
+
+        circle.selected {
+          /*stroke: #ff7f0e;*/
+          fill-opacity: .001;
+          stroke: #666;
+        }
+
+        circle:hover {
+          /*fill: #666;*/
+          stroke: #666; 
+        }
+
+        circle.selected:hover {
+          fill: #666;
+          stroke: #666; 
+        }  
+
+        .hover-line { 
+          stroke: #ccc;  
+          fill: none;
+          stroke-width: 1px;
+        }
+
+        .yAxis-line line,
+        .xAxis-line line {
+          fill: none;
+          stroke: #000;
+          shape-rendering: crispEdges;
+          stroke-width: 1.5;
+        }
+
+        .x line,
+        .y line {
+            fill: none;
+            shape-rendering: crispEdges;
+            stroke: #ccc;
+            stroke-dasharray: 4px;
+            stroke-width: 1px;
+        }
+
+        .xticks line,
+        .yticks line { 
+          fill: none;
+          stroke: #000;
+          shape-rendering: crispEdges;
+          stroke-width: 1.5;
+        } 
+
+/*        #mouse-tracker {
+          stroke: #E6E7E8;
+          stroke-width: 1px;
+        }*/
+
+        .hover-line { 
+          stroke: #E6E7E8;
+          fill: none;
+          stroke-width: 1px;
+          left: 10px;
+          shape-rendering: crispEdges;
+          opacity: 1e-6;
+        }
+
+        .hover-text {
+          stroke: none;
+          font-size: 30px;
+          font-weight: bold;
+          fill: #000000;
+        }
+
+        .tooltip {
+          font-weight: normal;
+        }        
+    </style>    
+    <script src="../static/js/jquery-2.1.3.min.js"></script>
+    <script src="../static/js/bootstrap.min.js"></script>    
+    <script src="../static/js/d3.min.js"></script>
+    <script src="../static/js/knockout-3.3.0.js"></script>
+    <script src="../static/js/knockout.mapping.js"></script>
+    <script src="../static/js/DatatablesForEach.js"></script>
+    <script src="../static/js/jquery.bootstrap.wizard.min.js"></script>     
+    <script src="../static/js/jquery.dataTables.min.js"></script>
+    <script src="../static/js/dataTables.tableTools.min.js"></script>
+    <script src="../static/js/dataTables.bootstrap.min.js"></script>
+    <script src="../static/js//dataTables.buttons.min.js"></script>
+    <script src="../static/js/buttons.bootstrap.min.js"></script>
+    <script src="../static/js/jquery.splitter-0.16.0.js"></script>   
+    <!-- // <script src="../static/js/W.min.js"></script>     -->
+    <!-- // <script src="../static/js/require.js"></script> -->
+</head>   
+<body>
+  <div id="mySplitter">
+    <div id="tablesplit">
+      <table id="forecasttableedit" class="display nowrap table table-striped table-bordered table-condensed table-hover" cellspacing="0" width="100%" data-bind="visible: items().length > 0">
+        <thead>
+          <tr>
+              <th>Date</th>
+              <th>Discom</th>
+              <th>Model</th>
+              <th>Block_No</th>
+              <th>Forecast</th>
+              <th>Bias</th>
+              <th>Total</th>
+          </tr>
+        </thead>
+        <tbody data-bind="DataTablesForEach: items()">                    
+          <tr>
+            <td><span data-bind="text: Date"></span></td>
+            <td><span data-bind="text: Discom_Name"></span></td>
+            <td><span data-bind="text: Model_Name"></span></td>
+            <td><span data-bind="text: Block_No"></span></td>
+            <td><span data-bind="text: Demand_Forecast"></span></td>
+            <td><input size="7" data-bind="value: Demand_Bias, valueUpdate: 'afterkeydown'"></td>
+            <td><input size="10" data-bind="value: Total, valueUpdate: 'keyup'"></td>
+          </tr>
+        </tbody>                     
+      </table>                            
+    </div>
+    <div id="graphsplit">
+       <div id="Chart"></div>
+    </div>
+  </div>
+    <!-- <div id="Chart"></div> -->
+    <script>
+function splineChart() {
+    console.log('splineChart called');
+    // All options that should be accessible to caller
+
+    var margin = {top: 40, right: 60, bottom: 60, left: 70}//,
+        // width = 960 - margin.left - margin.right,
+        // height = 500 - margin.top - margin.bottom;
+    // var barPadding = 1;
+    // var fillColor = 'coral';
+    var datax = [];
+
+    // var updateWidth;
+    // var updateHeight;
+    // var updateFillColor;
+    var updateData;
+
+    function chart(selection){
+      console.log('Inside selection', selection);
+        selection.each(function () {
+            console.log('Inside selection each');
+          var color = d3.scale.category20();
+
+
+
+          datax.forEach(function(d, i) { 
+              // console.log(d, i, color(i));
+              d.key = d.Date() + '_' + d.Discom_Name() + '_' + d.Model_Name();
+              d.visible = true;
+              // d.editable = (d.series != 5 ? true : false)
+              d.editable = true;
+              // d.Demand_Bias = d.Demand_Bias() || 0;
+              // d.Total = d.Demand_Forecast() + d.Demand_Bias;
+              d.color = color(d.key);
+          });
+
+          lineData = d3.nest()
+          .key(function(d) { return d.Date() + '_' + d.Discom_Name() + '_' + d.Model_Name(); })
+          // .key(function(d) { return d.Block_No; })
+          .entries(datax);
+
+          lineData.forEach(function(d, i) { 
+              // console.log(d, i, color(i));
+              d.visible = true;
+              // d.editable = (d.series != 5 ? true : false)
+              d.editable = true;
+              d.color = color(d.key);
+          });     
+
+            var xExtent = d3.extent(datax, function(c) { return c.Block_No(); }),
+            yExtent = d3.extent(datax, function(c) { return c.Total(); }),
+            yMin = yExtent[0], yMax = yExtent[1], xMin = xExtent[0], xMax = xExtent[1];            
+            
+            // var findMaxY = function (datax) { 
+            //   d3.max(datax, function(c) {
+            //     if (c.visible) return c.Total();
+            //   });
+            // }    
+
+            // var findMinY = function (datax) {
+            //   d3.min(datax, function(c) {
+            //     if (c.visible) return c.Total();
+            //   });
+            // }
+
+
+          console.log('lineData', lineData);
+          // console.log('Datax', datax);
+          // console.log('xMin', xMin, xMax, yMax, yMin);
+            var dom = d3.select(this);
+            var width = parseInt(dom.style("width")),
+                width = (width || 960) - margin.left - margin.right;
+            var height = parseInt(dom.style("height")),
+                // height = (height || 500) - margin.top - margin.bottom;
+                height = (500) - margin.top - margin.bottom;
+
+            console.log(width, height, dom.style("height"));
+
+            var x = d3.scale.linear()
+              .domain([xMin - 1, xMax])
+              .nice()
+              .range([0, width])
+              .nice()
+              ;
+
+            var y = d3.scale.linear()
+              .domain([yMax + 1, yMin - 1])
+              .nice()
+              .range([0, height])
+              .nice()
+              ;          
+            // var barSpacing = height / data.length;
+            // var barHeight = barSpacing - barPadding;
+            // var maxValue = d3.max(data);
+            // var widthScale = width / maxValue;
+
+          var downscalex = x.copy(),
+              downx = Math.NaN,
+              downscaley = y.copy(),
+              downy = Math.NaN,
+              tx = function(d) { return "translate(" + x(d) + ",0)"; },
+              ty = function(d) { return "translate(0," + y(d) + ")"; },
+              stroke = function(d) { return d ? "#ccc" : "#666"; }; 
+
+            // console.log(width, height, dom.style("height"));
+
+            var svg02 = dom.append("svg")
+              .attr("width", width + margin.left + margin.right)
+              .attr("height", height + margin.top + margin.bottom)
+              .append("g")
+              .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+              ;
+
+              //Bug in ZOOM functionality fix it update resets the zoom and cancels the scaling
+            var plot = svg02.append("rect")
+              .attr("width", width)
+              .attr("height", height)
+              .attr("fill", "none")
+              .attr("id", "mouse-tracker")
+              .attr("pointer-events", "all")
+              .call(d3.behavior.zoom().x(x).y(y).on("zoom", redraw))
+              .on("mousedown", function() {
+                d3.select('body').style("cursor", "move");
+              });
+
+          // add Chart Title
+          // if (this.options.title) {
+            svg02.append("text")
+                .attr("class", "axis")
+                .text('Chart Title')
+                .attr("x", width/2)
+                .attr("dy","-0.8em")
+                .style("text-anchor","middle");
+          // }
+
+          // Add the x-axis label
+          // if (this.options.xlabel) {
+            svg02.append("text")
+                .attr("class", "axis")
+                .text('X Axis')
+                .attr("x", width/2)
+                .attr("y", height)
+                .attr("dy","2.4em")
+                .style("text-anchor","middle");
+          // }
+
+          // add y-axis label
+          // if (this.options.ylabel) {
+            svg02.append("g").append("text")
+                .attr("class", "axis")
+                .text('Y Axis')
+                .style("text-anchor","middle")
+                .attr("transform","translate(" + -40 + " " + height/2+") rotate(-90)");
+          // }
+
+          //Creating X and Y axis lines as the normal d3.svg.axis is not used to render the lines
+          var xAxisLineGroup = svg02.append("svg:g")
+                    .attr("class", "xAxis-line");
+
+              xAxisLineGroup
+              .append("svg:line")
+              .style("opacity", 1)
+              // .attr('stroke', '#666')
+              // .attr('stroke-width', 1.5)
+              .attr("x1", 0).attr("x2", width)
+              .attr("y1", height).attr("y2", height);
+
+          var yAxisLineGroup = svg02.append("svg:g")
+                    .attr("class", "yAxis-line");
+
+              yAxisLineGroup
+              .append("svg:line")
+              .style("opacity", 1)
+              // .attr('stroke', '#666')
+              // .attr('stroke-width', 1.5)
+              .attr("x1", 0).attr("x2", 0)
+              .attr("y1", 0).attr("y2", height);                  
+                                          
+
+          var dragged = null,
+              selected = null;
+
+          var drag = d3.behavior.drag()
+                      .origin(function(d) { console.log('origin', d);
+                        return d; })
+                      .on("dragstart", dragstarted)
+                      .on("drag", dragg)
+                      .on("dragend", dragended);               
+
+          var viewbox = svg02.append("svg")
+                          .attr("top", 0)
+                          .attr("left", 0)
+                          .attr("width", width)
+                          .attr("height", height)
+                          .attr("viewBox", "0 0 "+width+" "+height)
+                          .attr("class", "line")
+                          ;
+
+          var line = d3.svg.line()
+                      .x(function(d,i) { //console.log('line', d); 
+                        return  x(d.Block_No()); })
+                      .y(function(d,i) { return  y(d.Total()); })
+                      .interpolate("monotone");
+
+          var lines = viewbox.selectAll(".line")
+                      .data(lineData)
+                      .enter()
+                      .append("path")
+                      .attr("class","line")
+                      .attr("stroke-width", 1)
+                      .attr("fill", "none")
+                      .style("pointer-events", "none")
+                      .style("stroke", function(d,i){
+                        // console.log('dcolor', d, i);
+                        return d.color;
+                      })
+                      .attr("id", function(d) {
+                        return "line-" + d.key; // Give line id of line-(insert issue name, with any spaces replaced with no spaces)
+                      })                  
+                      .attr("d", function(d,i) {
+                          // console.log('d', d, i);   
+                          // return line(d.data); 
+                          return d.visible ? line(d.values) : null;  
+                      })
+                      // .on('mouseover', function(d, i) {
+                      //   console.log('mouseover',d, i);
+                      //   mouseover(d);
+                      // })
+                      // .on('mouseover', mouseover)                  
+                      .call(update)
+                      ; 
+
+          function update() {
+            viewbox.selectAll('.line')
+              .attr("d", function(d,i) {
+                      // console.log('d', d, i);   
+                      // return line(d.data); 
+                      return d.visible ? line(d.values) : null;   
+                  });            
+            console.log('update');
+            // viewbox.selectAll("path")
+            //       .attr("d", function(d,i) {
+            //               // console.log('d', d, i);   
+            //               // return line(d.data); 
+            //               return d.visible ? line(d.values) : null;   
+            //           });
+
+            // circledata = function(data){
+            //   a = [];
+            //   data.forEach(function(d, index){
+            //     d.values.forEach(function(point, i){
+            //       a.push({'index': d.keys, 'point': point, 'visible': d.visible, 'editable': d.editable, 'color': d.color });
+            //     });
+            //   });
+            //   return a;
+            // };
+
+            // cdata = circledata(datax);
+            // console.log(' cdata', cdata[0] );
+            // console.log('Datax', datax);
+            var circle = viewbox.selectAll("circle")
+                .data(datax);
+
+            circle.enter()
+                .append("circle")
+                .attr("class", function(d) { return d === selected ? "selected" : null; })
+                .attr("cx",function(d,i){
+                  // console.log('circle cx d i', d.Block_No);
+                  return x(d.Block_No());
+                })
+                .attr("cy",function(d,i){
+                  // console.log('circle cy d i', d.Total);
+                  return y(d.Total());
+                })      
+                .attr("r", 1e-6)
+                .style("cursor", "ns-resize")
+                .attr("fill", function(d,i){
+                  // console.log('dcolor', d.visible && d.editable ? d.color: null);
+                  return d.visible && d.editable ? d.color: "none";
+                })         
+                .on("drag", function(d) { selected = dragged = d;
+                  update(); 
+                })
+                .call(drag)
+              .transition()
+                .duration(750)
+                .ease("elastic")
+                .attr("r", 3);
+
+
+            circle
+                .attr("class", function(d) { return d === selected ? "selected" : null; })
+                .classed("dragging", function(d) { return d === selected ? "selected": null; })            
+                .attr("cx", function(d) { return x(d.Block_No()); })
+                .attr("cy", function(d) { return y(d.Total()); })
+                .attr("fill", function(d,i){
+                  // console.log('dcolor2', d, d.visible && d.editable ? color(d.index): null);
+                  return d.visible && d.editable ? d.color: "none";
+                });
+
+            circle.exit().remove();
+            // console.log('Exit cdata', cdata );
+            // if (d3.event) {
+            //   // d3.event.preventDefault();
+            //   // d3.event.stopPropagation();
+            //   d3.event.preventDefault();          
+            //   d3.event.stopPropagation();
+
+            // }
+          };
+
+          function dragstarted(d) {
+            console.log('Drag started');
+            d3.event.sourceEvent.stopPropagation();
+            d3.event.sourceEvent.preventDefault();
+            d3.select(this).classed("dragging", true);
+            // console.log('Drag started2', d3.select(this));
+          }
+     
+
+          function dragg(d) {
+            console.log('Draged cxxx');
+            selected = dragged = d3.mouse(svg02.node());
+            d.Total(y.invert(Math.min(height,dragged[1]))); 
+            console.log('Total', d.Total());
+            // console.log('Invert Y', y.invert(Math.min(height,dragged[1])));
+            //Stop dragging in x axis it is commented.
+            // d.point.x = x.invert(Math.min(width,dragged[0]));        
+            // console.log("node",d3.mouse(svg02.node()));
+            // update();   
+            redraw();              
+          }
+
+          function dragended(d) {
+            console.log('Drag Ended');
+            d3.select(this).classed("dragging", false);
+            dragged = null;
+          }  
+
+          // console.log('Datax', datax);
+          // var circle = viewbox.selectAll("circle")
+          //       .data(datax)
+          //       .enter() 
+          //       .append("circle")
+          //       .attr("cx",function(d,i){
+          //         // console.log('circle cx d i', d);
+          //         return x(d.Block_No);
+          //       })
+          //       .attr("cy",function(d,i){
+          //         // console.log('circle cy d i', d, y(d.data[i].y));
+          //         return y(d.Total);
+          //       })
+          //       .style("cursor", "ns-resize")
+          //       .attr("fill", function(d,i){
+          //         // console.log('dcolor', d, d.visible && d.editable ? color(d.index): null);
+          //         // return d.visible && d.editable ? d.color: "none";
+          //         return d.color;
+          //       })                
+          //       .attr("r", 3);                               
+          // console.log('circle', circle);
+            // var svg = dom.append('svg')
+            //     .attr('class', 'bar-chart')
+            //     .attr('height', height)
+            //     .attr('width', width)
+            //     .style('fill', fillColor);
+
+            // var bars = svg.selectAll('rect.display-bar')
+            //     .data(data)
+            //     .enter()
+            //     .append('rect')
+            //     .attr('class', 'display-bar')
+            //     .attr('y', function (d, i) { return i * barSpacing;  })
+            //     .attr('height', barHeight)
+            //     .attr('x', 0)
+            //     .attr('width', function (d) { return d * widthScale; });
+
+
+            // update functions
+            // updateWidth = function() {
+            //     widthScale = width / maxValue;
+            //     bars.transition().duration(1000).attr('width', function(d) { return d * widthScale; });
+            //     svg.transition().duration(1000).attr('width', width);
+            // };
+
+            // updateHeight = function() {
+            //     barSpacing = height / data.length;
+            //     barHeight = barSpacing - barPadding;
+            //     bars.transition().duration(1000).attr('y', function(d, i) { return i * barSpacing; })
+            //         .attr('height', barHeight);
+            //     svg.transition().duration(1000).attr('height', height);
+
+            // };
+
+            // updateFillColor = function() {
+            //     svg.transition().duration(1000).style('fill', fillColor);
+            // };
+            
+            // d3.select("#Chart").on('resize', resize);
+            function resize(){
+              console.log('inside resize', width, height);
+              // dom = d3.select(this);
+              width = parseInt(dom.style("width"));
+              width = (width) - margin.left - margin.right;
+              // height = parseInt(dom.style("height"));
+              // height = (height || 500) - margin.top - margin.bottom;
+              height = (500) - margin.top - margin.bottom;
+
+              console.log(width, height, dom.style("height"), dom.style("width"),d3.select('#Chart').style('width'));
+              console.log($('#Chart').width(), $('#Chart').width());              
+
+              x = d3.scale.linear()
+                    .domain([xMin - 1, xMax])
+                    .nice()
+                    .range([0, width])
+                    .nice()
+                    ;
+
+              y = d3.scale.linear()
+                    .domain([yMax + 1, yMin - 1])
+                    .nice()
+                    .range([0, height])
+                    .nice()
+                    ;          
+
+              downscalex = x.copy();
+              downx = Math.NaN;
+              downscaley = y.copy();
+              downy = Math.NaN;
+              tx = function(d) { return "translate(" + x(d) + ",0)"; },
+              ty = function(d) { return "translate(0," + y(d) + ")"; },
+              stroke = function(d) { return d ? "#ccc" : "#666"; }; 
+
+            // console.log(width, height, dom.style("height"));
+              d3.select(svg02.node().parentNode)
+                .style("width", width + margin.left + margin.right)
+                .style("height", height + margin.top + margin.bottom);
+
+              plot.transition().duration(100)
+                .attr('height', height)
+                .attr('width', width);
+
+              viewbox.transition().duration(100)
+                .attr("width", width)
+                .attr("height", height)
+                .attr("viewBox", "0 0 "+width+" "+height);
+
+              xAxisLineGroup.selectAll("line")
+                .attr("x1", 0)
+                .attr("x2", width)
+                .attr("y1", height)
+                .attr("y2", height);
+
+              yAxisLineGroup.selectAll("line")
+                .attr("x1", 0)
+                .attr("x2", 0)
+                .attr("y1", 0)
+                .attr("y2", height); 
+
+              update();
+              redraw();                  
+
+            }
+            // d3.select(window).on('resize', resize);
+            // $('#Chart').bind('resize', 
+            // function test(){
+            //   console.log('rezise');
+            // });
+
+            // resize();
+
+            // update functions
+            updateWidth = function() {
+                resize();
+                // update();
+            };
+
+            updateHeight = function() {
+                resize();
+                // update();
+            };     
+
+            updateData = function() {
+                console.log('Inside updateData');
+                update();
+
+            // circle = viewbox.selectAll("circle")
+            //     .data(datax);
+
+            // circle.transition()
+            //       .duration(1000)
+            //       .attr("class", function(d) { return d === selected ? "selected" : null; })                  
+            //       .attr("cx",function(d,i){
+            //         // console.log('circle cx d i', d);
+            //         return x(d.Block_No());
+            //       })
+            //       .attr("cy",function(d,i){
+            //         // console.log('circle cy d i', d, y(d.data[i].y));
+            //         return y(d.Total());
+            //       })   ;                
+
+            // circle.enter()
+            //     .append("circle")
+            //     .attr("class", function(d) { return d === selected ? "selected" : null; })
+            //     .attr("cx",function(d,i){
+            //       // console.log('circle cx d i', d);
+            //       return x(d.Block_No());
+            //     })
+            //     .attr("cy",function(d,i){
+            //       // console.log('circle cy d i', d, y(d.data[i].y));
+            //       return y(d.Total());
+            //     })      
+            //     .attr("r", 1e-6)
+            //     .style("cursor", "ns-resize")
+            //     .attr("fill", function(d,i){
+            //       // console.log('dcolor', d, d.visible && d.editable ? color(d.index): null);
+            //       return d.visible && d.editable ? d.color: "none";
+            //     })         
+            //     // .on("drag", function(d) { selected = dragged = d; update(); })
+            //     // .call(drag)
+            //   .transition()
+            //     .duration(750)
+            //     .ease("elastic")
+            //     .attr("r", 3);
+
+
+            // circle
+            //     .attr("class", function(d) { return d === selected ? "selected" : null; })
+            //     .classed("dragging", function(d) { return d === selected ? "selected": null; })            
+            //     .attr("cx", function(d) { return x(d.Block_No()) })
+            //     .attr("cy", function(d) { return y(d.Total()) })
+            //     .attr("fill", function(d,i){
+            //       // console.log('dcolor', d, d.visible && d.editable ? color(d.index): null);
+            //       return d.visible && d.editable ? d.color: "none";
+            //     });
+
+            // circle.exit()
+            //       .transition()
+            //       .duration(650).remove();
+
+            }  
+          redraw();
+          function redraw() {
+            // x.domain([Math.max(x.domain()[0], 0), Math.min(x.domain()[1], 12)]);
+
+            // y.domain([Math.max(y.domain()[0], -1), Math.min(self.y.domain()[1], 16)]);
+            // console.log('redrAW');
+
+            if (d3.event && d3.event.transform && isNaN(downx) && isNaN(downy)) {
+                d3.event.transform(x, y);
+            };
+
+            var fx = x.tickFormat(10),
+                fy = y.tickFormat(10);
+
+            // Regenerate x-ticks…
+            var gx = xAxisLineGroup.selectAll("g.x")
+                .data(x.ticks(height/50), String)
+                .attr("transform", tx);
+            gx.select("text")
+                .text(fx);
+
+            var gxe = gx.enter().insert("svg:g", "a")
+                .attr("class", "x")
+                .attr("transform", tx);
+
+            gxe.append("svg:line")
+                // .attr("stroke", stroke)
+                // .attr("stroke-dasharray", "4px")
+                .attr("y1", 0)
+                .attr("y2", height);            
+
+            gxe.append("svg:g")
+                .attr("class", "xticks")
+                .append("svg:line")
+                // .attr("stroke", '#666')
+                .attr("y1", height)
+                .attr("y2", height + 5);                        
+
+            gxe.append("svg:text")
+                .attr("y", height)
+                .attr("dy", "1.5em")
+                .attr("text-anchor", "middle")
+                .text(fx)
+                .style("cursor", "ew-resize")
+                .on("mouseover", function(d) { d3.select(this).style("font-weight", "bold");})
+                .on("mouseout",  function(d) { d3.select(this).style("font-weight", "normal");})
+                .on("mousedown", function(d) {
+                    var p = d3.mouse(svg02[0][0]);
+                    downx = x.invert(p[0]);
+                    downscalex = null;
+                    downscalex = x.copy();
+                    // d3.behavior.zoom().off("zoom", redraw);
+                });
+                
+            gx.exit().remove();
+            // Regenerate y-ticks…
+            var gy = yAxisLineGroup.selectAll("g.y")
+                .data(y.ticks(width/50), String)
+                .attr("transform", ty);
+
+            gy.select("text")
+                .text(fy);
+
+            var gye = gy.enter().insert("svg:g", "a")
+                .attr("class", "y")
+                .attr("transform", ty)
+                .attr("background-fill", "#FFEEB6");
+
+            gye.append("svg:line")
+                // .attr("stroke", stroke)
+                // .attr("stroke-dasharray", "4px")
+                .attr("x1", 0)
+                .attr("x2", width);
+
+            gye.append("svg:g")
+                .attr("class", "yticks")
+                .append("svg:line")
+                // .attr("stroke", '#666')
+                .attr("x1", 0)
+                .attr("x2", -5);            
+
+            gye.append("svg:text")
+                .attr("x", -6)
+                .attr("dy", ".35em")
+                .attr("text-anchor", "end")
+                .text(fy)
+                .style("cursor", "ns-resize")
+                .on("mouseover", function(d) { d3.select(this).style("font-weight", "bold");})
+                .on("mouseout",  function(d) { d3.select(this).style("font-weight", "normal");})
+                .on("mousedown", function(d) {
+                     // console.log('mousedowny');
+                     var p = d3.mouse(svg02.node());
+                     downy = y.invert(p[1]);
+                     downscaley = null;
+                     downscaley = y.copy();
+                     // d3.behavior.zoom().off("zoom", redraw);
+                });
+                
+            gy.exit().remove();
+            plot.call(d3.behavior.zoom().x(x).y(y).on("zoom", redraw));
+            update();
+          }
+          // attach the mousemove and mouseup to the body
+          // in case one wonders off the axis line
+          d3.select('body')
+            .on("mousemove", function(d) {
+              var p = d3.mouse(svg02.node());
+              // console.log('mousemove', p, downscalex.invert(p[0]), downscaley.invert(p[1]), downscalex.domain()[0], downscalex.domain()[1], downscaley.domain()[1], downscaley.domain()[0]);
+              if (!isNaN(downx)) {
+                d3.select('body').style("cursor", "ew-resize");
+                var rupx = downscalex.invert(p[0]),
+                  xaxis1 = downscalex.domain()[0],
+                  xaxis2 = downscalex.domain()[1],
+                  xextent = xaxis2 - xaxis1;
+                  // console.log('mousemove downx', xaxis1, xaxis2, xextent);
+                if (rupx != 0) {
+                    var changex, new_domain;
+                    // changex = downx / rupx;
+                    changex = (downx - xaxis1) / (rupx - xaxis1)
+                    new_domain = [xaxis1, xaxis1 + (xextent * changex)];
+                    // console.log('mousemove downx domain', changex, new_domain, (downx - xaxis1) / (rupx - xaxis1));
+                    x.domain(new_domain);
+                    redraw();
+                }
+                d3.event.preventDefault();
+                d3.event.stopPropagation();
+              };
+              if (!isNaN(downy)) {
+                d3.select('body').style("cursor", "ns-resize");
+                var rupy = downscaley.invert(p[1]),
+                  yaxis1 = downscaley.domain()[1],
+                  yaxis2 = downscaley.domain()[0],
+                  yextent = yaxis2 - yaxis1;
+                  // console.log('1',yaxis1,'2', yaxis2);
+                if (rupy != 0) {
+                    var changey, new_domain;
+                    // changey = downy / rupy;
+                    changey = (downy - yaxis1) / (rupy - yaxis1)
+                    new_domain = [yaxis1 + (yextent * changey), yaxis1];
+                    // console.log('mousemove downy domain', changey, new_domain, (downy - yaxis1) / (rupy - yaxis1));
+                    y.domain(new_domain);
+                    redraw();
+                }
+                d3.event.preventDefault();
+                d3.event.stopPropagation();
+              }
+            })
+            .on("mouseup", function(d) {
+                if (!isNaN(downx)) {
+                    redraw();
+                    downx = Math.NaN;
+                    d3.event.preventDefault();
+                    d3.event.stopPropagation();
+                    // graph.call(d3.behavior.zoom().on("zoom", redraw));
+                };
+                if (!isNaN(downy)) {
+                    redraw();
+                    downy = Math.NaN;
+                    d3.event.preventDefault();
+                    d3.event.stopPropagation();
+                    // graph.call(d3.behavior.zoom().on("zoom", redraw));
+                };
+                // d3.event.preventDefault();
+                // d3.event.stopPropagation();
+            });
+
+        });
+    }
+
+    chart.width = function(value) {
+        if (!arguments.length) return width;
+        width = value;
+        if (typeof updateWidth === 'function') updateWidth();
+        return chart;
+    };
+
+    chart.height = function(value) {
+        if (!arguments.length) return height;
+        height = value;
+        if (typeof updateHeight === 'function') updateHeight();
+        return chart;
+    };
+
+    // chart.fillColor = function(value) {
+    //     if (!arguments.length) return fillColor;
+    //     fillColor = value;
+    //     if (typeof updateFillColor === 'function') updateFillColor();
+    //     return chart;
+    // };
+
+    chart.data = function(value) {
+        console.log('Data',arguments.length, typeof updateData);
+        if (!arguments.length) return datax;
+        datax = value;
+        if (typeof updateData === 'function') updateData();
+        return chart;
+    };
+
+    // chart.resize = function(value) {
+    //     if (!arguments.length) return resize;
+    //     resize = value;
+    //     if (typeof updateHeight === 'function') updateResize();
+    //     return chart;
+    // };    
+
+    return chart;
+}
+
+      // require(['../static/js/jquery-2.1.3.min', '../static/js/d3.min', '../static/js/chart'], function(jquery, d3, chart) {
+      //   var dataSet = [];
+      //   var highTemperatures = dataSet[0] = [77, 71, 82, 87, 84, 78, 80, 84, 86, 72, 71, 68, 75, 73, 80, 85, 86, 80];
+      //   var lowTemperatures = dataSet[1] = highTemperatures.map(function(d) { return d - Math.random() * 30});
+      //   var milesRun = dataSet[2] = [2, 5, 4, 3, 1, 2, 1];
+      //   var fillColors = ['coral', 'steelblue', 'teal'];
+
+      //   var updatableChart = barChart().width(800).data(highTemperatures);
+
+      //   d3.select('#updatableChart')
+      //       .call(updatableChart);
+
+      //   window.setTimeout(function() {
+               
+      //   }, 1000);
+
+      //   var i = 1;
+      //   window.setInterval(function() {
+      //       updatableChart.data(dataSet[i]);
+      //       updatableChart.fillColor(fillColors[i]);
+      //       i = (i+1) % 3 ;
+      //       var chart = $("#updatableChart"),
+      //       aspect = chart.width() / chart.height(),
+      //       container = chart.parent();
+      //       $(window).on("resize", function() {
+      //         console.log('resize');
+      //           var targetWidth = container.width();
+      //           // chart.attr("width", targetWidth);
+      //           // chart.attr("height", Math.round(targetWidth / aspect));
+
+      //           updatableChart.width(container.width()).height(Math.round(targetWidth / aspect));
+      //       }).trigger("resize");            
+      //   }, 2500);
+      // });
+var lineDatax = [{"Demand_Bias": null, "Block_No": 1, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2606.0769, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 2, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2606.7664, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 3, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2614.4327, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 4, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2612.9038, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 5, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2628.0136, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 6, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2631.3531, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 7, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2636.3134, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 8, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2634.3489, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 9, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2636.1814, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 10, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2635.0406, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 11, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2629.1855, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 12, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2623.8927, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 13, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2617.7840, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 14, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2616.0004, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 15, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2617.3810, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 16, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2625.9985, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 17, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2649.1655, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 18, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2665.5788, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 19, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2691.5313, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 20, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2724.0089, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 21, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2754.8170, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 22, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2768.9172, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 23, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2752.5392, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 24, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2708.3908, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 25, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2643.6854, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 26, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2568.1383, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 27, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2506.9154, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 28, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2460.4028, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 29, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2413.3776, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 30, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2374.5631, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 31, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2345.9226, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 32, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2307.4257, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 33, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2270.9666, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 34, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2255.0003, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 35, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2240.5650, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 36, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2219.9378, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 37, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2177.2662, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 38, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2168.7530, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 39, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2161.4502, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 40, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2152.9839, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 41, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2122.4275, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 42, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2112.5061, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 43, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2094.3853, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 44, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2070.8716, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 45, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2058.7767, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 46, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2034.6347, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 47, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2006.2156, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 48, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1976.1691, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 49, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1942.1897, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 50, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1911.6739, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 51, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1891.7259, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 52, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1878.7581, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 53, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1857.5202, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 54, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1854.1063, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 55, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1847.0862, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 56, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1840.7239, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 57, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1828.4219, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 58, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1835.9232, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 59, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1843.2383, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 60, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1857.9830, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 61, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1902.0810, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 62, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1927.3354, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 63, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1965.2590, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 64, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2013.3747, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 65, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2054.5989, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 66, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2134.6218, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 67, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2240.6535, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 68, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2367.0763, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 69, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2518.1110, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 70, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2654.1945, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 71, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2764.2280, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 72, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2837.9126, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 73, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2914.3884, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 74, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2942.0286, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 75, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2951.6324, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 76, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2960.2852, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 77, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2953.3631, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 78, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2959.1926, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 79, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2962.6884, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 80, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2966.5822, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 81, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2971.3993, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 82, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2968.9403, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 83, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2950.6054, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 84, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2925.5538, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 85, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2909.7814, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 86, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2878.9659, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 87, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2838.5709, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 88, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2804.2606, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 89, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2756.5658, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 90, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2726.9010, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 91, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2693.2494, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 92, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2666.9028, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 93, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2662.0026, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 94, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2646.2554, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 95, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2630.6013, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 96, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2615.0398, "Model_Name": "MLP"}, {"Demand_Bias": null, "Block_No": 1, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2598.7826, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 2, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2613.3290, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 3, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2630.2164, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 4, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2623.9302, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 5, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2618.0870, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 6, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2617.0221, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 7, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2616.2119, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 8, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2612.8231, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 9, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2611.5748, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 10, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2610.9358, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 11, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2607.3471, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 12, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2603.9428, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 13, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2611.2555, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 14, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2611.8128, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 15, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2610.9664, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 16, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2615.2875, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 17, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2617.6533, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 18, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2632.3673, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 19, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2655.7478, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 20, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2688.5009, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 21, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2720.3765, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 22, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2734.4953, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 23, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2723.2196, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 24, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2680.5838, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 25, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2635.5926, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 26, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2565.0277, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 27, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2504.2024, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 28, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2452.1411, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 29, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2389.1688, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 30, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2346.0407, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 31, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2312.6377, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 32, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2278.2219, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 33, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2202.6500, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 34, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2183.3663, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 35, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2168.5527, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 36, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2148.8488, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 37, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2101.9136, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 38, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2092.7403, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 39, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2097.7001, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 40, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2101.0352, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 41, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1970.3818, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 42, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1976.6762, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 43, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1980.9574, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 44, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1965.3714, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 45, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1939.7211, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 46, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1921.0832, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 47, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1885.4826, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 48, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1848.4736, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 49, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1822.6793, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 50, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1788.2336, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 51, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1777.5078, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 52, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1784.6295, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 53, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1732.2489, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 54, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1747.7700, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 55, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1754.0432, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 56, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1746.2425, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 57, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1701.2619, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 58, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1693.8389, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 59, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1682.6880, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 60, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1683.1145, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 61, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1794.3299, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 62, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1807.1364, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 63, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1830.6312, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 64, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1870.7633, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 65, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1902.5209, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 66, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 1977.2007, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 67, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2066.7546, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 68, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2180.1359, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 69, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2413.9855, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 70, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2536.2039, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 71, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2632.8269, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 72, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2699.1156, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 73, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2801.5774, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 74, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2825.4367, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 75, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2833.6966, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 76, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2845.3131, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 77, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2876.3529, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 78, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2886.7165, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 79, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2892.3236, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 80, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2899.9671, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 81, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2924.5908, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 82, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2925.9896, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 83, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2910.1669, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 84, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2889.0087, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 85, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2868.7871, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 86, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2838.7695, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 87, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2797.7182, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 88, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2762.1256, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 89, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2735.8515, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 90, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2705.6500, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 91, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2667.4590, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 92, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2635.5256, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 93, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2600.8229, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 94, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2574.0584, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 95, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2547.5693, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 96, "Discom_Name": "BPDCL", "Date": "08-11-2015", "Demand_Forecast": 2521.3528, "Model_Name": "NNET"}, {"Demand_Bias": null, "Block_No": 1, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1190.0000, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 2, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1178.4180, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 3, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1171.3340, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 4, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1170.7920, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 5, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1169.9430, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 6, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1167.7970, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 7, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1167.9750, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 8, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1166.6220, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 9, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1165.4170, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 10, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1164.2480, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 11, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1163.0410, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 12, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1162.1800, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 13, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1160.8290, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 14, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1160.3110, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 15, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1159.9980, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 16, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1159.9960, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 17, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1160.3620, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 18, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1161.3250, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 19, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1164.3410, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 20, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1165.2760, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 21, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1170.6480, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 22, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1170.7330, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 23, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1166.9880, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 24, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1159.0770, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 25, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1122.2470, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 26, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1087.1770, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 27, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1069.0810, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 28, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1051.9560, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 29, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1028.6980, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 30, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1017.2960, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 31, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 989.6620, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 32, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 984.1210, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 33, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 968.6760, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 34, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 958.1180, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 35, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 951.9620, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 36, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 945.1120, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 37, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 938.9390, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 38, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 932.6620, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 39, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 926.4620, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 40, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 921.4110, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 41, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 918.5150, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 42, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 916.1860, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 43, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 913.7170, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 44, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 910.3170, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 45, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 906.8730, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 46, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 903.8210, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 47, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 893.5290, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 48, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 886.8260, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 49, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 884.9520, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 50, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 878.0370, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 51, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 874.9950, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 52, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 871.6490, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 53, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 869.7940, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 54, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 868.8970, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 55, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 867.6910, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 56, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 866.4810, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 57, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 865.0370, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 58, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 868.7180, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 59, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 872.4910, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 60, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 874.9150, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 61, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 881.9270, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 62, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 893.5550, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 63, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 910.6170, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 64, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 939.3650, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 65, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 967.9580, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 66, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1000.6900, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 67, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1037.2540, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 68, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1094.7600, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 69, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1188.0780, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 70, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1268.3870, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 71, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1294.8910, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 72, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1334.5100, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 73, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1339.1570, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 74, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1343.0720, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 75, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1345.8400, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 76, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1347.4410, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 77, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1346.4520, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 78, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1338.7180, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 79, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1330.3620, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 80, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1328.7050, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 81, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1325.1350, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 82, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1316.1630, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 83, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1312.1380, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 84, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1302.9730, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 85, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1293.1520, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 86, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1280.0860, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 87, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1264.4590, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 88, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1254.6830, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 89, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1236.6030, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 90, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1219.0930, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 91, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1206.5370, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 92, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1201.5080, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 93, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1197.5970, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 94, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1195.8750, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 95, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1188.5200, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 96, "Discom_Name": "NBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1178.2550, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 1, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1550.0000, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 2, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1558.6050, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 3, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1546.8330, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 4, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1534.4750, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 5, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1536.3160, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 6, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1542.4310, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 7, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1553.1690, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 8, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1549.5600, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 9, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1535.8800, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 10, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1530.1020, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 11, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1536.2700, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 12, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1524.2300, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 13, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1531.5360, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 14, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1529.0770, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 15, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1506.5640, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 16, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1498.6270, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 17, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1473.4510, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 18, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1482.4120, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 19, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1476.4190, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 20, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1472.5070, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 21, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1526.6790, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 22, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1571.2520, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 23, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1611.7160, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 24, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1550.1580, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 25, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1494.6960, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 26, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1496.0250, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 27, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1474.4250, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 28, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1432.9990, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 29, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1439.3860, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 30, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1420.0240, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 31, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1411.9320, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 32, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1400.6020, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 33, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1409.1000, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 34, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1363.0920, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 35, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1366.2700, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 36, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1326.7560, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 37, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1298.8510, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 38, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1287.2250, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 39, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1287.1170, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 40, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1314.3030, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 41, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1320.1060, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 42, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1311.8000, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 43, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1277.3150, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 44, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1270.5270, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 45, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1249.9830, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 46, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1209.8970, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 47, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1173.6870, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 48, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1160.3880, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 49, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1149.2610, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 50, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1153.1760, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 51, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1146.2160, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 52, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1150.5630, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 53, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1143.4170, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 54, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1139.3130, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 55, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1141.5190, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 56, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1141.7300, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 57, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1144.1730, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 58, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1141.4920, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 59, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1139.7200, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 60, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1139.2960, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 61, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1137.2840, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 62, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1145.8490, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 63, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1159.3780, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 64, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1223.7800, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 65, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1314.1590, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 66, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1429.7650, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 67, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1599.7900, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 68, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1753.2470, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 69, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1773.8490, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 70, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1782.3990, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 71, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1816.9090, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 72, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1808.4090, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 73, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1800.6190, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 74, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1790.4240, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 75, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1784.5230, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 76, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1776.6620, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 77, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1774.7610, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 78, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1767.0810, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 79, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1743.6460, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 80, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1741.4500, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 81, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1741.9500, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 82, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1724.5580, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 83, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1725.6530, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 84, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1731.8890, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 85, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1690.9330, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 86, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1673.7290, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 87, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1668.6790, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 88, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1664.5680, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 89, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1651.8980, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 90, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1646.3000, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 91, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1638.9160, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 92, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1629.7170, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 93, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1609.5760, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 94, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1598.2700, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 95, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1593.5980, "Model_Name": "HYBRID"}, {"Demand_Bias": null, "Block_No": 96, "Discom_Name": "SBPDCL", "Date": "08-11-2015", "Demand_Forecast": 1601.0810, "Model_Name": "HYBRID"}];
+        // var updatableChart = splineChart().data(lineDatax);
+
+        // d3.select('#Chart')
+        //     .call(updatableChart);
+   
+        // updatableChart.data(lineDatax);
+        // console.log('lineDatax', lineDatax);
+
+      //KO Forecast Model Start
+      //Forecast Row Model
+      function Forecast(item){
+        var self = this;
+        // automatic setting of attributes
+        for(var k in item)
+          self[k] = ko.observable(item[k]);
+
+        // // sets default description of name to '' but description is observable
+        self.Demand_Bias = ko.observable(item.Demand_Bias || 0);   
+
+        self.Key =  ko.computed(function () {
+          return [self.Date(), self.Discom_Name(), self.Model_Name()];
+        });    
+
+        self.Total = ko.computed({
+          read: function () {
+            console.log('KO', self.Date(), self.Discom_Name(), self.Model_Name(), self.Demand_Bias(), self.Demand_Forecast());
+            if (self.Demand_Bias() != undefined && !isNaN(parseFloat(self.Demand_Bias()))) {
+              return parseFloat(self.Demand_Forecast()) + parseFloat(self.Demand_Bias());
+            }
+            else {
+              return parseFloat(self.Demand_Forecast());
+            }                
+          },
+          write: function (value) {
+            if (value != undefined && !isNaN(parseFloat(value))) {
+              self.Demand_Bias(parseFloat(value) - parseFloat(self.Demand_Forecast()));
+            }
+            else {
+              self.Demand_Bias(0);
+            }
+          }
+        });
+        // .extend({ throttle: 100 });
+
+        self.forecastdatarow = ko.computed(function () {
+              return { Date: self.Date(), Block_No: self.Block_No(),
+                  Discom_Name: self.Discom_Name(), Model_Name: self.Model_Name(), Demand_Forecast: self.Demand_Forecast(), Demand_Bias: self.Demand_Bias(), Total: self.Total(), Key: self.Key()};
+          });        
+      }
+
+     var ForecastViewModel = {
+        items: ko.observableArray([]) 
+      }
+
+
+     
+     if ( $.fn.dataTable.isDataTable( '#forecasttableedit' ) ) {
+          table = $('#forecasttableedit').DataTable();
+          table.destroy();
+          console.log("forecasttableedit destroy"); 
+      }  
+
+      var table = $('#forecasttableedit').DataTable({                
+        "scrollY": 404,
+        "scrollCollapse": true,
+        "responsive": true,
+        "paging": true,
+        // "deferRender": true,
+        "lengthMenu": [[96, 80, 64, 48, 32, 16], [96, 80, 64, 48, 32, 16]],
+        "iDisplayLength": 96,
+        "order": [[0,'asc'],[1,'asc'],[2,'asc'],[3,'asc']]
+      });   
+      // $.fn.dataTable.tables( {visible: true, api: true} ).columns.adjust(); 
+      $(document).ready(function(){
+        var updatableChart;
+
+        $('#mySplitter').width(1340).height(600).split({
+          orientation:'vertical', 
+          limit: 100,
+          position: '50%',
+          // onDragStart: getSplitterLocation,
+          // onDragEnd: getSplitterLocation,
+          onDrag: getSplitterLocation
+        });
+
+        function getSplitterLocation(e){
+          // console.log(e);
+          $.fn.dataTable.tables( {visible: true, api: true} ).columns.adjust();
+          console.log($('#Chart').width());
+          updatableChart.width($('#Chart').width());
+        };
+
+        // $('#tablesplit').resize(function(){
+        //             console.log('tablesplit resized');
+        // });
+        // $('#mySplitter').resize( function(){
+        //             console.log('mySplitter resized');
+        // });                     
+        // $('#graphsplit').bind('resize', function(){
+        //             console.log('graphsplit resized');
+        // });
+
+        ko.applyBindings(ForecastViewModel); 
+      
+          // var updatableChart = splineChart().data(ForecastViewModel.items());
+          //   d3.select('#Chart')
+          //       .call(updatableChart);           
+          var subs = [];
+          // console.log('ForecastViewModel',ForecastViewModel.items());
+          // Register subscription to observableArray.
+          ForecastViewModel.items.subscribe(function (newValue) {
+            // Call the updateStories function, which uses D3 to draw objects representing stories.
+            console.log('ForecastViewModel.items.newValue', newValue);
+            // datax = newValue;
+            // update();
+            // editgraph2(ForecastViewModel.items());
+            // editline(newValue);
+            updatableChart = splineChart().data(newValue);
+
+            d3.select('#Chart')
+              .call(updatableChart);            
+            // Dispose of any existing subscriptions.
+            ko.utils.arrayForEach(subs, function (sub) {
+              sub.dispose();
+            });
+
+            // Register subscriptions for each story.
+            ko.utils.arrayForEach(newValue, function (item) {
+              console.log('item', item);
+                // Register to call the updateStories function whenever a stories 'story' computed observable changes.
+              subs.push(item.forecastdatarow.subscribe(function () {
+                  console.log('newValue2', newValue);
+                  // editgraph2(newValue);
+                  // editgraph2(ForecastViewModel.items());
+                  // var updatableChart = splineChart().data(newValue);
+                  // d3.select('#Chart')
+                  //   .update(updatableChart); 
+                  updatableChart.data(newValue);
+                  // datax = newValue;
+                  // update();
+                  // editline(newValue);
+              }));
+            });        
+          });   
+        ForecastViewModel.items(ko.utils.arrayMap(lineDatax, function(item) { 
+          // console.log('ForecastViewModel.items', item);
+          return new Forecast(item);
+         }));  
+          // var updatableChart = splineChart().data(ForecastViewModel.items());
+          //   d3.select('#Chart')
+          //       .call(updatableChart);                          
+      });
+
+    </script>
+</body> 
+</html>    

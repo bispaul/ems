@@ -1,0 +1,908 @@
+<!DOCTYPE html> 
+<html> 
+<head> 
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" /> 
+    <title>Zeerone Map Services</title>
+    <style type="text/css"> 
+        html { height: 100% }
+        body { height: 100%; margin: 0px; padding: 0px }
+        /* bootstrap fix */
+        #map_canvas img {
+            max-width: none;
+        }
+    
+        .infowindow
+        {
+            font-size:24px;
+            width: 250px;
+            color: #ff0000;
+            font-family:Arial, Helvetica, sans-serif;
+        }
+        /* Flexible iFrame */
+
+        .Flexible-container {
+            position: relative;
+            padding-bottom: 56.25%;
+            padding-top: 30px;
+            height: 0;
+            overflow: hidden;
+        }
+
+        .Flexible-container iframe,   
+        .Flexible-container object,  
+        .Flexible-container embed {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }        
+    </style> 
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <script type="text/javascript" src="http://maps.google.co.in/maps/api/js?sensor=false&libraries=places,geometry,drawing"></script> 
+    <script src="{{ url_for('static', filename='js/jquery-2.1.3.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+ 
+    <script type="text/javascript">    
+        //declare namespace
+        var zms = {};
+ 
+        //declare map
+        var map;
+
+        var data = {
+            type: "Feature",
+            geometry: {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [-73.974228, 40.75597],
+                  [-73.983841, 40.742931],
+                  [-74.008133, 40.75307500000001],
+                  [-73.998131, 40.765915],
+                  [-73.974228, 40.75597]
+                ]
+              ]
+            }
+        };
+          var ind = {
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "1",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              76.43269529566169,
+              22.682638096611512
+            ],
+            [
+              76.43288841471076,
+              22.682568803495478
+            ],
+            [
+              76.43323173746467,
+              22.68223223643359
+            ],
+            [
+              76.43347850069404,
+              22.68201445730617
+            ],
+            [
+              76.43387546762824,
+              22.681776879681706
+            ],
+            [
+              76.43406858667731,
+              22.681648191629872
+            ],
+            [
+              76.43432607874274,
+              22.681776879681706
+            ],
+            [
+              76.43442263826728,
+              22.681895668545405
+            ],
+            [
+              76.43468013033271,
+              22.681826375054094
+            ],
+            [
+              76.43498053774238,
+              22.68172738429146
+            ],
+            [
+              76.43524875864387,
+              22.681707586130347
+            ],
+            [
+              76.43546333536506,
+              22.681707586130347
+            ],
+            [
+              76.43557062372565,
+              22.681707586130347
+            ],
+            [
+              76.43567791208625,
+              22.681559099830928
+            ],
+            [
+              76.43577447161078,
+              22.681341319634193
+            ],
+            [
+              76.43581738695502,
+              22.681212631173516
+            ],
+            [
+              76.43587103113532,
+              22.681103740843202
+            ],
+            [
+              76.43596759065986,
+              22.68098495129332
+            ],
+            [
+              76.43607487902045,
+              22.68090575820288
+            ],
+            [
+              76.43623581156135,
+              22.6808661616405
+            ],
+            [
+              76.4363001845777,
+              22.680004933579504
+            ],
+            [
+              76.43611779436469,
+              22.680014832783353
+            ],
+            [
+              76.43588175997138,
+              22.680133623173795
+            ],
+            [
+              76.43563499674201,
+              22.68015342156219
+            ],
+            [
+              76.43549552187324,
+              22.680143522368354
+            ],
+            [
+              76.435452606529,
+              22.679668360223364
+            ],
+            [
+              76.43563499674201,
+              22.679668360223364
+            ],
+            [
+              76.43565645441413,
+              22.6794604762671
+            ],
+            [
+              76.43575301393867,
+              22.67935158454518
+            ],
+            [
+              76.43568864092231,
+              22.679064505954653
+            ],
+            [
+              76.4355598948896,
+              22.678906117509474
+            ],
+            [
+              76.43547406420112,
+              22.678737829585994
+            ],
+            [
+              76.4344977401197,
+              22.678114172539097
+            ],
+            [
+              76.43431534990668,
+              22.67810427319803
+            ],
+            [
+              76.43395056948066,
+              22.677827091357752
+            ],
+            [
+              76.43302788957953,
+              22.67776769517623
+            ],
+            [
+              76.43161168321967,
+              22.678034977790485
+            ],
+            [
+              76.43153658136725,
+              22.678797225347274
+            ],
+            [
+              76.43153658136725,
+              22.67935158454518
+            ],
+            [
+              76.43167605623603,
+              22.679866344650573
+            ],
+            [
+              76.43183698877692,
+              22.680371203645908
+            ],
+            [
+              76.432030107826,
+              22.680975052159507
+            ],
+            [
+              76.43216958269477,
+              22.681559099830928
+            ],
+            [
+              76.43216958269477,
+              22.68171748521126
+            ],
+            [
+              76.43235197290778,
+              22.68211344786152
+            ],
+            [
+              76.43269529566169,
+              22.682638096611512
+            ]
+          ]
+        ]
+      },
+      "properties": { "name": "Plot1"}
+    },
+    {
+      "type": "Feature",
+      "id": "2",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              76.42901530489326,
+              22.683410217535027
+            ],
+            [
+              76.42903676256537,
+              22.68201445730617
+            ],
+            [
+              76.4290582202375,
+              22.681826375054094
+            ],
+            [
+              76.42938008531928,
+              22.681252227635813
+            ],
+            [
+              76.43000235781074,
+              22.68022271589907
+            ],
+            [
+              76.43029203638434,
+              22.680004933579504
+            ],
+            [
+              76.43042078241706,
+              22.679925739922993
+            ],
+            [
+              76.43042078241706,
+              22.679826747788
+            ],
+            [
+              76.4308606646955,
+              22.679688158678943
+            ],
+            [
+              76.43107524141669,
+              22.679767352472705
+            ],
+            [
+              76.43133273348212,
+              22.67980694935243
+            ],
+            [
+              76.43149366602302,
+              22.679905941501698
+            ],
+            [
+              76.43167605623603,
+              22.680183119139432
+            ],
+            [
+              76.4317618869245,
+              22.680678077813056
+            ],
+            [
+              76.43193354830146,
+              22.681291824086685
+            ],
+            [
+              76.43204083666205,
+              22.681707586130347
+            ],
+            [
+              76.43233051523566,
+              22.68228173164158
+            ],
+            [
+              76.43251290544868,
+              22.682539106435026
+            ],
+            [
+              76.43281331285834,
+              22.68302415761689
+            ],
+            [
+              76.43301716074347,
+              22.683291429983704
+            ],
+            [
+              76.43353214487433,
+              22.68353890393278
+            ],
+            [
+              76.43426857888699,
+              22.684390210905743
+            ],
+            [
+              76.43478356301785,
+              22.684865356684707
+            ],
+            [
+              76.43508397042751,
+              22.685815643301513
+            ],
+            [
+              76.43508397042751,
+              22.686409569091357
+            ],
+            [
+              76.43255196511745,
+              22.68973550595218
+            ],
+            [
+              76.43160782754421,
+              22.69337810608828
+            ],
+            [
+              76.42838917672634,
+              22.691952752349636
+            ],
+            [
+              76.42671547830105,
+              22.692150719033332
+            ],
+            [
+              76.42662964761257,
+              22.69009185154277
+            ],
+            [
+              76.42868958413601,
+              22.690012663713823
+            ],
+            [
+              76.42937622964382,
+              22.685142524295166
+            ],
+            [
+              76.42911873757839,
+              22.68427142420365
+            ],
+            [
+              76.42901530489326,
+              22.683410217535027
+            ]
+          ]
+        ]
+      },
+      "properties": { "name": "Plot2"}
+    }
+  ]
+};       
+        //trace function for debugging
+        function trace(message)
+        {
+            if (typeof console != 'undefined')
+            {
+            console.log(message);
+            }
+        }
+
+        //declare infowindow in global space
+        var infowindow = new google.maps.InfoWindow();
+         
+        zms.createMarker = function(latitude,longitude,title,contentString)
+        {
+            var markerLatLng = new google.maps.LatLng(latitude,longitude);
+            var marker = new google.maps.Marker({
+                position: markerLatLng,
+                map: map,
+                title: title
+            });
+            google.maps.event.addListener(marker, 'click', function() {
+                //add contentString using this syntax
+                infowindow.setContent(contentString);
+                infowindow.open(map,marker);
+            });
+        }     
+ 
+        //Function that gets run when the document loads
+        zms.initialize = function()
+        {
+            var latlng = new google.maps.LatLng(20,78);
+            var myOptions = {
+                zoom: 4,
+                center: latlng,
+                mapTypeId: google.maps.MapTypeId.HYBRID
+            };
+            map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
+
+            // drawingManager.setMap(map);
+            zms.drawingManager(map);  
+            // zms.autolocate();            
+            zms.loadGeoJsonString(ind);
+            // google.maps.event.addListener(drawingManager, 'drawingmode_changed', zms.clearSelection);
+            // google.maps.event.addListener(map, 'click', zms.clearSelection);                                         
+        } 
+
+        //set the geocoder
+        var geocoder = new google.maps.Geocoder();
+        //geocode function
+        zms.geocode = function() 
+        {
+            var address = $('#address').val();
+            geocoder.geocode( { 'address': address}, function(results, status) {
+                if (status == google.maps.GeocoderStatus.OK) 
+                {
+                    map.setCenter(results[0].geometry.location);
+                    // var marker = new google.maps.Marker({
+                    //     map: map, 
+                    //     position: results[0].geometry.location
+                    // });
+                } 
+                else 
+                {
+                    alert("Geocode was not successful for the following reason: " + status);
+                }
+            });
+        } 
+
+        //allow pressing "enter"
+        $('#address').keypress(function(e) {
+            console.log("Keypress" + e);
+            if(e.which == 13) {
+                zms.geocode();
+            }
+        });
+
+        zms.autolocate = function() 
+        {
+            var latlng;
+            //Automaticallly findout out the location
+            if (navigator.geolocation) 
+            {
+                navigator.geolocation.getCurrentPosition(success, failure);
+                console.log("In Geolocation");
+            } 
+            else 
+            {
+                console.log('Geo Location is not supported');
+            }
+
+            function success(position)
+            {
+                latlng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude); 
+                trace('Success' + position.coords.latitude + position.coords.longitude);
+                map.setCenter(latlng);
+                map.setZoom(10);
+                zms.drawCircle(latlng, 1000);
+            }
+
+            function failure()
+            {
+                trace('Failure');
+            }          
+        }
+
+        var mylocCircle;
+        //draw circle example 
+        zms.drawCircle = function(centerlatlangobj, radius)
+        {
+            var bufferOptions = {
+                strokeColor: "#FF0000",
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: "#FF0000",
+                fillOpacity: 0.35,
+                map: map,
+                center: centerlatlangobj,
+                radius: radius
+              };                        
+            mylocCircle = new google.maps.Circle(bufferOptions);               
+        }
+     
+
+        //toggle single layers on/off
+        zms.toggleLayer = function(layer,id) 
+        {
+            if ($('#'+id).is(':checked')) 
+            {
+                layer.setMap(map);
+            }
+            else
+            {
+                layer.setMap(null);
+            }
+        }
+
+        //get my plots marking
+        zms.getLandPlots = function()
+        {
+            $.getJSON('http://api.metro.net/agencies/lametro/routes/',
+                function(data)
+                {
+                    trace(data);
+                }
+            );
+        } 
+
+        //select plots
+        zms.selectLandPlots = function()
+        {
+
+        }
+
+        // var drawingManager = new google.maps.drawing.DrawingManager({
+        //     // drawingMode: None,
+        //     drawingControl: true,
+        //     drawingControlOptions: {
+        //       position: google.maps.ControlPosition.TOP_CENTER,
+        //       drawingModes: [
+        //         // google.maps.drawing.OverlayType.MARKER,
+        //         google.maps.drawing.OverlayType.CIRCLE,
+        //         google.maps.drawing.OverlayType.POLYGON//,
+        //         // google.maps.drawing.OverlayType.POLYLINE,
+        //         // google.maps.drawing.OverlayType.RECTANGLE
+        //       ]
+        //     },
+        //     // markerOptions: {
+        //     //   icon: 'images/beachflag.png'
+        //     // },
+        //     circleOptions: {
+        //       // fillColor: '#ffff00',
+        //       // fillOpacity: 1,
+        //       // strokeWeight: 5,
+        //       // clickable: false,
+        //       editable: true,
+        //       zIndex: 1
+        //     },
+        //     polygonOptions: {
+        //         editable: true,
+        //         zIndex: 1
+        //     }
+        // });
+        var drawingManager;
+        zms.drawingManager = function()
+        {
+            // var polyOptions = {
+            //     strokeWeight: 0,
+            //     fillOpacity: 0.45,
+            //     editable: true
+            // };
+            // drawingManager = new google.maps.drawing.DrawingManager({
+            //     drawingMode: google.maps.drawing.OverlayType.POLYGON,
+            //     drawingControlOptions: {
+            //         position: google.maps.ControlPosition.TOP_CENTER,
+            //         drawingModes: [
+            //           google.maps.drawing.OverlayType.POLYGON
+            //         ]
+            //     },
+            //     markerOptions: {
+            //         draggable: true
+            //     },
+            //     polylineOptions: {
+            //         editable: true
+            //     },
+            //     polygonOptions: polyOptions,
+            //     map: mapobj
+            // }); 
+
+            map.data.setControls(['Polygon']);
+            map.data.setStyle({
+                editable: false,
+                draggable: false
+            });
+            map.data.setControlPosition(google.maps.ControlPosition.TOP_CENTER);
+            map.data.addListener('click', function(event) {
+                trace(event.feature.getGeometry());
+            });           
+            // mapobj.data.setStyle(function(feature) {
+            //     var color = 'red';
+            //     if (feature.getProperty('isColorful')) {
+            //         color = feature.getProperty('color');
+            //     }
+            //     return /** @type {google.maps.Data.StyleOptions} */({
+            //           fillColor: color,
+            //           strokeColor: color,
+            //           strokeWeight: 2
+            //         });
+            // }); 
+            // mapobj.data.addListener('click', function(event) {
+            //     event.feature.setProperty('isColorful', true);
+            //   });             
+
+            // drawingManager = mapobj.data;
+            // bindDataLayerListeners(mapobj.data);
+            // google.maps.event.addListener(drawingManager, 'overlaycomplete', function (e) {
+            //           drawingManager.setDrawingMode(null);
+
+            //         // Add an event listener that selects the newly-drawn shape when the user
+            //         // mouses down on it.
+            //   if (e.type != google.maps.drawing.OverlayType.MARKER) {
+            //         // Switch back to non-drawing mode after drawing a shape.
+            //         var newShape = e.overlay;
+            //         newShape.type = e.type;
+            //         google.maps.event.addListener(newShape, 'click', function () {
+            //             zms.setSelection(newShape);
+            //         });
+            //         zms.setSelection(newShape);
+            //   }
+            // });
+        }
+        
+        var layer;
+        zms.loadGeoJsonString = function(geoString) 
+        {
+            trace("LoadGeo");
+            // var geojson = JSON.parse(geoString);
+            layer = new google.maps.Data();
+            // map.data.addGeoJson(geoString);
+            layer.addGeoJson(geoString);
+            layer.setMap(map);
+            zms.zoom();
+            zms.listener(layer);
+        }
+
+        /**
+         * Update a map's viewport to fit each geometry in a dataset
+         * @param {google.maps.Map} map The map to adjust
+         */
+        zms.zoom = function() 
+        {
+          var bounds = new google.maps.LatLngBounds();
+          // map.data.forEach(function(feature) {
+          //   zms.processPoints(feature.getGeometry(), bounds.extend, bounds);
+          // });
+          layer.forEach(function(feature) {
+            zms.processPoints(feature.getGeometry(), bounds.extend, bounds);
+          });
+          map.fitBounds(bounds);
+        }
+
+
+        // layer.setStyle(function(feature) {
+        //     var color = 'gray';
+        //     if (feature.getProperty('isColorful')) {
+        //       color = feature.getProperty('color');
+        //     }
+        //     return /** @type {google.maps.Data.StyleOptions} */({
+        //       fillColor: 'green',
+        //       strokeColor: 'black',
+        //       strokeWeight: 1
+        //     });
+        // });
+        var mylayer = new google.maps.Data();;
+        zms.addtoMyLayer = function(geoJSON){
+            trace("LoadGeo2");
+            // var geojson = JSON.parse(geoString);
+            // map.data.addGeoJson(geoString);
+            // mylayer.addGeoJson(geoString);
+            mylayer.addGeoJson(geoJSON);
+            mylayer.setMap(map);
+            // mylayer.setMap(map);
+            // zms.zoom();
+            // zms.listener(mylayer);            
+        }
+
+        zms.listener = function(layer){
+            layer.addListener('mouseover', function(event) {
+                layer.revertStyle();
+                // trace(event.feature);
+                layer.overrideStyle(event.feature, {fillColor: 'red' ,strokeColor: 'red',fillOpacity: .5, strokeWeight: 2});
+                // trace(event.feature);
+            });
+
+            layer.addListener('mouseout', function(event) {
+                layer.revertStyle();
+            });
+
+            layer.addListener('click', function(event) {
+                trace(event.feature);
+                trace(layer);
+                event.feature.setProperty('isColorful', true);
+                event.feature.toGeoJson(function(geoJson) {
+                    trace('Geo');
+                    trace(geoJson);
+                    zms.addtoMyLayer(geoJson);
+                });
+                
+                // layer.overrideStyle(event.feature, {fillColor: 'green' ,strokeColor: 'black',fillOpacity: .5, strokeWeight: 2});
+                // layer.setStyle(event.feature, {fillColor: 'green' ,strokeColor: 'black',fillOpacity: .5, strokeWeight: 2});
+                // event.feature.setProperty('isColorful', true);
+                mylayer.setStyle(function(feature){
+                    if (feature.getProperty('isColorful')) {
+                      // color = feature.getProperty('color');
+                      return({fillColor: 'green' ,strokeColor: 'black',fillOpacity: .5, strokeWeight: 2});
+                    }                                   
+                });
+                var area
+                event.feature.getGeometry().getArray().forEach(function(points){
+                    area = google.maps.geometry.spherical.computeArea(points.getArray());
+                });
+                var bounds = new google.maps.LatLngBounds();
+                zms.processPoints(event.feature.getGeometry(), bounds.extend, bounds);
+                // trace(bounds);
+                // trace(google.maps.geometry.spherical.computeArea(pathLeftLatLng));
+                // trace(bounds.getCenter().lat(), bounds.getCenter().lng());
+                zms.createMarker(bounds.getCenter().lat(),bounds.getCenter().lng(),'Plot' + event.feature.id, event.feature.getProperty('name') + '\n Area:' + area +' sqm' );  
+                // infowindow.setContent("Hello World");
+                // infowindow.open(map, bounds.getCenter());             
+            });
+                         
+        }
+
+
+        /**
+         * Process each point in a Geometry, regardless of how deep the points may lie.
+         * @param {google.maps.Data.Geometry} geometry The structure to process
+         * @param {function(google.maps.LatLng)} callback A function to call on each
+         *     LatLng point encountered (e.g. Array.push)
+         * @param {Object} thisArg The value of 'this' as provided to 'callback' (e.g.
+         *     myArray)
+         */
+        zms.processPoints = function(geometry, callback, thisArg) 
+        {
+          if (geometry instanceof google.maps.LatLng) 
+          {
+            callback.call(thisArg, geometry);
+          } 
+          else if (geometry instanceof google.maps.Data.Point) 
+          {
+            callback.call(thisArg, geometry.get());
+          } 
+          else 
+          {
+            geometry.getArray().forEach(function(g) {
+              zms.processPoints(g, callback, thisArg);
+            });
+          }
+        }
+
+        var geoJsonInput;
+        // Refresh different components from other components.
+        zms.refreshGeoJsonFromData = function() {
+            // trace('start');
+          map.data.toGeoJson(function(geoJson) {
+            trace(geoJson);
+            geoJsonInput = JSON.stringify(geoJson, null, 2);
+            // zms.refreshDownloadLinkFromGeoJson();
+          });
+        }
+
+        // Refresh download link.
+        zms.refreshDownloadLinkFromGeoJson = function() {
+          trace(geoJsonInput);
+        }
+
+        var selectedShape;
+        zms.clearSelection = function() {
+            if (selectedShape) {
+                selectedShape.setEditable(false);
+                //selectedShape = null;
+            }
+        }
+        zms.setSelection= function(shape) {
+            zms.clearSelection();
+            selectedShape = shape;
+            shape.setEditable(true);
+            // selectColor(shape.get('fillColor') || shape.get('strokeColor'));
+        }
+
+        zms.deleteSelectedShape= function() {
+            if (selectedShape) {
+                selectedShape.setMap(null);
+                // document.getElementById('info').innerHTML = "";
+            }
+        }
+
+        zms.setSelection = function(shape) {
+            zms.clearSelection();
+            selectedShape = shape;
+            shape.setEditable(true);
+            // selectColor(shape.get('fillColor') || shape.get('strokeColor'));
+        }                                                                           
+</script> 
+</head>
+<body onload="zms.initialize()"> 
+    <!-- side panel div container --> 
+    <div style="position:absolute; width:380px; height: 100%; overflow:auto; float:left; padding-left:10px; padding-right:10px;"> 
+        <ul id="myTab" class="nav nav-tabs" role="tablist">
+          <li role="presentation"  class="active"><a href="#search" aria-controls="search" role="tab" data-toggle="tab"> Search </a></li>
+          <li role="presentation"><a href="#myland" aria-controls="myland" role="tab" data-toggle="tab"> My Land </a></li>
+        </ul>
+        <div class="tab-content">
+          <div role="tabpanel" class="tab-pane active" id="search">
+            <div class="container">
+                <div class="well form-search">
+                    <input type="text" id="address" value="india">
+                    <input type="button" value="find" onClick="zms.geocode()" class="btn btn-primary"><br>
+                    <input id="mylocCircle_checkbox" type="checkbox" checked="checked" onClick="zms.toggleLayer(mylocCircle,'mylocCircle_checkbox')" /> My Location<br>
+                    <input id="pregeojsonland_checkbox" type="checkbox" checked="checked" onClick="zms.toggleLayer(layer,'pregeojsonland_checkbox')" /> Plot Grid<br>
+                    <input id="mygeojson_checkbox" type="checkbox" checked="checked" onClick="zms.toggleLayer(mylayer,'mygeojson_checkbox')" /> My Plot<br>
+                    <input type="button" value="GetGeoJson" onClick="zms.refreshGeoJsonFromData()" class="btn btn-primary"><br>
+                    <input type="button" value="delete shape" onClick="zms.deleteSelectedShape()" class="btn btn-primary"><br>
+                </div> 
+            </div>
+          </div>
+          <div role="tabpanel" class="tab-pane" id="myland">
+            <div class="container">
+                <form class="form-horizontal">
+                  <div class="form-group" >
+                    <label for="Name" >Name</label>
+                    <input type="text" class="form-control" id="name" placeholder="ex: Plot1">
+                  </div> 
+                  <div class="form-group">
+                    <label for="Name">Group</label>
+                    <input type="text" class="form-control" id="group" placeholder="ex: Group1">
+                  </div>
+                  <div class="form-group">
+                    <label for="Name">District</label>
+                    <input type="text" class="form-control" id="district">
+                  </div>
+                  <div class="form-group">
+                    <label for="Name">Village</label>
+                    <input type="text" class="form-control" id="village">
+                  </div>
+                  <div class="form-group">
+                    <label for="Name">State</label>
+                    <input type="text" class="form-control" id="state">
+                  </div> 
+                  <div class="form-group">
+                    <label for="Name">Plot Id</label>
+                    <input type="text" class="form-control" id="plotid">
+                  </div>
+                  <div class="form-group">
+                    <label for="Name">Area</label>
+                    <input type="text" class="form-control" id="area">
+                  </div>                                            
+                </form> 
+            </div>
+          </div>                                                                          
+        </div>             
+        <!-- search box -->            
+    </div> 
+    <!-- map div container --> 
+    <div id="map_canvas" style="height:100%; margin-left:400px;"></div>
+
+    <!-- Responsive iFrame -->
+<!--     <div class="Flexible-container">
+        <iframe width="425" height="350" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://maps.google.ch/maps?f=q&amp;source=s_q&amp;hl=de&amp;geocode=&amp;q=Bern&amp;aq=&amp;sll=46.813187,8.22421&amp;sspn=3.379772,8.453979&amp;ie=UTF8&amp;hq=&amp;hnear=Bern&amp;t=m&amp;z=12&amp;ll=46.947922,7.444608&amp;output=embed&amp;iwloc=near"></iframe>
+    </div>   --> 
+ 
+</body>  
+</html>

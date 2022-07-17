@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Editable Spline</title>
+    <meta name="description" content="This is a d3js ediatble spline test">
+    <meta name="author" content="biswadip">
+    <!-- TODO: Putting the bootstrap style sheet removes the realtime data in the d3 graph from thhe rigth side. Get it back -->
+    <link rel="stylesheet" href="../static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../static/css/sticky-footer-navbar.css">  
+    <link rel="stylesheet" href="../static/css/dataTables.bootstrap.css">     
+
+    <script src="../static/js/jquery-2.1.3.min.js"></script>
+    <script src="../static/js/knockout-3.3.0.js"></script>
+    <script src="../static/js/knockout.mapping.js"></script> 
+    <script src="../static/js/bootstrap.min.js"></script>
+    <script src="../static/js/d3.min.js"></script>
+    <script src="../static/js/jquery.dataTables.min.js"></script>
+    <script src="../static/js/dataTables.tableTools.min.js"></script>
+    <script src="../static/js/dataTables.bootstrap.min.js"></script>
+    <script src="../static/js/dataTables.buttons.min.js"></script>
+    <script src="../static/js/buttons.bootstrap.min.js"></script>    
+    <style type="text/css">
+        body {
+          font: 13px sans-serif;
+          padding: 20px 0px;
+        }
+
+        div.DTTT { margin-bottom: 0.5em; float: right; }
+        div.dt-buttons { margin-bottom: 0.5em; float: right; }
+        div.dataTables_wrapper { clear: both; }          
+
+        rect {
+          fill: #fff;
+        }
+
+/*        ul {
+          list-style-type: none;
+          margin: 0.5em 0em 0.5em 0em;
+          width: 100%; }
+
+        ul li {
+          display: table-cell;
+          vertical-align: middle;
+          margin: 0em;
+          padding: 0em 1em; }*/
+
+        .axis { font-size: 1.5em; }      
+
+        #chart1 {
+            /*background-color: #F7F2C5;*/
+            width: 960px;
+            height: 500px;
+        }
+
+/*        circle, .line {
+          fill: none;
+          stroke: steelblue;
+          stroke-width: 1.5px;
+        }*/
+
+        circle {
+          /*fill: #fff;*/
+          cursor: move;
+        }
+
+        circle.selected {
+          /*stroke: #ff7f0e;*/
+          fill-opacity: .001;
+          stroke: #666;
+        }
+
+        circle:hover {
+          /*fill: #666;*/
+          stroke: #666; 
+        }
+
+        circle.selected:hover {
+          fill: #666;
+          stroke: #666; 
+        }  
+
+        .hover-line { 
+          stroke: #ccc;  
+          fill: none;
+          stroke-width: 1px;
+        }
+
+        .yAxis-line line,
+        .xAxis-line line {
+          fill: none;
+          stroke: #000;
+          shape-rendering: crispEdges;
+          stroke-width: 1.5;
+        }
+
+        .x line,
+        .y line {
+            fill: none;
+            shape-rendering: crispEdges;
+            stroke: #ccc;
+            stroke-dasharray: 4px;
+            stroke-width: 1px;
+        }
+
+        .xticks line,
+        .yticks line { 
+          fill: none;
+          stroke: #000;
+          shape-rendering: crispEdges;
+          stroke-width: 1.5;
+        } 
+
+/*        #mouse-tracker {
+          stroke: #E6E7E8;
+          stroke-width: 1px;
+        }*/
+
+        .hover-line { 
+          stroke: #E6E7E8;
+          fill: none;
+          stroke-width: 1px;
+          left: 10px;
+          shape-rendering: crispEdges;
+          opacity: 1e-6;
+        }
+
+        .hover-text {
+          stroke: none;
+          font-size: 30px;
+          font-weight: bold;
+          fill: #000000;
+        }
+
+        .tooltip {
+          font-weight: normal;
+        }                           
+    </style>  
+    <script type="text/javascript">
+      var items_json =
+         [{sn: 1,'item_name':'Appy Fruit Juice', unit_price:45, description: 'Apple falvoured fruit juice', quantity: 2},
+          {sn: 2,'item_name':'Cadbury Dairy Milk', unit_price:70, description: 'Cadbury Chocolate', quantity: 5},
+          {sn: 3,'item_name':'Good Day Biscuit', unit_price:20, description: 'Biscuit', quantity: 10},
+          {sn: 4,'item_name':'Tiger Crunch Biscuit', unit_price:10, description: 'Glucose biscuit with choco chips', quantity: 1}
+          ];  
+
+      function Item(item){
+        var self = this;
+        // // sets default value of name to ''
+        self.item_name = '';
+        // // sets default description of name to '' but description is observable
+        self.description = ko.observable('');
+        self.unit_price= ko.observable(0);
+        self.quantity = ko.observable(1);
+        // automatic setting of attributes
+        for(var k in item)
+          self[k] = ko.observable(item[k]);
+
+        self.amount = ko.computed(function(){
+          return self.quantity() * self.unit_price();
+        });
+      } 
+
+      function ItemViewModel(data) {
+        var self = this;
+        // loop over the argument data and create a observableArray of new Item and assign array as items of ItemViewModel
+        self.items = ko.observableArray(ko.utils.arrayMap(data, function(item) {
+            return new Item(item);
+          }));
+
+        self.grand_total = function(){
+          var sum = 0;
+          self.items().forEach(function(i){
+              sum += i.amount();
+          });
+          return sum;
+        };
+
+        self.addItem = function(){
+            self.items.push(new Item());
+          };
+
+        self.removeItem = function(item){
+            self.items.remove(item);
+          };
+
+        self.save = function(){
+            alert(ko.toJSON(self));
+          };        
+      }
+
+      $(function(){
+
+        var view_instance = new ItemViewModel(items_json);
+        ko.applyBindings(view_instance);
+
+        var table = $("#forecasttab").DataTable( { responsive: true } );
+
+        // new $.fn.dataTable.Buttons( table, {
+        //   // buttons: ['csv', 'excel', 'pdf', 'print']
+        //   buttons: [
+        //       {
+        //           extend: 'csvHtml5',
+        //           title: 'Tentative ISGS'
+        //       },              
+        //       {
+        //           extend: 'excelHtml5',
+        //           title: 'Tentative ISGS'
+        //       },
+        //       {
+        //           extend: 'pdfHtml5',
+        //           title: 'Tentative ISGS'
+        //       },
+        //       {
+        //           extend: 'print',
+        //           title: 'Tentative ISGS'
+        //       },
+        //   ]                   
+        // });  
+
+        // table.buttons().container(0, null)
+        //         .insertBefore('div#forecasttab_wrapper.dataTables_wrapper');
+      });                         
+    </script>  
+</head>    
+<body>
+    <!-- <button>Reset</button> -->
+    <div id="chart1" class="chart"></div>
+    <!-- <div class='tooltip' id='line-graph-new-multi-tooltip'></div> -->
+    <div id="forecasttable">
+      <div class="container">
+        <div class="col-md-12 content">    
+          <table id="forecasttab" class="display nowrap table table-striped table-bordered table-condensed table-hover" cellspacing="0" width="100%">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Description</th>
+                <th>Unit Price</th>
+                <th>Quantity</th>
+                <th>Amount</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody data-bind='foreach: items'>
+              <tr>
+                <td><span data-bind="text: item_name"></span></td>
+                <td><span data-bind="text: description"></span></td>
+                <td><input span data-bind="value: unit_price" style="width:95%"></span></td>
+                <td><input span data-bind="value: quantity" style="width:95%"></span></td>
+                <td><span data-bind="text: amount()"></span></td>
+                <td><button class="btn" data-bind="click: $root.removeItem">Remove</button></td>
+              </tr>
+            </tbody>            
+          </table> 
+           <p class="pull-left">
+              <button class="btn" data-bind="click: addItem">Add New Row</button>
+              <button class="btn" data-bind="click: save">Save</button>
+            </p>
+            <h4 class="pull-right">
+              <strong>Grand Total: <span data-bind="text: grand_total()"></span> </strong>
+            </h4>                     
+        </div>
+      </div>
+    </div>     
+    <script type="text/javascript">
+      var data =  [
+          {series:1, data:[{'x':1,'y':0},{'x':2,'y':5},{'x':3,'y':10},{'x':4,'y':0},{'x':5,'y':6},{'x':6,'y':11},{'x':7,'y':9},{'x':8,'y':4},{'x':9,'y':11},{'x':10,'y':2}]},
+          {series:2, data:[{'x':1,'y':1},{'x':2,'y':6},{'x':3,'y':11},{'x':4,'y':1},{'x':5,'y':7},{'x':6,'y':12},{'x':7,'y':8},{'x':8,'y':3},{'x':9,'y':13},{'x':10,'y':3}]},
+          {series:3, data:[{'x':1,'y':2},{'x':2,'y':7},{'x':3,'y':12},{'x':4,'y':2},{'x':5,'y':8},{'x':6,'y':13},{'x':7,'y':7},{'x':8,'y':2},{'x':9,'y':4},{'x':10,'y':7}]},
+          {series:4, data:[{'x':1,'y':3},{'x':2,'y':8},{'x':3,'y':13},{'x':4,'y':3},{'x':5,'y':9},{'x':6,'y':14},{'x':7,'y':6},{'x':8,'y':1},{'x':9,'y':7},{'x':10,'y':9}]},
+          {series:5, data:[{'x':1,'y':4},{'x':2,'y':9},{'x':3,'y':14},{'x':4,'y':4},{'x':5,'y':10},{'x':6,'y':15},{'x':7,'y':5},{'x':8,'y':0},{'x':9,'y':8},{'x':10,'y':5}]}
+        ];
+
+      data.forEach(function(d) { 
+          d.visible = true;
+          d.editable = (d.series != 5 ? true : false)
+      });
+
+      var data2 = [{"x":1, "1": 0, "2": 1, "3": 2, "4": 3, "5": 4},
+      {"x":2, "1": 5, "2": 6, "3": 7, "4": 8, "5": 9},
+      {"x":3, "1": 10, "2": 11, "3": 12, "4": 13, "5": 14},
+      {"x":4, "1": 0, "2": 1, "3": 2, "4": 3, "5": 4},
+      {"x":5, "1": 6, "2": 7, "3": 8, "4": 9, "5": 10},
+      {"x":6, "1": 11, "2": 12, "3": 13, "4": 14, "5": 15},
+      {"x":7, "1": 9, "2": 8, "3": 7, "4": 6, "5": 5},
+      {"x":8, "1": 4, "2": 3, "3": 2, "4": 1, "5": 0},
+      {"x":9, "1": 11, "2": 13, "3": 4, "4": 7, "5": 8},
+      {"x":10, "1": 2, "2": 3, "3": 7, "4": 9, "5": 5}
+      ];
+
+
+      console.log('key:',d3.keys(data[0]));
+      console.log('values:',d3.values(data[0]));
+
+      var xMax = d3.max(data, function(c) { return d3.max(c.data, function(v) { return v.x; }); }),
+        xMin = d3.min(data, function(c) { return d3.min(c.data, function(v) { return v.x; }); }),
+        yMax = d3.max(data, function(c) { return d3.max(c.data, function(v) { return v.y; }); }),
+        yMin = d3.min(data, function(c) { return d3.min(c.data, function(v) { return v.y; }); });
+
+      function findMaxY(data){  // Define function "findMaxY"
+        var maxYValues = data.map(function(d) { 
+          if (d.visible){
+            return d3.max(d.data, function(v) { // Return max rating value
+              return v.y; })
+          }
+        });
+        return d3.max(maxYValues);
+      };
+
+      function findMinY(data){  // Define function "findMaxY"
+        var minYValues = data.map(function(d) { 
+          if (d.visible){
+            return d3.min(d.data, function(v) { // Return max rating value
+              return v.y; })
+          }
+        });
+        return d3.min(minYValues);
+      }      
+
+      var tooltipTitleTemplate = "<div class='tooltip-title'><%- title %></div>";
+      
+      var tooltipSectionTemplate = "<div class='tooltip-section'>  <div class='tooltip-swatch' style='background-color: <%- color %>'></div>  <div class='tooltip-label' title='<%- name %>'><%- name %></div>  <div class='tooltip-value'><%- value %></div></div>";
+
+      var bisectX = d3.bisector(function(d) { //console.log('bisector d', d.x);
+        return d.x; }).left;
+
+      // var tooltip = d3.select("body")
+      //     .append("div")
+      //     .attr("class", "tooltip")
+      //     .style("position", "absolute")
+      //     .style("z-index", "20")
+      //     .style("visibility", "hidden")
+      //     .style("top", "30px")
+      //     .style("left", "55px")
+      //     .text("a simple tooltip");      
+
+      var margin = {top: 40, right: 60, bottom: 60, left: 70},
+          width = 960 - margin.left - margin.right,
+          height = 500 - margin.top - margin.bottom;
+
+      var x = d3.scale.linear()
+          .domain([xMin - 1, xMax + 1])
+          .nice()
+          .range([0, width])
+          .nice()
+          ;
+       
+      var y = d3.scale.linear()
+          .domain([yMax + 1, yMin - 1])
+          .nice()
+          .range([0, height])
+          .nice()
+          ;
+
+
+      // drag x-axis logic
+      var downscalex = x.copy(),
+          downx = Math.NaN,
+          downscaley = y.copy(),
+          downy = Math.NaN,
+          tx = function(d) { return "translate(" + x(d) + ",0)"; },
+          ty = function(d) { return "translate(0," + y(d) + ")"; },
+          stroke = function(d) { return d ? "#ccc" : "#666"; };                   
+
+      var svg02 = d3.select("#chart1").append("svg")
+          .attr("width", width + margin.left + margin.right)
+          .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+          .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+          // .attr('mouseout', handleMouseOutGraph)
+          // .attr('mouseover', handleMouseOverGraph)
+          ;
+          //Bug in ZOOM functionality fix it update resets the zoom and cancels the scaling
+      var plot = svg02.append("rect")
+          .attr("width", width)
+          .attr("height", height)
+          .attr("fill", "none")
+          .attr("id", "mouse-tracker")
+          .attr("pointer-events", "all")
+          .call(d3.behavior.zoom().x(x).y(y).on("zoom", redraw))
+          // .call(d3.behavior.zoom().on("zoom", redraw))
+          .on("mousedown", function() {
+            d3.select('body').style("cursor", "move");
+            // d3.behavior.zoom().x(x).y(y).on("zoom", redraw);
+          })
+          .on('mouseout', function(){ // on mouse out hide line, circles and text
+            // console.log('mouseout');
+            // hoverLine.classed("hide", true);
+            // hoverLine.style("opacity", "0");
+            // return tooltip.style("visibility", "visible");
+            hoverX
+            .text(null);    
+            d3.select("#hover-line")
+                .style("opacity", 1e-6);   // On mouse out making line invisible                 
+            // d3.select(".mouseLine")
+            //   .style("opacity", "0");
+            // d3.selectAll(".mouseCircle circle")
+            //   .style("opacity", "0");
+            // d3.selectAll(".mouseCircle text")
+            //   .style("opacity", "0");
+          }) 
+          .on('mouseover', function(){ // on mouse in show line, circles and text
+            // console.log('mouseover');
+            // hoverLine.classed("hide", false);
+            // hoverLine.style("opacity", "1");
+            // return tooltip.style("visibility", "hidden");
+            d3.select("#hover-line")
+                .style("opacity", 1);            
+            // d3.select(".mouseLine")
+            //   .style("opacity", "1");
+            //  d3.selectAll(".mouseCircle circle")
+            //   .style("opacity", "1");
+            // d3.selectAll(".mouseCircle text")
+            //   .style("opacity", "1");
+          })
+          .on("mousemove", mousemove);
+          // .on('mousemove', function() { // mouse moving over canvas
+          //   // console.log('mousemove');
+          //   var x = d3.mouse(this)[0];
+          //   hoverLine.style("opacity", "1");
+          //   hoverLine.attr("x1", x).attr("x2", x).style("opacity", 1);
+          //   return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");
+          // });
+
+          function mousemove() { 
+              var mouse_x = d3.mouse(this)[0]; // Finding mouse x position on rect
+              var graph_x = x.invert(mouse_x); // 
+              // console.log('graph_x', graph_x);
+              //var mouse_y = d3.mouse(this)[1]; // Finding mouse y position on rect
+              //var graph_y = yScale.invert(mouse_y);
+              //console.log(graph_x);
+            
+              var format = d3.time.format('d');
+              hoverX.text(format(graph_x)); // scale mouse position to xScale date and format it to show month and year
+              
+              d3.select("#hover-line") // select hover-line and changing attributes to mouse position
+                  .attr("x1", mouse_x) 
+                  .attr("x2", mouse_x)
+                  .style("opacity", 1); // Making line visible
+
+              // Legend tooltips // http://www.d3noob.org/2014/07/my-favourite-tooltip-method-for-line.html
+
+              var x0 = x.invert(d3.mouse(this)[0]), /* d3.mouse(this)[0] returns the x position on the screen of the mouse. xScale.invert function is reversing the process that we use to map the domain (date) to range (position on screen). So it takes the position on the screen and converts it into an equivalent date! */
+              i = bisectX(data2, x0, 1), // use our bisectDate function that we declared earlier to find the index of our data array that is close to the mouse cursor
+              /*It takes our data array and the date corresponding to the position of or mouse cursor and returns the index number of the data array which has a date that is higher than the cursor position.*/
+              d0 = data2[i - 1],
+              d1 = data2[i < data2.length ? i : i - 1],
+              /*d0 is the combination of date and rating that is in the data array at the index to the left of the cursor and d1 is the combination of date and close that is in the data array at the index to the right of the cursor. In other words we now have two variables that know the value and date above and below the date that corresponds to the position of the cursor.*/
+              d = x0 - d0.x > d1.x - x0 ? d1 : d0;
+              /*The final line in this segment declares a new array d that is represents the date and close combination that is closest to the cursor. It is using the magic JavaScript short hand for an if statement that is essentially saying if the distance between the mouse cursor and the date and close combination on the left is greater than the distance between the mouse cursor and the date and close combination on the right then d is an array of the date and close on the right of the cursor (d1). Otherwise d is an array of the date and close on the left of the cursor (d0).*/
+
+              //d is now the data row for the date closest to the mouse position
+              // console.log('x0', x0,'i', i, 'd0', d0, 'd1', d1, 'd', d);
+              focus.select("text").text(function(columnName){
+                 //because you didn't explictly set any data on the <text>
+                 //elements, each one inherits the data from the focus <g>
+                 // console.log('d[columnName]',columnName,d[columnName]);
+                 return (d[columnName]);
+              });
+          };
+          //Leads to bug with scaling
+          // svg02.call(d3.behavior.zoom().x(x).y(y).on("zoom", redraw));
+          // plot.call(d3.behavior.zoom().x(x).y(y).on("zoom", redraw));
+
+      // add Chart Title
+      // if (this.options.title) {
+        svg02.append("text")
+            .attr("class", "axis")
+            .text('Chart Title')
+            .attr("x", width/2)
+            .attr("dy","-0.8em")
+            .style("text-anchor","middle");
+      // }
+
+      // Add the x-axis label
+      // if (this.options.xlabel) {
+        svg02.append("text")
+            .attr("class", "axis")
+            .text('X Axis')
+            .attr("x", width/2)
+            .attr("y", height)
+            .attr("dy","2.4em")
+            .style("text-anchor","middle");
+      // }
+
+      // add y-axis label
+      // if (this.options.ylabel) {
+        svg02.append("g").append("text")
+            .attr("class", "axis")
+            .text('Y Axis')
+            .style("text-anchor","middle")
+            .attr("transform","translate(" + -40 + " " + height/2+") rotate(-90)");
+      // }
+
+      //Creating X and Y axis lines as the normal d3.svg.axis is not used to render the lines
+      var xAxisLineGroup = svg02.append("svg:g")
+                .attr("class", "xAxis-line");
+
+          xAxisLineGroup
+          .append("svg:line")
+          .style("opacity", 1)
+          // .attr('stroke', '#666')
+          // .attr('stroke-width', 1.5)
+          .attr("x1", 0).attr("x2", width)
+          .attr("y1", height).attr("y2", height);
+
+      var yAxisLineGroup = svg02.append("svg:g")
+                .attr("class", "yAxis-line");
+
+          yAxisLineGroup
+          .append("svg:line")
+          .style("opacity", 1)
+          // .attr('stroke', '#666')
+          // .attr('stroke-width', 1.5)
+          .attr("x1", 0).attr("x2", 0)
+          .attr("y1", 0).attr("y2", height);         
+
+      var color = d3.scale.category10();
+      // add legend   
+      var legend = svg02.append("g")
+        .attr("class", "legend")
+        .attr("x", width/2 + 30)
+        .attr("y", 25)
+        .attr("height", 20)
+        .attr("width", 100);
+
+      legend.selectAll('g').data(data)
+          .enter()
+          .append('g')
+          .each(function(d, i) {
+            var g = d3.select(this);
+            g.append("rect")
+              .attr("x", width/2 + 70 + (i * 50))
+              .attr("y", height + 30)
+              .attr("width", 10)
+              .attr("height", 10)
+              // .style("fill", color(d.series));
+              .style("fill",function(d) {
+                // console.log('legelnd', d.visible ? color(d.series) : "#F1F1F2");
+                return d.visible ? color(d.series) : "#F1F1F2"; // If array key "visible" = true then color rect, if not then make it grey 
+              })
+              .attr("class", "legend-box")
+              .on("click", function(d){ // On click make d.visible 
+                console.log('legelnd', 'click', d);
+                d.visible = !d.visible; // If array key for this data selection is "visible" = true then make it false, if false then make it true
+                console.log('legelnd', 'afterclick', d);
+                redraw();
+                maxY = findMaxY(data) + 1.5; // Find max Y rating value categories data with "visible"; true
+                minY = findMinY(data) - 1.5;
+                y.domain([maxY, minY]); // Redefine yAxis domain based on highest y value of categories data with "visible"; true
+                // svg.select(".y.axis")
+                //   .transition()
+                //   .call(yAxis);   
+
+                // issue.select("path")
+                //   .transition()
+                //   .attr("d", function(d){
+                //     return d.visible ? line(d.values) : null; // If d.visible is true then draw line for this d selection
+                //   })
+
+                g.select("rect")
+                  .transition()
+                  .style("fill", function(d) {
+                    return d.visible ? color(d.series) : "#F1F1F2";
+                  });
+              })
+              .on("mouseover", function(d){
+
+                d3.select(this)
+                  .transition()
+                  .attr("fill", function(d) { return color(d.series); });
+
+                d3.select("#line-" + d.series)
+                  .transition()
+                  .style("stroke-width", 2.5);  
+              })
+              .on("mouseout", function(d){
+
+                d3.select(this)
+                  .transition()
+                  .attr("fill", function(d) {
+                  return d.visible ? color(d.series) : "#F1F1F2";});
+
+                d3.select("#line-" + d.series)
+                  .transition()
+                  .style("stroke-width", 1.5);
+              });
+
+            g.append("text")
+              .attr("x", width/2 + 70 + (i * 50) + 20)
+              .attr("y", height + 40)
+              .attr("height",10)
+              .attr("width",50)
+              .style("fill", color(d.series))
+              .text(d.series);
+
+            // put in placeholders with 0 width that we'll populate and resize dynamically
+            g.append("text")
+                .attr("class", "legend value")
+                // .attr("font-size", legendFontSize)
+                .attr("fill", color(d.series))
+                .attr("y", function(d, i) {
+                  return height + 50;
+                });              
+            // x values are not defined here since those get dynamically calculated when data is set in displayValueLabelsForPositionX()
+          });
+
+      // add a 'hover' line that we'll show as a user moves their mouse (or finger)
+      // so we can use it to show detailed values of each line
+      var hoverLineGroup = svg02.append("svg:g")
+                .attr("class", "hover-line");
+      // add the line to the group
+      var hoverLine = hoverLineGroup
+        .append("svg:line")
+          .attr("id", "hover-line")
+          .attr("x1", 10).attr("x2", 10) // vertical line so same value on each
+          .attr("y1", 0).attr("y2", height)// top to bottom  
+          .style("pointer-events", "none")
+          .style("opacity", 1e-6)
+          ; 
+        
+      // hide it by default
+      // hoverLine.classed("hide", true);
+      // hoverLine.style("opacity", 0);
+      var hoverX = hoverLineGroup
+            .append('text')
+                .attr("class", "hover-text")
+                .attr("y", height - (height-40)) // hover date text position
+                .attr("x", width - 150) // hover date text position
+                .style("fill", "#E6E7E8");
+
+      // var columnNames = d3.values(data[0]); //get the column names
+      // console.log('columnNamesvar',columnNames);
+      var columnNames = [1, 2, 3, 4, 5];
+
+      // var focus = svg02.append("g")
+      //   .attr("class", "focus");
+
+      var focus =  svg02
+          .selectAll('.focus')
+          .data(columnNames)
+          .enter()
+          .append('g')
+          .attr("class", "focus");
+          // .each(function(d, i) {
+      // var focus = svg02.append("svg:g")
+      //           .attr("class", "focus");
+      // var focus = svg02.select("g") // create group elements to house tooltip text
+      //     .data(columnNames) // bind each column name date to each g element
+      //   .enter().append("g") //create one <g> for each columnName
+      //    .attr("class", "focus"); 
+
+      focus.append("text")
+            .attr("class", "tooltip")
+            .attr("x", width + 20) // position tooltips  
+            .attr("y", function (d, i) { return 11 + i * 11; }); // (return (11.25/2 =) 5.625) + i * (5.625) // position tooltips       
+      
+      var drag = d3.behavior.drag()
+                  .origin(function(d) { console.log('origin', d);return d; })
+                  .on("dragstart", dragstarted)
+                  .on("drag", dragged)
+                  .on("dragend", dragended);    
+                                      
+
+      var dragged = null,
+          selected = null;
+
+      var viewbox = svg02.append("svg")
+                      .attr("top", 0)
+                      .attr("left", 0)
+                      .attr("width", width)
+                      .attr("height", height)
+                      .attr("viewBox", "0 0 "+width+" "+height)
+                      .attr("class", "line")
+                      ;
+
+      var line = d3.svg.line()
+                  .x(function(d,i) { return  x(d.x); })
+                  .y(function(d,i) { return  y(d.y); })
+                  .interpolate("monotone");
+
+      // console.log('data', data);
+      var lines = viewbox.selectAll(".line")
+                  .data(data)
+                  .enter()
+                  .append("path")
+                  .attr("class","line")
+                  .attr("stroke-width", 1)
+                  .attr("fill", "none")
+                  .style("pointer-events", "none")
+                  .style("stroke", function(d,i){
+                    // console.log('dcolor', d, i);
+                    return color(d.series);
+                  })
+                  .attr("id", function(d) {
+                    return "line-" + d.series; // Give line id of line-(insert issue name, with any spaces replaced with no spaces)
+                  })                  
+                  .attr("d", function(d,i) {
+                      // console.log('d', d, i);   
+                      // return line(d.data); 
+                      return d.visible ? line(d.data) : null;  
+                  })
+                  // .on('mouseover', function(d, i) {
+                  //   console.log('mouseover',d, i);
+                  //   mouseover(d);
+                  // })
+                  // .on('mouseover', mouseover)                  
+                  .call(update);
+
+      // var focus = viewbox.append("g")
+      //   .attr("class", "focus")
+      //   .attr("transform", "translate(-100,-100)");               
+      // svg02.append("path") // this is the black vertical line to follow mouse
+      //   .attr("class","mouseLine")  
+      //   .style("stroke","black")
+      //   .style("stroke-width", "1px")
+      //   .style("opacity", "0");
+
+      // var mouseCircle = lines.append("g") // for each line, add group to hold text and circle
+      //       .attr("class","mouseCircle"); 
+
+      // mouseCircle.append("text")
+      //   .attr("transform", "translate(8,3)"); // text to hold coordinates  
+
+      // svg02.node().focus();  
+
+      // function mouseover(d) {
+      //   d3.select(this).classed("line-hover", true);
+      //   focus.attr("transform", "translate(" + x(d.point.x) + "," + y(d.point.y) + ")");
+      //   // focus.select("text").text(d.date);
+      // };
+
+      function update() {
+        // console.log('update');
+        viewbox.selectAll("path")
+              .attr("d", function(d,i) {
+                      // console.log('d', d, i);   
+                      // return line(d.data); 
+                      return d.visible ? line(d.data) : null;   
+                  });
+
+        circledata = function(data){
+          a = [];
+          data.forEach(function(d, index){
+            d.data.forEach(function(point, i){
+              a.push({'index': d.series, 'point': point, 'visible': d.visible, 'editable': d.editable });
+            });
+          });
+          return a;
+        };
+
+        cdata = circledata(data);
+        // console.log(' cdata', cdata[0] );
+        var circle = viewbox.selectAll("circle")
+            .data(cdata);
+
+        circle.enter()
+            .append("circle")
+            .attr("class", function(d) { return d === selected ? "selected" : null; })
+            .attr("cx",function(d,i){
+              // console.log('circle cx d i', d);
+              return x(d.point.x);
+            })
+            .attr("cy",function(d,i){
+              // console.log('circle cy d i', d, y(d.data[i].y));
+              return y(d.point.y);
+            })      
+            .attr("r", 1e-6)
+            .style("cursor", "ns-resize")
+            .attr("fill", function(d,i){
+              // console.log('dcolor', d, d.visible && d.editable ? color(d.index): null);
+              return d.visible && d.editable ? color(d.index): "none";
+            })         
+            .on("drag", function(d) { selected = dragged = d; update(); })
+            .call(drag)
+          .transition()
+            .duration(750)
+            .ease("elastic")
+            .attr("r", 4);
+
+
+        circle
+            .attr("class", function(d) { return d === selected ? "selected" : null; })
+            .classed("dragging", function(d) { return d === selected ? "selected": null; })            
+            .attr("cx", function(d) { return x(d.point.x); })
+            .attr("cy", function(d) { return y(d.point.y); })
+            .attr("fill", function(d,i){
+              // console.log('dcolor', d, d.visible && d.editable ? color(d.index): null);
+              return d.visible && d.editable ? color(d.index): "none";
+            });
+
+        circle.exit().remove();
+        // console.log('Exit cdata', cdata );
+        // if (d3.event) {
+        //   // d3.event.preventDefault();
+        //   // d3.event.stopPropagation();
+        //   d3.event.preventDefault();          
+        //   d3.event.stopPropagation();
+
+        // }
+      };
+
+      function dragstarted(d) {
+        console.log('Drag started');
+        d3.event.sourceEvent.stopPropagation();
+        d3.event.sourceEvent.preventDefault();
+        d3.select(this).classed("dragging", true);
+        // console.log('Drag started2', d3.select(this));
+      }
+
+      function dragged(d) {
+        console.log('Draged cxxx');
+        selected = dragged = d3.mouse(svg02.node());
+        d.point.y = y.invert(Math.min(height,dragged[1])); 
+        //Stop dragging in x axis it is commented.
+        // d.point.x = x.invert(Math.min(width,dragged[0]));        
+        // console.log("node",d3.mouse(svg02.node()));
+        redraw();                 
+      }
+
+      function dragended(d) {
+        console.log('Drag Ended');
+        d3.select(this).classed("dragging", false);
+        dragged = null;
+      }  
+
+      redraw();
+
+      function redraw() {
+        // x.domain([Math.max(x.domain()[0], 0), Math.min(x.domain()[1], 12)]);
+
+        // y.domain([Math.max(y.domain()[0], -1), Math.min(self.y.domain()[1], 16)]);
+        // console.log('redrAW');
+
+        if (d3.event && d3.event.transform && isNaN(downx) && isNaN(downy)) {
+            d3.event.transform(x, y);
+        };
+
+        var fx = x.tickFormat(10),
+            fy = y.tickFormat(10);
+
+        // Regenerate x-ticks…
+        var gx = xAxisLineGroup.selectAll("g.x")
+            .data(x.ticks(10), String)
+            .attr("transform", tx);
+        gx.select("text")
+            .text(fx);
+
+        var gxe = gx.enter().insert("svg:g", "a")
+            .attr("class", "x")
+            .attr("transform", tx);
+
+        gxe.append("svg:line")
+            // .attr("stroke", stroke)
+            // .attr("stroke-dasharray", "4px")
+            .attr("y1", 0)
+            .attr("y2", height);            
+
+        gxe.append("svg:g")
+            .attr("class", "xticks")
+            .append("svg:line")
+            // .attr("stroke", '#666')
+            .attr("y1", height)
+            .attr("y2", height + 5);                        
+
+        gxe.append("svg:text")
+           .attr("y", height)
+           .attr("dy", "1.5em")
+           .attr("text-anchor", "middle")
+           .text(fx)
+           .style("cursor", "ew-resize")
+           .on("mouseover", function(d) { d3.select(this).style("font-weight", "bold");})
+           .on("mouseout",  function(d) { d3.select(this).style("font-weight", "normal");})
+           .on("mousedown", function(d) {
+                var p = d3.mouse(svg02[0][0]);
+                downx = x.invert(p[0]);
+                downscalex = null;
+                downscalex = x.copy();
+                // d3.behavior.zoom().off("zoom", redraw);
+           });
+            
+        gx.exit().remove();
+        // Regenerate y-ticks…
+        var gy = yAxisLineGroup.selectAll("g.y")
+            .data(y.ticks(10), String)
+            .attr("transform", ty);
+
+        gy.select("text")
+            .text(fy);
+
+        var gye = gy.enter().insert("svg:g", "a")
+            .attr("class", "y")
+            .attr("transform", ty)
+            .attr("background-fill", "#FFEEB6");
+
+        gye.append("svg:line")
+            // .attr("stroke", stroke)
+            // .attr("stroke-dasharray", "4px")
+            .attr("x1", 0)
+            .attr("x2", width);
+
+        gye.append("svg:g")
+            .attr("class", "yticks")
+            .append("svg:line")
+            // .attr("stroke", '#666')
+            .attr("x1", 0)
+            .attr("x2", -5);            
+
+        gye.append("svg:text")
+            .attr("x", -6)
+            .attr("dy", ".35em")
+            .attr("text-anchor", "end")
+            .text(fy)
+            .style("cursor", "ns-resize")
+            .on("mouseover", function(d) { d3.select(this).style("font-weight", "bold");})
+            .on("mouseout",  function(d) { d3.select(this).style("font-weight", "normal");})
+            .on("mousedown", function(d) {
+                 // console.log('mousedowny');
+                 var p = d3.mouse(svg02.node());
+                 downy = y.invert(p[1]);
+                 downscaley = null;
+                 downscaley = y.copy();
+                 // d3.behavior.zoom().off("zoom", redraw);
+            });
+            
+        gy.exit().remove();
+        plot.call(d3.behavior.zoom().x(x).y(y).on("zoom", redraw));
+        update();
+      }
+      // attach the mousemove and mouseup to the body
+      // in case one wonders off the axis line
+      d3.select('body')
+        .on("mousemove", function(d) {
+          var p = d3.mouse(svg02.node());
+          // console.log('mousemove', p, downscalex.invert(p[0]), downscaley.invert(p[1]), downscalex.domain()[0], downscalex.domain()[1], downscaley.domain()[1], downscaley.domain()[0]);
+          if (!isNaN(downx)) {
+            d3.select('body').style("cursor", "ew-resize");
+            var rupx = downscalex.invert(p[0]),
+              xaxis1 = downscalex.domain()[0],
+              xaxis2 = downscalex.domain()[1],
+              xextent = xaxis2 - xaxis1;
+              // console.log('mousemove downx', xaxis1, xaxis2, xextent);
+            if (rupx != 0) {
+                var changex, new_domain;
+                // changex = downx / rupx;
+                changex = (downx - xaxis1) / (rupx - xaxis1)
+                new_domain = [xaxis1, xaxis1 + (xextent * changex)];
+                // console.log('mousemove downx domain', changex, new_domain, (downx - xaxis1) / (rupx - xaxis1));
+                x.domain(new_domain);
+                redraw();
+            }
+            d3.event.preventDefault();
+            d3.event.stopPropagation();
+          };
+          if (!isNaN(downy)) {
+            d3.select('body').style("cursor", "ns-resize");
+            var rupy = downscaley.invert(p[1]),
+              yaxis1 = downscaley.domain()[1],
+              yaxis2 = downscaley.domain()[0],
+              yextent = yaxis2 - yaxis1;
+              // console.log('1',yaxis1,'2', yaxis2);
+            if (rupy != 0) {
+                var changey, new_domain;
+                // changey = downy / rupy;
+                changey = (downy - yaxis1) / (rupy - yaxis1)
+                new_domain = [yaxis1 + (yextent * changey), yaxis1];
+                // console.log('mousemove downy domain', changey, new_domain, (downy - yaxis1) / (rupy - yaxis1));
+                y.domain(new_domain);
+                redraw();
+            }
+            d3.event.preventDefault();
+            d3.event.stopPropagation();
+          }
+        })
+        .on("mouseup", function(d) {
+            if (!isNaN(downx)) {
+                redraw();
+                downx = Math.NaN;
+                d3.event.preventDefault();
+                d3.event.stopPropagation();
+                // graph.call(d3.behavior.zoom().on("zoom", redraw));
+            };
+            if (!isNaN(downy)) {
+                redraw();
+                downy = Math.NaN;
+                d3.event.preventDefault();
+                d3.event.stopPropagation();
+                // graph.call(d3.behavior.zoom().on("zoom", redraw));
+            };
+            // d3.event.preventDefault();
+            // d3.event.stopPropagation();
+        });    
+    </script>
+</body>
+<footer class="footer">
+    <div class="container">
+    <ul class="footer-links">
+        <li>© 2013</li>
+        <li><a href='https://github.com/imwilsonxu/flask-datatables'>About</a></li>
+    </ul>
+    </div>
+</footer>
+
+</html>

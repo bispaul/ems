@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Weather layer</title>
+  <style>
+    html, body{
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    #map-canvas {
+      width: 100%;
+      height: 100%;
+    }
+    .gm-style-iw {
+      text-align: center;
+    }
+    #panel {
+      position: absolute;
+      top: 5px;
+      left: 50%;
+      margin-left: -180px;
+      z-index: 5;
+      background-color: #fff;
+      padding: 5px;
+      border: 1px solid #999;
+    }    
+  </style>
+  <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?sensor=true">
+</script>
+<script>
+  // client=266719423029-88n3rncq6b26p8eddmk929odmotm7ouj.apps.googleusercontent.com&v=3.19
+  var map;
+  var geoJSON;
+  var request;
+  var gettingData = false;
+  var openWeatherMapKey = "30909626e890cad7b367246057f815a5"
+  var geocoder;
+  var coords;
+  var agri;
+  // var geo = {
+  //   "type": "FeatureCollection",
+  //   "features": [
+  //     {
+  //       "type": "Feature",
+  //       "geometry": {
+  //         "type": "Point",
+  //         "coordinates": [ 18.922060, 72.834118 ]
+  //       },
+  //       "properties": {
+  //         "name": "Mumbai",
+  //         "description": "Gateway of India"
+  //       }
+  //     },
+  //     {
+  //       "type": "Feature",
+  //       "geometry": {
+  //         "type": "Polygon",
+  //         "coordinates": [
+  //           [
+  //             72.83430157927796,
+  //             18.92197133724051
+  //           ],
+  //           [
+  //             72.83469318179414,
+  //             18.922249167562757
+  //           ],
+  //           [
+  //             72.83486081985757,
+  //             18.922042380654535
+  //           ],
+  //           [
+  //             72.8344705584459,
+  //             18.921751863645742
+  //           ],
+  //           [
+  //             72.83430157927796,
+  //             18.92197133724051
+  //           ]
+  //         ]
+  //       },
+  //       "properties": {
+  //         "name": "goi"
+  //       }
+  //     }
+  //   ]
+  // };
+  var geo = {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+        [
+          [
+            72.83430157927796,
+            18.92197133724051
+          ],
+          [
+            72.83469318179414,
+            18.922249167562757
+          ],
+          [
+            72.83486081985757,
+            18.922042380654535
+          ],
+          [
+            72.8344705584459,
+            18.921751863645742
+          ],
+          [
+            72.83430157927796,
+            18.92197133724051
+          ]
+        ]
+      ]
+    },
+    "properties": {
+      "name": "goi"
+    }
+  };
+  var ind = {
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            82.7713394165039,
+            22.02056719302067
+          ],
+          [
+            82.77391433715819,
+            22.001628438498244
+          ],
+          [
+            82.77580261230469,
+            22.000991797751375
+          ],
+          [
+            82.77769088745117,
+            21.99908185836153
+          ],
+          [
+            82.77854919433594,
+            21.99764938693871
+          ],
+          [
+            82.7790641784668,
+            21.995739402535786
+          ],
+          [
+            82.77837753295898,
+            21.994625233089977
+          ],
+          [
+            82.77957916259766,
+            21.993988560906022
+          ],
+          [
+            82.78112411499022,
+            21.99589856888506
+          ],
+          [
+            82.781982421875,
+            21.998126879020585
+          ],
+          [
+            82.78318405151367,
+            21.998922695584604
+          ],
+          [
+            82.7845573425293,
+            21.998922695584604
+          ],
+          [
+            82.78593063354492,
+            22.000195992798375
+          ],
+          [
+            82.78799057006836,
+            21.999718507682935
+          ],
+          [
+            82.78987884521484,
+            21.999718507682935
+          ],
+          [
+            82.79176712036133,
+            22.000036831271867
+          ],
+          [
+            82.79417037963867,
+            22.000036831271867
+          ],
+          [
+            82.796573638916,
+            22.000036831271867
+          ],
+          [
+            82.79794692993164,
+            22.000514315315485
+          ],
+          [
+            82.80052185058592,
+            22.00083263711805
+          ],
+          [
+            82.82180786132812,
+            22.01070025853644
+          ],
+          [
+            82.7713394165039,
+            22.02056719302067
+          ]
+        ]
+      }
+    };
+  var data = {
+    type: "Feature",
+    geometry: {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [-73.974228, 40.75597],
+          [-73.983841, 40.742931],
+          [-74.008133, 40.75307500000001],
+          [-73.998131, 40.765915],
+          [-73.974228, 40.75597]
+        ]
+      ]
+    }
+  };
+
+  function initialize() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(success, failure);
+      console.log("In Geolocation");
+    } else {
+      console.log('Geo Location is not supported');
+    }
+
+    function success(position){
+      coords = new google.maps.LatLng(position.coords.latitude, position.coords.longitude); 
+      console.log("In Success" + position);
+      console.log(coords);
+      load();
+    }
+
+    function failure(){
+      coords = new google.maps.LatLng(20,78);
+      console.log("In Failure");
+      load();
+    }
+  }
+
+  function load(){
+    console.log("Load...");
+    geocoder = new google.maps.Geocoder();
+    // var coords = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+    var mapOptions = {
+      zoom: 8,
+      // center: new google.maps.LatLng(20,78),
+      center: coords,
+      mapTypeId: google.maps.MapTypeId.HYBRID
+    };
+
+    map = new google.maps.Map(document.getElementById('map-canvas'),
+        mapOptions);
+    agri = new google.maps.Data();
+
+    // Add interaction listeners to make weather requests
+    // map.data.addGeoJSON(data);
+    google.maps.event.addListener(map, 'idle', checkIfDataRequested);
+
+    // Sets up and populates the info window with details
+    map.data.addListener('click', function(event) {
+      infowindow.setContent(
+       "<img src=" + event.feature.getProperty("icon") + ">"
+       + "<br /><strong>" + event.feature.getProperty("city") + "</strong>"
+       + "<br />" + event.feature.getProperty("temperature") + "&deg;C"
+       + "<br />" + event.feature.getProperty("weather")
+       );
+      infowindow.setOptions({
+          position:{
+            lat: event.latLng.lat(),
+            lng: event.latLng.lng()
+          },
+          pixelOffset: {
+            width: 0,
+            height: -15
+          }
+        });
+      infowindow.open(map);
+    });     
+  } 
+
+  function codeAddress() {
+    var address = document.getElementById('address').value;
+    geocoder.geocode( { 'address': address}, function(results, status) {
+      if (status == google.maps.GeocoderStatus.OK) {
+        map.setCenter(results[0].geometry.location);
+        map.setTilt(0);
+        map.setZoom(12);
+        // var marker = new google.maps.Marker({
+        //     map: map,
+        //     position: results[0].geometry.location
+        // });
+      } else {
+        alert('Geocode was not successful for the following reason: ' + status);
+      }
+    });
+  }  
+
+  var checkIfDataRequested = function() {
+    // Stop extra requests being sent
+    while (gettingData === true) {
+      request.abort();
+      gettingData = false;
+    }
+    getCoords();
+  };
+
+  // Get the coordinates from the Map bounds
+  var getCoords = function() {
+    var bounds = map.getBounds();
+    var NE = bounds.getNorthEast();
+    var SW = bounds.getSouthWest();
+    getWeather(NE.lat(), NE.lng(), SW.lat(), SW.lng());
+  };
+
+  // Make the weather request
+  var getWeather = function(northLat, eastLng, southLat, westLng) {
+    gettingData = true;
+    var requestString = "http://api.openweathermap.org/data/2.5/box/city?bbox="
+                        + westLng + "," + northLat + "," //left top
+                        + eastLng + "," + southLat + "," //right bottom
+                        + map.getZoom()
+                        + "&cluster=yes&format=json"
+                        + "&APPID=" + openWeatherMapKey;
+    request = new XMLHttpRequest();
+    request.onload = proccessResults;
+    request.open("get", requestString, true);
+    request.send();
+  };
+
+  // Take the JSON results and proccess them
+  var proccessResults = function() {
+    console.log(this);
+    var results = JSON.parse(this.responseText);
+    if (results.list.length > 0) {
+        resetData();
+        for (var i = 0; i < results.list.length; i++) {
+          geoJSON.features.push(jsonToGeoJson(results.list[i]));
+        }
+        drawIcons(geoJSON);
+    }
+  };
+
+  var infowindow = new google.maps.InfoWindow();
+
+  // For each result that comes back, convert the data to geoJSON
+  var jsonToGeoJson = function (weatherItem) {
+    var feature = {
+      type: "Feature",
+      properties: {
+        city: weatherItem.name,
+        weather: weatherItem.weather[0].main,
+        temperature: weatherItem.main.temp,
+        min: weatherItem.main.temp_min,
+        max: weatherItem.main.temp_max,
+        humidity: weatherItem.main.humidity,
+        pressure: weatherItem.main.pressure,
+        windSpeed: weatherItem.wind.speed,
+        windDegrees: weatherItem.wind.deg,
+        windGust: weatherItem.wind.gust,
+        icon: "http://openweathermap.org/img/w/"
+              + weatherItem.weather[0].icon  + ".png",
+        coordinates: [weatherItem.coord.lon, weatherItem.coord.lat]
+      },
+      geometry: {
+        type: "Point",
+        coordinates: [weatherItem.coord.lon, weatherItem.coord.lat]
+      }
+    };
+    // Set the custom marker icon
+    map.data.setStyle(function(feature) {
+      return {
+        icon: {
+          url: feature.getProperty('icon'),
+          anchor: new google.maps.Point(25, 25)
+        }
+      };
+    });
+
+    // returns object
+    return feature;
+  };
+
+  // Add the markers to the map
+  var drawIcons = function (weather) {
+     map.data.addGeoJson(geoJSON);
+     map.data.addGeoJson(ind);
+     // agri.data.addGeoJson(ind);
+     // agri.setMap(map);
+     // Set the flag to finished
+     gettingData = false;
+  };
+
+  // Clear data layer and geoJSON
+  var resetData = function () {
+    geoJSON = {
+      type: "FeatureCollection",
+      features: []
+    };
+    map.data.forEach(function(feature) {
+      map.data.remove(feature);
+    });
+  };
+
+  // function loadGeoJsonString(geoString) {
+  //   console.log(geoString);
+  //   console.log('Geo');
+  //   var geojson = JSON.parse(geoString);
+  //   console.log('Geo2');
+  //   console.log(geojson);
+  //   map.data.addGeoJson(geojson);
+  //   console.log('Geo3');
+  //   zoom(map);
+  // }
+
+  /**
+   * Update a map's viewport to fit each geometry in a dataset
+   * @param {google.maps.Map} map The map to adjust
+   */
+  // function zoom(map) {
+  //   var bounds = new google.maps.LatLngBounds();
+  //   map.data.forEach(function(feature) {
+  //     processPoints(feature.getGeometry(), bounds.extend, bounds);
+  //   });
+  //   map.fitBounds(bounds);
+  // }
+
+  /**
+   * Process each point in a Geometry, regardless of how deep the points may lie.
+   * @param {google.maps.Data.Geometry} geometry The structure to process
+   * @param {function(google.maps.LatLng)} callback A function to call on each
+   *     LatLng point encountered (e.g. Array.push)
+   * @param {Object} thisArg The value of 'this' as provided to 'callback' (e.g.
+   *     myArray)
+   */
+  // function processPoints(geometry, callback, thisArg) {
+  //   if (geometry instanceof google.maps.LatLng) {
+  //     callback.call(thisArg, geometry);
+  //   } else if (geometry instanceof google.maps.Data.Point) {
+  //     callback.call(thisArg, geometry.get());
+  //   } else {
+  //     geometry.getArray().forEach(function(g) {
+  //       processPoints(g, callback, thisArg);
+  //     });
+  //   }
+  // }
+
+
+
+  // function handleDrop() {
+  //   // e.preventDefault();
+  //   // e.stopPropagation();
+  //   // hidePanel(e);
+
+  //   var files = geo;
+  //   loadGeoJsonString(files);
+  //   // if (files.length) {
+  //   //   // process file(s) being dropped
+  //   //   // grab the file data from each file
+  //   //   for (var i = 0, file; file = files[i]; i++) {
+  //   //     var reader = new FileReader();
+  //   //     reader.onload = function(e) {
+  //   //       loadGeoJsonString(e.target.result);
+  //   //     };
+  //   //     reader.onerror = function(e) {
+  //   //       console.error('reading failed');
+  //   //     };
+  //   //     reader.readAsText(file);
+  //   //   }
+  //   // } else {
+  //   //   // process non-file (e.g. text or html) content being dropped
+  //   //   // grab the plain text version of the data
+  //   //   var plainText = e.dataTransfer.getData('text/plain');
+  //   //   if (plainText) {
+  //   //     loadGeoJsonString(plainText);
+  //   //   }
+  //   // }
+
+  //   // prevent drag event from bubbling further
+  //   // return false;
+  // }        
+  
+  google.maps.event.addDomListener(window, 'load', function () {
+    initialize();
+    // handleDrop();
+    // loadGeoJsonString(geo);
+  });
+</script>
+</head>
+<body>
+  <div id="panel">
+    <input id="address" type="textbox" value="India">
+    <input type="button" value="Geocode" onclick="codeAddress()">
+  </div>
+  <div id="map-canvas"></div>
+
+</body>
+</html>

@@ -1,0 +1,6 @@
+# my cool SQL parameters
+{ "user":"poweradm",
+  "passwd":"",
+  "port":,
+  "host":"",
+  "db":"power"}

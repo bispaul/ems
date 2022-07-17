@@ -1,0 +1,371 @@
+{% extends "basetemplate.html" %}
+{% block title %}Weather Watch{% endblock %}
+{% block script %}
+    {{ super() }}
+    <style>
+        html, body{
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            z-index: 10;
+        }
+        #map-canvas {
+            width: 100%;
+            height: 650px;
+            /*z-index: 6;*/
+        }  
+    </style> 
+    <!-- All JS -->
+    <script type="text/javascript" src="{{ url_for('static', filename='js/jquery-2.1.3.min.js') }}"></script>
+    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDwVA8ANu6c-Zw3KLTbZQH1B9d1r-FrGQw">
+    </script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/OverlappingFeatureSpiderfier.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/wicket.js') }}"></script>
+    <script>
+        var map;
+        var oms;
+        var infowindow = new google.maps.InfoWindow();
+        var geocoder = new google.maps.Geocoder();
+        var gettingData = false;
+        var coords = new google.maps.LatLng(20,78);
+        var bounds = new google.maps.LatLngBounds();
+
+        function inrange(min,number,max){
+            if (!isNaN(number) && (number >= min) && (number <= max)) return true
+            else return false
+        }
+        
+        function valid_coords(number_lat,number_lng) {
+            if (inrange(-90,number_lat,90) && inrange(-180,number_lng,180)) {
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+
+        // var addStyle = function(feature) {
+        //     var color = 'gray';
+        //     if (feature.getProperty('color')) {
+        //         color = feature.getProperty('color');
+        //     }                
+        //     return /** @type {google.maps.Data.StyleOptions} */({
+        //         icon: {
+        //             url: feature.getProperty('icon'),
+        //             anchor: new google.maps.Point(8, 8),
+        //             scaledSize : new google.maps.Size(16, 16)
+        //         },                
+        //         fillColor: color,
+        //         strokeColor: color,
+        //         strokeWeight: 2
+        //     });
+        // };
+
+        var myStyles =[
+            {
+                featureType: "poi",
+                elementType: "labels",
+                stylers: [
+                      { visibility: "off" }
+                ]
+            }
+        ];
+
+        // function initialize() {
+        //     if (navigator.geolocation) {
+        //         navigator.geolocation.getCurrentPosition(success, failure);
+        //         // wpid = navigator.geolocation.watchPosition(success, failure, { enableHighAccuracy: true, maximumAge: 30000, timeout: 27000 });                
+        //         // console.log("In Geolocation");
+        //     } else {
+        //         console.log('Geo Location is not supported');
+        //     }
+
+        //     function success(position){
+        //         coords = new google.maps.LatLng(position.coords.latitude, position.coords.longitude); 
+        //         console.log("In Success" + position);
+        //         console.log(position.coords.latitude, position.coords.longitude);
+        //         // user_pos.push(coords);
+        //         // console.log("user_pos" , user_pos);
+        //         load();
+        //     }
+
+        //     function failure(){
+        //         // coords = new google.maps.LatLng(20,78);
+        //         console.log("In Failure");
+        //         load();
+        //     }          
+        // };
+
+        function codeAddress(address) {
+            geocoder.geocode( {'address': address}, function(results, status) {
+                if (status == google.maps.GeocoderStatus.OK) {
+                    map.setCenter(results[0].geometry.location);
+                    map.setTilt(0);
+                    map.setZoom(12);
+                } else {
+                    alert('Geocode was not successful for the following reason: ' + status);
+                }
+            });
+        };
+
+
+        function load() {
+            var myOptions = {
+                zoom: 12,
+                // center: new google.maps.LatLng(20,78),
+                center: coords,
+                mapTypeId: google.maps.MapTypeId.ROADMAP,
+                styles: myStyles,
+                clickableIcons: false
+            };
+
+            map = new google.maps.Map(document.getElementById('map-canvas'), myOptions);
+            // oms = new OverlappingMarkerSpiderfier(map, {markersWontMove: true, markersWontHide: true, nearbyDistance: 10});         
+            codeAddress('DUBAI');
+            google.maps.event.addListener(map, 'idle', checkIfDataRequested);
+
+            map.data.setStyle(function(feature) {
+                var color = 'gray';
+                if (feature.getProperty('color')) {
+                    color = feature.getProperty('color');
+                }
+                if (feature.getProperty('ringoff')) {
+                    size = 24;
+                    point = 12;
+                } else {
+                    size = 16;
+                    point = 8;
+                }                 
+                return /** @type {google.maps.Data.StyleOptions} */({
+                    icon: {
+                        url: feature.getProperty('icon'),
+                        anchor: new google.maps.Point(point, point),
+                        scaledSize : new google.maps.Size(size, size)
+                    },                
+                    fillColor: color,
+                    strokeColor: color,
+                    strokeWeight: 4
+                });
+            });
+
+            map.data.addListener('mouseover', function(event) {
+                map.data.revertStyle();
+                map.data.overrideStyle(event.feature, {strokeWeight: 6});
+            });
+
+            map.data.addListener('mouseout', function(event) {
+                map.data.revertStyle();
+            });
+
+            var ofs = new OverlappingFeatureSpiderfier(map.data, {markersWontMove: true, markersWontHide: true});
+            ofs.addListener("click", function(event) {
+                infowindow.setContent(
+                    "<strong>" + event.feature.getProperty("name") + "</strong>"
+                    + "<br />" + event.feature.getProperty("code")
+                    // + "<br />" + "Parent:" + event.feature.getProperty("parent")
+                    // + "<br />" + "Child:" + event.feature.getProperty("child")
+                    // + "<br />" + event.feature.getProperty("capacity")
+                );
+                infowindow.setOptions({
+                    position:{
+                        lat: event.latLng.lat(),
+                        lng: event.latLng.lng()
+                    },
+                    pixelOffset: {
+                        width: 0,
+                        height: -15
+                    }
+                });
+                infowindow.open(map);
+            });                                                                                 
+        }                  
+
+        var checkIfDataRequested = function() {
+            // Stop extra requests being sent
+            while (gettingData === true) {
+                request.abort();
+                gettingData = false;
+            }
+            // getCoords();
+            getSubstation();
+        };
+
+        var getSubstation = function() {
+            gettingData = true;
+            // requestString = "{##{ url_for('ems.get_substation') }##}";
+            requestString = "get_substation/" + "B";
+            request = new XMLHttpRequest();
+            request.onload = proccessResults;
+            request.open("get", requestString, true);
+            request.send();
+        };
+        // Take the JSON results and proccess them
+        var proccessResults = function() {
+            // console.log('This:', this);
+            var results = JSON.parse(this.responseText);
+            if (results.length > 0) {
+                // console.log('Results:', results);
+                resetData();
+                for (var i = 0; i < results.length; i++) {
+                    if (results[i].parent_flag === 1){
+                        addPts(jsonToGeoJsonParPt(results[i]));
+                        addPts(jsonToGeoJsonCldPt(results[i]));                        
+                    } else {
+                        addPts(jsonToGeoJsonCldPt(results[i]));  
+                    }
+
+                    if (results[i].child_lat != null){
+                        geoJSON.features.push(jsonToGeoJsonLine(results[i]));
+                    }
+                }
+                drawIcons(geoJSON);
+            }
+            console.log('geoJSON', JSON.stringify(geoJSON));
+        };
+
+        function addPts(point) {
+            // console.log('point', point);
+            var found = false;
+            for(var i = 0; i < geoJSON.features.length; i++) {
+                if (geoJSON.features[i].properties.name === point.properties.name) {
+                    found = true;
+                    break;
+                }
+            }
+            // if (geoJSON.features.indexOf(point) === -1) {
+            //     geoJSON.features.push(point);
+            // }
+            if (!found) {
+                geoJSON.features.push(point);
+            }
+            // console.log(geoJSON.features, point);
+        };        
+        // For each result that comes back, convert the data to geoJSON
+        var jsonToGeoJsonParPt = function (rowItem) {
+            var icon;
+            if (rowItem.parent_flag === 1){
+                icon = "start_substation_" + "green" + ".svg";
+            } else {
+                icon = "substation_" + "green" + ".svg";
+            }            
+            var feature = {
+                type: "Feature",
+                geometry: {
+                    type: "Point",
+                    coordinates: [rowItem.par_long, rowItem.par_lat]
+                },
+                properties: {
+                    name: rowItem.parent_name,
+                    code: rowItem.parent_code,
+                    // capacity: rowItem.output_rating,
+                    // parent: rowItem.parent,
+                    // child: rowItem.child,
+                    ringoff: rowItem.ringoff_ind,
+                    type: rowItem.substation_type_name,                    
+                    icon: "/static/images/substation/" + icon,
+                    visible: true
+                }                
+            };
+            return feature;
+        };
+
+        var jsonToGeoJsonCldPt = function (rowItem) {
+            var icon = "substation_" + "green" + ".svg";
+            if (rowItem.ringoff_ind === 1){
+                icon = "ringoff_substation_" + "south" + "_energized.svg";
+            } else {
+                icon = "substation_" + "green" + ".svg";
+            }             
+            var feature = {
+                type: "Feature",
+                geometry: {
+                    type: "Point",
+                    coordinates: [rowItem.child_long, rowItem.child_lat]
+                },
+                properties: {
+                    name: rowItem.child_name,
+                    code: rowItem.child_code,
+                    // capacity: rowItem.output_rating,
+                    // parent: rowItem.parent,
+                    // child: rowItem.child,
+                    ringoff: rowItem.ringoff_ind,
+                    type: rowItem.substation_type_name,
+                    icon: "/static/images/substation/" + icon,
+                    visible: true
+                }                
+            };
+            return feature;
+        };
+
+        var jsonToGeoJsonLine = function (rowItem) {
+            // console.log('connection', rowItem.connection);
+            if (rowItem.connection === null){
+                var feature = {
+                    type: "Feature",
+                    geometry: {
+                        type: "LineString",
+                        coordinates: [[rowItem.par_long, rowItem.par_lat],
+                                      [rowItem.child_long, rowItem.child_lat]]
+                    },
+                    properties: {
+                        color: "red",
+                        type: rowItem.substation_type_name,  
+                        visible: true
+                    }                
+                };                
+            } else {
+                // Converting WKT to JSON
+                wkt = new Wkt.Wkt();
+                // Create a geometry object, ready to be mapped!
+                wkt.read(rowItem.connection)
+                var geometry = wkt.toJson(); // Outputs an object
+                var feature = {
+                    type: "Feature",
+                    geometry,
+                    properties: {
+                        color: "red",
+                        visible: true
+                    }                
+                };                                 
+            }
+            // console.log('linefeature', JSON.stringify(feature));          
+            return feature;
+        };
+
+        var drawIcons = function (geoJSON) {
+            map.data.addGeoJson(geoJSON);
+            // Set the flag to finished
+            gettingData = false;
+        };
+
+        // Clear data layer and geoJSON
+        var resetData = function () {
+            geoJSON = {
+                type: "FeatureCollection",
+                features: []
+            };
+            map.data.forEach(function(feature) {
+                map.data.remove(feature);
+            });
+        };
+
+        google.maps.event.addDomListener(window, 'load', function () {
+            // initialize();
+            load();
+        });
+    </script>           
+{% endblock %}
+{% block header %}
+    <form id="defaultForm" method="post" class="navbar-form navbar-left form-inline" role="form">
+        <div class="row">                          
+            <div class="form-group">
+                <input class="form-control" id="address" type="textbox" value="DUBAI">
+                <input type="button" class="btn btn-primary" value="Geocode" onclick="codeAddress(document.getElementById('address').value)">
+            </div>
+        </div>
+    </form>    
+{% endblock %}
+{% block content %}
+    <div id="map-canvas"></div>     
+{% endblock %}

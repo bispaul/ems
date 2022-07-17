@@ -1,0 +1,1118 @@
+{% extends "basetemplate.html" %}
+{% block title %}Medium Term{% endblock %}
+{% block script %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/c3.min.css') }}">
+    <!-- <link rel="stylesheet" href="{#{ url_for('static', filename='css/jquery.dataTables.css') }#}"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dataTables.bootstrap.css') }}">
+    <!-- <link rel="stylesheet" href="{#{ url_for('static', filename='css/nv.d3.css') }#}"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-datepicker3.css') }}">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fileinput.min.css') }}">
+    <style>
+      .bars {
+                display: block;
+                width: 20px;
+                height: 3px;    
+                background-color: #333;
+                box-shadow: 0 5px 0 #333, 0 10px 0 #333;
+            }
+      .nav>li>a:hover, .nav>li>a:focus {
+                text-decoration: none;
+                background-color: #fff;
+            }
+      .nav .open>a, .nav .open>a:hover, .nav .open>a:focus {
+                background-color: #fff;
+                border-color: #428bca;
+            }
+
+      .ui-autocomplete-loading {
+          background: white url("/static/images/ui-anim_basic_16x16.gif") right center no-repeat;
+      }
+
+      .btn-custom {
+          width: 78px !important;
+      }
+
+      .btn-default.active {
+          background-color: limegreen;
+      }
+
+/*      .btn-primary.active {
+          background-color: limegreen;
+      } */     
+
+      .ui-autocomplete {
+          max-height: 100px;
+          overflow-y: auto;
+          /* prevent horizontal scrollbar */
+          overflow-x: hidden;
+      }
+
+
+      body {
+        overflow-y:scroll;
+      }
+
+      text {
+        font: 12px sans-serif;
+      }
+
+      #chart3 svg {
+        height: 500px;
+        margin: 10px;
+        min-width: 100px;
+        min-height: 100px;
+      /*
+        Minimum height and width is a good idea to prevent negative SVG dimensions...
+        For example width should be =< margin.left + margin.right + 1,
+        of course 1 pixel for the entire chart would not be very useful, BUT should not have errors
+      */
+      }
+      .c3-region.foo {
+        fill: red;
+      }
+      select option {
+      color: black;
+      }
+      select option:first-child {
+      color: grey;
+      }
+      select.empty {
+      color: grey;
+      }
+      #chart2 .c3-line-Forecast {
+        stroke-width: 5px;
+      }      
+      div.DTTT { margin-bottom: 0.5em; float: right; }
+      div.dataTables_wrapper { clear: both; }                                                                    
+    </style> 
+    <script src="{{ url_for('static', filename='js/jquery.dataTables.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dataTables.tableTools.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dataTables.bootstrap.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/require.js') }}"></script>
+    <!-- // <script src="{#{ url_for('static', filename='js/d3.v3.js') }#}"></script> -->
+    <!-- // <script src="{#{ url_for('static', filename='js/nv.d3.min.js') }#}"></script>  -->
+    <script src="{{ url_for('static', filename='js/bootstrap-datepicker.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/nanobar.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/fileinput.min.js') }}"></script>
+    <script>
+      $(document).ready(function(){
+          // $( '#tenisgs' ).hide();
+          $( '#dateselector' ).datepicker({
+              format: "dd-mm-yyyy",
+              todayBtn: "linked",
+              todayHighlight: true,
+              autoclose: true
+          }); 
+          // $( '#dateselector' ).datepicker("setDate", new Date());
+          $( '#dateselector' ).datepicker("update", "{{ dayaheaddate }}");
+
+          function DoValidate(){
+          // check your validate here, 
+          // if all field pass: return true, if not : return false;
+          // ex: return $('input[name="part_barcode"]).val().length>10;
+          // alert($('input[name="model"]').val().length);
+          // alert($('input[name="date"]').val().length);
+           return $('input[name="date"]').val() != "";
+           // return true;
+          }; 
+
+          function calldovalidate(){
+              if(DoValidate()){
+                switch ($('.nav-tabs .active > a').attr('href')) {
+                  case "#tenisgsgentab":
+                    $('#selectmodel').hide();
+                    // console.log($('input[name="date"]').val());
+                    tenisgsgen($('input[name="date"]').val());
+                    $( '#tenisgs' ).show();
+                    break;
+                  case "#tenisgsgengraph":
+                    $('#selectmodel').hide();
+                    drawchart($('input[name="date"]').val());             
+                    break;
+                  case "#forecasttab":
+                    $('#selectmodel').show();
+                    $( '#forecast' ).hide();
+                    if ($('#selectmodel').val() !== null) {
+                      forecast($('input[name="date"]').val());
+                      $( '#forecast' ).show();
+                    };
+                    break;
+                  case "#positionmaptab":
+                    $('#selectmodel').show();
+                    $( '#positionmap' ).hide();
+                    if ($('#selectmodel').val() !== null) {
+                      positionmap($('input[name="date"]').val());
+                      $( '#positionmap' ).show();
+                    };
+                    break;
+                  case "#positionmapgraph":
+                    $('#selectmodel').show();
+                    $( '#chart2' ).hide();
+                    if ($('#selectmodel').val() !== null) {
+                      // console.log($('#selectmodel').val());
+                      // posmapchart($('input[name="date"]').val(), $('#selectmodel').val());
+                      $( '#chart2' ).show();
+                    };            
+                    break;                                       
+                  default:
+                    $('#selectmodel').hide();
+                    // $('#dateselector').hide();
+                    break;
+                };
+              };            
+          };
+
+          calldovalidate(); //Default
+
+          $( '#Select,input[name="date"]' ).bind({
+            click: function(){
+              calldovalidate();
+              },            
+            focusout: function(){
+              calldovalidate();
+              },
+            keydown: function(){
+              calldovalidate();
+              },
+            change: function(){
+              calldovalidate();
+              }                               
+          });
+
+          $( '#selectmodel' ).bind({
+            click: function(){
+              calldovalidate();
+              },            
+            focusout: function(){
+              calldovalidate();
+              },
+            keydown: function(){
+              calldovalidate();
+              },
+            change: function(){
+              calldovalidate();
+              }                               
+          });
+
+          function tenisgsgen(dateval){     
+            console.log("Tenisgsgencd");            
+            if ( $.fn.dataTable.isDataTable( '#tenisgs' ) ) {
+                table = $('#tenisgs').DataTable();
+                table.destroy();
+            }
+
+            var table = $('#tenisgs').dataTable( {
+              "fnRowCallback": function( nRow, aData, iDisplayIndex ) {
+                      $('td', nRow).attr('nowrap','nowrap');
+                      return nRow;
+                      },                    
+              // "dom": 'Tlfrtip',
+              // "sDom": "<'row-fluid'<'span6 toolbar'><'span6'>r>t<'row-fluid'<'span6'f><'span6'p>>",
+              // "tableTools": {
+           //                 "sSwfPath": "/static/swf/copy_csv_xls_pdf.swf"
+            //                },        
+              // "scrollY": true,
+              //"scrollX": true,
+              // "scrollCollapse": true,
+              //"responsive": true,
+              //"paging": true,
+              // "deferRender": true,
+              "aLengthMenu": [[96, 182], [96, 182]],
+              "iDisplayLength": 96,
+              "aaSorting": [[0,'desc'],[1,'desc']],
+              // "sAjaxSource": "{#{ url_for('get_erschedule_data') }#}",
+              "ajax": {
+                "url": "{{ url_for('ems.get_tengenisgs_data') }}",
+                "type": "POST"
+              },                  
+              "fnServerParams": function ( aoData ) {
+                    aoData.push( { "name": "date", "value": dateval });
+              }
+            } );
+            // var tt = new $.fn.dataTable.TableTools( table );
+            // $( tt.fnContainer() ).insertAfter('div.middle');
+            var tt = new $.fn.dataTable.TableTools( table, {
+                            "sSwfPath": "{{ url_for('static', filename='swf/copy_csv_xls_pdf.swf') }}"
+                            } );
+            $( tt.fnContainer() ).insertBefore('div#tenisgs_wrapper.dataTables_wrapper');     
+          };
+
+          function forecast(dateval){
+            if ( $.fn.dataTable.isDataTable( '#forecast' ) ) {
+              table = $('#forecast').DataTable();
+              table.destroy();
+            };  
+            var table = $('#forecast').dataTable( {
+              "fnRowCallback": function( nRow, aData, iDisplayIndex ) {
+                      $('td', nRow).attr('nowrap','nowrap');
+                      return nRow;
+                      },             
+              // "dom": 'Tlfrtip',
+              // "sDom": "<'row-fluid'<'span6 toolbar'><'span6'>r>t<'row-fluid'<'span6'f><'span6'p>>",
+              // "tableTools": {
+           //                 "sSwfPath": "/static/swf/copy_csv_xls_pdf.swf"
+            //                },        
+              // "scrollY": true,
+              //"scrollX": true,
+              // "scrollCollapse": true,
+              //"responsive": true,
+              //"paging": true,
+              //"deferRender": true,
+              "aLengthMenu": [[96, 182], [96, 182]],
+              "iDisplayLength": 96,
+              "aaSorting": [[0,'asc'],[1,'asc']],
+              // "sAjaxSource":  "{#{ url_for('get_forecast_data')}#}"
+              // "sAjaxSource":  "{#{ url_for('get_bforecast_data')}#}" + "/" + $('#selectmodel').val(),
+              "ajax": {
+                "url": "{{ url_for('ems.get_bforecast_data')}}",
+                // + "/" + $('#selectmodel').val() ,
+                // + "/" + $('#dateselector').val(),
+                "type": "POST"
+              },
+              "fnServerParams": function ( aoData ) {
+                    aoData.push( { "name": "date", "value": dateval } );
+                    aoData.push( { "name": "model", "value": $('#selectmodel').val() } );
+              }
+            } );
+            // var tt = new $.fn.dataTable.TableTools( table );
+            // $( tt.fnContainer() ).insertAfter('div.middle');
+            var tt = new $.fn.dataTable.TableTools( table, {
+                            "sSwfPath": "{{ url_for('static', filename='swf/copy_csv_xls_pdf.swf') }}"
+                            } );
+            $( tt.fnContainer() ).insertBefore('div#forecast_wrapper.dataTables_wrapper');
+          };
+
+          function positionmap(dateval){
+            console.log(dateval);
+            if ( $.fn.dataTable.isDataTable( '#positionmap' ) ) {
+              table = $('#positionmap').DataTable();
+              table.destroy();
+            };  
+            var table = $('#positionmap').dataTable( {
+              "fnRowCallback": function( nRow, aData, iDisplayIndex ) {
+                      $('td', nRow).attr('nowrap','nowrap');
+                      return nRow;
+                      },             
+              // "dom": 'Tlfrtip',
+              // "sDom": "<'row-fluid'<'span6 toolbar'><'span6'>r>t<'row-fluid'<'span6'f><'span6'p>>",
+              // "tableTools": {
+           //                 "sSwfPath": "/static/swf/copy_csv_xls_pdf.swf"
+            //                },        
+              // "scrollY": true,
+              //"scrollX": true,
+              // "scrollCollapse": true,
+              //"responsive": true,
+              //"paging": true,
+              //"deferRender": true,
+              "aLengthMenu": [[96, 182], [96, 182]],
+              "iDisplayLength": 96,
+              "aaSorting": [[0,'asc'],[1,'asc']],
+              // "sAjaxSource":  "{#{ url_for('get_forecast_data')}#}"
+              "ajax": {
+                "url": "{{ url_for('ems.get_biharposmap_data')}}",
+                "type": "POST"
+              },
+              "fnServerParams": function ( aoData ) {
+                    aoData.push( { "name": "date", "value": dateval });
+                    aoData.push( { "name": "model", "value": $('#selectmodel').val() });
+              }
+            } );
+            // var tt = new $.fn.dataTable.TableTools( table );
+            // $( tt.fnContainer() ).insertAfter('div.middle');
+            var tt = new $.fn.dataTable.TableTools( table, {
+                            "sSwfPath": "{{ url_for('static', filename='swf/copy_csv_xls_pdf.swf') }}"
+                            } );
+            $( tt.fnContainer() ).insertBefore('div#positionmap_wrapper.dataTables_wrapper');
+          };                      
+
+          $('#mytab a[href="#uploaddata"]').click(function (e) {
+            e.preventDefault();
+            console.log('Upload');
+            $('#selectmodel').hide();
+            $('#dateselector').hide();
+            $(this).tab('show')
+          });
+
+          $('#myTab a[href="#tenisgsgentab"]').click(function(e){
+            e.preventDefault();
+            $('#selectmodel').hide();
+            $(this).tab('show');
+            console.log(this);
+            tenisgsgen($('input[name="date"]').val());        
+          });
+
+          $('#myTab a[href="#tenisgsgengraph"]').click(function(e){
+            e.preventDefault();
+            $('#selectmodel').hide();
+            $(this).tab('show');
+            console.log(this);
+            drawchart($('input[name="date"]').val());        
+          });
+
+          $('#myTab a[href="#forecasttab"]').click(function(e){
+            e.preventDefault();
+            $('#selectmodel').show();
+            $(this).tab('show');
+            $( '#forecast' ).hide();
+            console.log(this);
+            if ($('#selectmodel').val() !== null) {
+              forecast($('input[name="date"]').val());
+              $( '#forecast' ).show();
+            }       
+          });
+
+          $('#myTab a[href="#positionmaptab"]').click(function(e){
+            e.preventDefault();
+            $('#selectmodel').show();
+            $(this).tab('show');
+            $( '#positionmap' ).hide();
+            console.log(this);
+            if ($('#selectmodel').val() !== null) {
+              positionmap($('input[name="date"]').val());
+              $( '#positionmap' ).show();
+            }       
+          });
+
+          $('#myTab a[href="#positionmapgraph"]').click(function(e){
+            e.preventDefault();
+            $('#selectmodel').show();
+            $(this).tab('show');
+            $( '#chart2' ).hide();
+            console.log(this);
+            if ($('#selectmodel').val() !== null) {
+              // console.log($('#selectmodel').val());
+              posmapchart($('input[name="date"]').val(), $('#selectmodel').val());
+              $( '#chart2' ).show();
+            }       
+          });          
+
+          var pos_data = [];
+          var pos_data2 = {};          
+          function drawchart( date ) {
+            $.ajax( {url: "get_isgser_data/BSEB/" + date ,
+                     dataType: "json",
+                     //data: "FD_16-11-2009",
+                     //type: "GET",
+                     contentType: "application/json; charset=utf-8",
+                     dataFilter: function(data) { return data; },
+                     success: function(data) {
+                                console.log(data);
+                                console.log("success");
+                                // for nvd3.js
+                                //pos_data.push({'key':message, 'values':data});
+                                //for c3js
+                                //pos_data.push({'key': message, message : data});
+                                //pos_data2['x']=data.map(function(a){return a.x});
+                                //pos_data2=data.map(function(a){return pos_data2[a.station_name]=a.y});
+                                var y = [];
+                                var x = [];
+                                var drawl_type = [];
+                                var length = Object.keys(data).length;
+                                //var length = 384;
+                                var starttime = new Date();
+                                for (var i = 0; i < length; i++){
+                                  var temp_drawl;
+                                  if ((i != 0 && temp_drawl != data[i]['drawl_type']) || (i == length - 1)){
+                                      //console.log("Inside String");
+                                      //console.log(temp_station);
+                                      //console.log(i);
+                                      pos_data2['x'] = x;
+                                      pos_data2[temp_drawl] = y;
+                                      y = [];
+                                      x = [];
+                                      drawl_type.push(temp_drawl);
+                                  }
+                                  //console.log(item.y);
+                                  y.push(data[i]['y']);
+                                  x.push(data[i]['x']);
+                                  //console.log(y);
+                                  temp_drawl = data[i]['drawl_type'];
+                                } 
+                                var stoptime = new Date();
+                                console.log((stoptime.getTime() - starttime.getTime())/1000);
+                                //len = Object.keys(pos_data2).length;
+                                //keys = Object.keys(pos_data2);
+                                types = {};
+                                axes = {};
+                                //console.log(pos_data2[]);
+                                console.log([drawl_type]);
+                                //console.log(pos_data2['x']);
+                                // d3cht(data);
+                                c3cht(types, axes, [drawl_type]);
+                      },
+                     error: function(XMLHttpRequest, textStatus, errorThrown) {
+                                alert(textStatus);
+                      }
+                 });
+            // $( "<div>" ).text( message ).prependTo( "#log" );
+            // $( "#log" ).scrollTop( 0 );
+            // $( "#log" ).hide();
+            //$( "<option selected value =" + "'" + message + "'" + ">").text(message).prependTo( "#newtag" );
+            // $( "#newtag" ).tagsinput( 'add', message );
+            //$( "#newtag" ).scrollTop( 0 );
+          };
+          function c3cht(type_arg, axes_arg, group_arg){
+              require.config({
+                baseUrl: "{{ url_for('static', filename='js') }}",         
+                 paths: {d3: "d3.min",
+                         c3: "c3.min"}
+
+              });
+              require(["d3", "c3"], function(d3, c3) {
+              
+                  var chart = c3.generate({
+                              bindto: "#chart",
+                              size: {
+                                    height: 480 - 50,
+                                    width: 960 + 150
+                              },
+                              data: {
+                                x : 'x',
+                                json : pos_data2,
+                                type: "area-spline",
+                                groups: group_arg,
+                                  //keys: {
+                                  //          x: 'x',
+                                  //          value: ['y']
+                                  //}
+                                types: type_arg,
+                                axes: axes_arg//,
+                                  //labels: true
+                              },
+                              axis: {
+                                      x: {
+                                    //    type: 'categorized'
+                                          label: {
+                                                   text: 'Block No',
+                                                   position: 'outer-center'
+                                          },
+                                          tick: {
+                                                  //fit: true
+                                                  //count: 96//,
+                                                  //format: 
+                                          }
+                                      },
+                                      y: {
+                                          label: {
+                                                   text: 'Quantum (MW)',
+                                                   position: 'outer-middle'
+                                          }
+                                      }                  
+                              },
+                              grid: {
+                                      y: {
+                                        show: true
+                                      },
+                                      x: {
+                                        show: true
+                                      },
+                                      focus: {
+                                        show: true
+                                      }
+                              },
+                              legend: {
+                                        //position: 'right',
+                                        show: true
+                              },
+                              point: {
+                                        show: false
+                              },
+                              transition: {
+                                            duration: 100
+                              },
+                              tooltip: {
+                                          format: {
+                                                    title: function (d) { return 'Block_No ' + d; }
+                                          }
+                              },
+                              regions: [
+                              //{axis: 'x', start: 76, end: 88, class: 'foo'}
+                              ],
+                              color: {
+                                      // pattern: classic9
+                              }
+                          });
+                }); 
+          };
+
+          var pos_data3 = {};
+          function posmapchart(date, model) {
+            console.log(date + ':' + model);
+            $.ajax( {url: "get_biharposmap2_data/" + date + "/" + model,
+                     dataType: "json",
+                     contentType: "application/json; charset=utf-8",
+                     dataFilter: function(data) { return data; },
+                     success: function(data) {
+                                              console.log(data);
+                                              console.log("success");
+                                              types = {};
+                                              axes = {};
+                                              group_arg = []
+                                              pos_data3 = data
+                                              c3posmapchart(types, axes, group_arg);
+                              },
+                     error: function(XMLHttpRequest, textStatus, errorThrown) {
+                              alert(textStatus);
+                            }
+            });
+          };
+          function c3posmapchart(type_arg, axes_arg, group_arg){
+            require.config({
+              baseUrl: '/static/js',
+              paths: {d3: "d3.min",
+                      c3: "c3.min"}
+            });
+            require(["d3", "c3"], function(d3, c3) {
+              var chart = c3.generate({
+                          bindto: "#chart2",
+                          size: {
+                                  height: 480 - 50,
+                                  width: 960 + 150
+                          },
+                          data: {
+                            json : pos_data3,
+                            keys : {
+                                    x: 'Block_no',
+                                    value: ['ISGS', 'Bilateral', 'Internal_Generation', 'Forecast', 'Position_Gap']
+                                  },
+                            type: "area-spline",
+                            types: {
+                                    Forecast: 'line',
+                                    Position_Gap: 'bar'
+                                  },
+                            groups: [['ISGS', 'Bilateral', 'Internal_Generation']],
+                            colors: {
+                                      // Forecast: d3.rgb('#ff0000').darker(2)
+                                    },                              
+                            axes: axes_arg,
+                            labels: false
+                          },
+                          axis: {
+                                  x: {
+                                //    type: 'categorized'
+                                      label: {
+                                               text: 'Block No',
+                                               position: 'outer-center'
+                                      },
+                                      tick: {
+                                              //fit: true
+                                              //count: 96//,
+                                              //format: 
+                                      }
+                                  },
+                                  y: {
+                                      label: {
+                                               text: 'Quantum (MW)',
+                                               position: 'outer-middle'
+                                      }
+                                  }                  
+                          },
+                          grid: {
+                                  y: {
+                                    show: true
+                                  },
+                                  x: {
+                                    show: true
+                                  },
+                                  focus: {
+                                    show: true
+                                  }
+                          },
+                          legend: {
+                                    //position: 'right',
+                                    show: true
+                          },
+                          point: {
+                                    show: false
+                          },
+                          transition: {
+                                        duration: 100
+                          },
+                          tooltip: {
+                                      format: {
+                                                title: function (d) { return 'Block_No ' + d; }
+                                      }
+                          },
+                          regions: [
+                            {axis: 'x', start: 21, end: 31},
+                            {axis: 'x', start: 73, end: 92}
+                          ],
+                          color: {
+                                  // pattern: classic9
+                                  // patttern: [
+                                  //             '#ecb796',
+                                  //             '#dc8f70',
+                                  //             '#b2a470',
+                                  //             '#92875a',
+                                  //             '#716c49',
+                                  //             '#d2ed82',
+                                  //             '#bbe468',
+                                  //             '#a1d05d',
+                                  //             '#e7cbe6',
+                                  //             '#d8aad6',
+                                  //             '#a888c2',
+                                  //             '#9dc2d3',
+                                  //             '#649eb9',
+                                  //             '#387aa3'
+                                  //           ]                              
+                          }
+                      });
+              }); 
+          };
+                           
+          $('#uploaddata a').click(function (e) {
+            console.log('Upload');
+            e.preventDefault()
+            $(this).tab('show')
+          }); 
+
+          $("#input-4").fileinput({showCaption: false}); 
+        //   $('#input-4').on('filebatchuploadsuccess', function(event, data, previewId, index) {
+        //     var form = data.form, files = data.files, extra = data.extra,
+        // response = data.response, reader = data.reader;
+        //     alert('Success Load');
+        //   });
+        //   $('#input-4').on('filebatchuploadcomplete', function(event, files, extra) {
+        //       console.log('File batch upload complete');
+        //   });
+
+      });
+
+      function start_long_task() {
+          // add task status elements
+          // div = $('#jobs').append('<div class="progress"><div></div><div>0%</div><div>...</div><div>&nbsp;</div></div><hr>');
+          div = $('<div class="progressbseb"><div></div><div>0%</div><div>...</div><div>&nbsp;</div></div><hr>');            
+          $('#progress').append(div);
+
+          // create a progress bar
+          var nanobar = new Nanobar({
+              bg: '#44f',
+              target: div[0].childNodes[0]
+          });
+
+          // send ajax POST request to start background job
+          $.ajax({
+              type: 'POST',
+              url: '/erldc_crawler_task',
+              success: function(data, status, request) {
+                  status_url = request.getResponseHeader('Location');
+                  update_progress(status_url, nanobar, div[0]);
+              },
+              error: function() {
+                  alert('Unexpected error');
+              }
+          });
+      }
+     
+
+      function update_progress(status_url, nanobar, status_div) {
+          // send GET request to status URL
+          $.getJSON(status_url, function(data) {
+              console.log(data['current']);
+              console.log(data['total']);
+              console.log("Percentage" + parseInt(data['current'] * 100 / data['total']));
+              // update UI
+              percent = parseInt(data['current'] * 100 / data['total']);
+              nanobar.go(percent);
+              $(status_div.childNodes[1]).text(percent + '%');
+              $(status_div.childNodes[2]).text(data['status']);
+              if (data['state'] != 'PENDING' && data['state'] != 'PROGRESS') {
+                  if ('result' in data) {
+                      // show result
+                      $(status_div.childNodes[3]).text('Result: ' + data['result']);
+                  }
+                  else {
+                      // something unexpected happened
+                      $(status_div.childNodes[3]).text('Result: ' + data['state']);
+                  }
+              }
+              else {
+                  // rerun in 2 seconds
+                  setTimeout(function() {
+                      update_progress(status_url, nanobar, status_div);
+                  }, 2000);
+              }
+          });
+      }
+
+      function start_bsebweather_task() {
+          // add task status elements
+          // div = $('#jobs').append('<div class="progress"><div></div><div>0%</div><div>...</div><div>&nbsp;</div></div><hr>');
+          div = $('<div class="progressbseb"><div></div><div>0%</div><div>...</div><div>&nbsp;</div></div><hr>');            
+          $('#bsebweatherload').append(div);
+
+          // create a progress bar
+          var nanobar = new Nanobar({
+              bg: '#44f',
+              target: div[0].childNodes[0]
+          });
+
+          // send ajax POST request to start background job
+          $.ajax({
+              type: 'POST',
+              url: '/bseb_weatherupload_task',
+              success: function(data, status, request) {
+                  status_url = request.getResponseHeader('Location');
+                  update_progress(status_url, nanobar, div[0]);
+              },
+              error: function() {
+                  alert('Unexpected error');
+              }
+          });
+      }
+
+      function start_exchange_task() {
+          // add task status elements
+          // div = $('#jobs').append('<div class="progress"><div></div><div>0%</div><div>...</div><div>&nbsp;</div></div><hr>');
+          div = $('<div class="progressbseb"><div></div><div>0%</div><div>...</div><div>&nbsp;</div></div><hr>');            
+          $('#exchangeload').append(div);
+
+          // create a progress bar
+          var nanobar = new Nanobar({
+              bg: '#44f',
+              target: div[0].childNodes[0]
+          });
+
+          // send ajax POST request to start background job
+          $.ajax({
+              type: 'POST',
+              url: '/exchange_upload_task',
+              success: function(data, status, request) {
+                  status_url = request.getResponseHeader('Location');
+                  update_progress(status_url, nanobar, div[0]);
+              },
+              error: function() {
+                  alert('Unexpected error');
+              }
+          });
+      }
+
+      function start_forecast_task() {
+          // add task status elements
+          // div = $('#jobs').append('<div class="progress"><div></div><div>0%</div><div>...</div><div>&nbsp;</div></div><hr>');
+          div = $('<div class="progressbseb"><div></div><div>0%</div><div>...</div><div>&nbsp;</div></div><hr>');            
+          $('#forecastload').append(div);
+
+          // create a progress bar
+          var nanobar = new Nanobar({
+              bg: '#44f',
+              target: div[0].childNodes[0]
+          });
+
+          // send ajax POST request to start background job
+          $.ajax({
+              type: 'POST',
+              url: '/forecast_upload_task',
+              success: function(data, status, request) {
+                  status_url = request.getResponseHeader('Location');
+                  update_progress(status_url, nanobar, div[0]);
+              },
+              error: function() {
+                  alert('Unexpected error');
+              }
+          });
+      }       
+
+      function start_rforecast_task(model) {
+          // add task status elements
+          // div = $('#jobs').append('<div class="progress"><div></div><div>0%</div><div>...</div><div>&nbsp;</div></div><hr>');
+          div = $('<div class="progressbseb"><div></div><div>0%</div><div>...</div><div>&nbsp;</div></div><hr>');
+
+          switch(model){
+            case 'NNET':
+              $('#rforecastloadnnet').append(div);
+              break;
+            case 'MLP':
+              $('#rforecastloadmlp').append(div);
+              break;            
+            case 'GLM':
+              $('#rforecastloadglm').append(div);
+              break;
+            default:
+              break;               
+          };
+          console.log('Clicked' + model)
+          
+
+          // create a progress bar
+          var nanobar = new Nanobar({
+              bg: '#44f',
+              target: div[0].childNodes[0]
+          });
+
+          // send ajax POST request to start background job
+          $.ajax({
+              type: 'POST',
+              url: '/bseb_rforecast_task/' + model,
+              success: function(data, status, request) {
+                  status_url = request.getResponseHeader('Location');
+                  update_progress(status_url, nanobar, div[0]);
+              },
+              error: function() {
+                  alert('Unexpected error');
+              }
+          });
+      }             
+
+      $(function() {
+          $('#start-bg-job').click(start_long_task);
+      });
+
+      $(function() {
+          $('#start-weather-job').click(start_bsebweather_task);
+      }); 
+
+      $(function() {
+          $('#start-exchange-job').click(start_exchange_task);
+      });
+
+      $(function() {
+          $('#start-rforecastnnet-job').click(function() {start_rforecast_task('NNET')});
+      }); 
+
+      $(function() {
+          $('#start-rforecastmlp-job').click(function() {start_rforecast_task('MLP')});
+      });
+
+      $(function() {
+          $('#start-rforecastglm-job').click(function() {start_rforecast_task('GLM')});
+      });
+
+      $(function() {
+          $('#start-forecast-job').click(start_forecast_task);
+      });
+
+    </script> 
+{% endblock %}
+{% block header %}
+    <form id="defaultForm" method="post" class="navbar-form navbar-left form-inline" role="form">   
+      <!-- <div class='col-sm-2'>     -->
+        <div class="form-group">
+          <!-- <div class="input-group date"> -->
+            <input  class="form-control" type="text" placeholder="dd-mm-yyyy"  id="dateselector" name="date">
+<!--             <span class="input-group-addon">
+                <span class="glyphicon glyphicon-calendar"></span>
+            </span>    -->    
+          <!-- </div>                    -->
+        </div>
+      <!-- </div>       -->
+<!--                   <div class="form-group">
+          <button type="submit" class="btn btn-primary">Go</button>
+        </div>  -->
+      <div class="form-group">
+        <!-- <label for="disabledSelect">select menu</label> -->
+        <select id="selectmodel" class="form-control" placeholder="Select Model" name="modelname">
+          <option selected disabled>Select Model</option>
+          <option>NNET</option>
+          <option>MLP</option>
+          <option>GLM</option>
+          <option>HYBRID</option>
+        </select>
+      </div>                          
+    </form>     
+{% endblock %}
+{% block content %}
+    <div class="container">
+      <div role="tabpanel">
+        <ul id="myTab" class="nav nav-tabs" role="tablist">
+          <li role="presentation" class="active"><a href="#genforecast" aria-controls="genforecast" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-tasks"></span> Gen Forecast</a></li>
+          <li role="presentation"><a href="#forecasttab" aria-controls="#forecasttab" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-list"></span> Forecast</a></li>
+          <li role="presentation"><a href="#positionmaptab" aria-controls="#positionmaptab" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-list"></span> Pos Map Tab</a></li>
+          <li role="presentation"><a href="#positionmapgraph" aria-controls="#positionmapgraph" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-stats"></span> Pos Map Graph</a></li>
+        </ul>      
+        <div class="tab-content">
+          <div role="tabpanel" class="tab-pane" id="uploaddata">
+            <br>
+            <ul class="nav nav-pills nav-justified">
+              <li role="presentation" class="active"><a href="#historicalload">Historical Load Data</a></li>
+              <li role="presentation"><a href="#tisgs">Tentative ISGS Load</a></li>
+              <li role="presentation"><a href="#weather">Weather Load</a></li>
+              <li role="presentation"><a href="#exprices">Exchange Prices Load</a></li>
+            </ul>
+            <div class="tab-content">
+              <hr>
+              <div role="tabpanel" class="tab-pane active" id="historicalload">
+                  <form action="{{ url_for('ems.loadupload') }}" method="post" enctype="multipart/form-data">
+                  <div class="row">
+                    <div class="col-sm-8">
+                      <label class="control-label">Select File</label>
+                      <input id="input-4" type="file" multiple="" name="file[]">
+                    </div>
+                  </div>
+                </form>              
+              </div>
+              <div role="tabpanel" class="tab-pane" id="tisgs">
+                <div class="container">
+                  <div class="col-md-12 content">
+                    <button type="button" class="btn btn-default btn-sm btn-custom" id="start-bg-job">LOAD</button><br><br>
+                    <div id="progress"></div>                    
+                  </div>
+                </div>
+              </div>
+              <div role="tabpanel" class="tab-pane" id="weather">
+                <div class="container">
+                  <div class="col-md-12 content">
+                    <button type="button" class="btn btn-default btn-sm btn-custom" id="start-weather-job">LOAD</button><br><br>
+                    <div id="bsebweatherload"></div>        
+                  </div> 
+                </div>                
+              </div>
+              <div role="tabpanel" class="tab-pane" id="exprices">
+                <div class="container">
+                  <div class="col-md-12 content">
+                    <button type="button" class="btn btn-default btn-sm btn-custom" id="start-exchange-job">LOAD</button><br><br>
+                    <div id="exchangeload"></div>        
+                  </div> 
+                </div>             
+              </div>
+            </div>                                            
+          </div>
+          <div role="tabpanel" class="tab-pane active" id="genforecast">
+            <br>
+            <div class="container">
+              <div class="row">
+                <div class="col-md-1 content">
+                  <label class="control-label">NNET</label>
+                </div>
+                <div class="col-md-2 content">
+                  <div class="btn-group" data-toggle="buttons">
+                    <label class="btn btn-default btn-sm active">
+                      <input type="radio" autocomplete="off" id="nnetscore" checked> Score
+                    </label>
+                    <label class="btn btn-default btn-sm">
+                      <input type="radio" autocomplete="off" id="nnettrain"> Train
+                    </label>
+                  </div>              
+                </div>
+                <div class="col-md-6 content">
+                    <button type="button" class="btn btn-default btn-sm btn-custom" id="start-rforecastnnet-job">Run</button><br><br>
+                    <div id="rforecastloadnnet"></div>                
+                </div>
+              </div>
+              <hr>
+              <div class="row">
+                <div class="col-md-1 content">
+                  <label class="control-label">MLP</label>
+                </div>
+                <div class="col-md-2 content">
+                  <div class="btn-group" data-toggle="buttons">
+                    <label class="btn btn-default btn-sm active">
+                      <input type="radio" autocomplete="off" id="mlpscore" checked> Score
+                    </label>
+                    <label class="btn btn-default btn-sm">
+                      <input type="radio" autocomplete="off" id="mlptrain"> Train
+                    </label>
+                  </div>              
+                </div>
+                <div class="col-md-6 content">
+                    <button type="button" class="btn btn-default btn-sm btn-custom" id="start-rforecastmlp-job">Run</button><br><br>
+                    <div id="rforecastloadmlp"></div>                
+                </div>
+              </div>
+              <hr>
+              <div class="row">
+                <div class="col-md-1 content">
+                  <label class="control-label">GLM</label>
+                </div>
+                <div class="col-md-2 content">
+                  <div class="btn-group" data-toggle="buttons">
+                    <label class="btn btn-default btn-sm active">
+                      <input type="radio" autocomplete="off" id="glmscore" checked> Score
+                    </label>
+                    <label class="btn btn-default btn-sm">
+                      <input type="radio" autocomplete="off" id="glmtrain"> Train
+                    </label>
+                  </div>              
+                </div>
+                <div class="col-md-6 content">
+                    <button type="button" class="btn btn-default btn-sm btn-custom" id="start-rforecastglm-job">Run</button><br><br>
+                    <div id="rforecastloadglm"></div>                
+                </div>
+              </div> 
+              <hr>
+              <div class="row">
+                <div class="col-md-1 content">
+                  <label class="control-label">HYBRID</label>
+                </div>
+                <div class="col-md-2 content">
+                  <div class="btn-group" data-toggle="buttons">
+                    <label class="btn btn-default btn-sm active">
+                      <input type="radio" autocomplete="off" id="hybridscore" checked> Score
+                    </label>
+                    <label class="btn btn-default btn-sm">
+                      <input type="radio" autocomplete="off" id="hybridtrain"> Train
+                    </label>
+                  </div>              
+                </div>
+                <div class="col-md-6 content">
+                    <button type="button" class="btn btn-default btn-sm btn-custom" id="start-forecast-job">Run</button><br><br>
+                    <div id="forecastload"></div>                
+                </div>
+              </div>                                          
+            </div>                        
+          </div>                  
+          <div role="tabpanel" class="tab-pane" id="tenisgsgentab">
+            <div class="container">
+              <div class="col-md-12 content">    
+                <table id="tenisgs" class="table table-striped table-bordered table-condensed table-hover" cellspacing="0" width="100%">
+                  <thead>
+                    <tr>
+                      {% for col in tenisgs_columns %}
+                      <th>{{ col }}</th>
+                      {% endfor %}
+                    </tr>
+                  </thead>
+                </table>            
+              </div>
+            </div>
+          </div>
+          <div role="tabpanel" class="tab-pane" id="tenisgsgengraph">
+            <div class="container">
+              <div class="col-md-12 content">
+                <div id="chart"></div>
+              </div>
+            </div>
+          </div>
+          <div role="tabpanel" class="tab-pane" id="forecasttab">
+            <div class="container">
+              <div class="col-md-12 content">    
+                <table id="forecast" class="table table-striped table-bordered table-condensed table-hover" cellspacing="0" width="100%">
+                  <thead>
+                    <tr>
+                      {% for col in forecast_columns %}
+                      <th>{{ col }}</th>
+                      {% endfor %}
+                    </tr>
+                  </thead>
+                </table>            
+              </div>
+            </div>
+          </div>
+          <div role="tabpanel" class="tab-pane" id="positionmaptab">
+            <div class="container">
+              <div class="col-md-12 content">    
+                <table id="positionmap" class="table table-striped table-bordered table-condensed table-hover" cellspacing="0" width="100%">
+                  <thead>
+                    <tr>
+                      {% for col in positionmap_columns %}
+                      <th>{{ col }}</th>
+                      {% endfor %}
+                    </tr>
+                  </thead>
+                </table>            
+              </div>
+            </div>
+          </div>
+          <div role="tabpanel" class="tab-pane" id="positionmapgraph">
+            <div class="container">
+              <div class="col-md-12 content">
+                <div id="chart2"></div>
+              </div>
+            </div>
+          </div>                                                                   
+        </div>
+      </div>        
+    </div><!-- /.container -->
+{% endblock %}

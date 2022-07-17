@@ -1,0 +1,853 @@
+{% extends "basetemplate.html" %}
+{% block title %}Day Ahead{% endblock %}
+{% block script %}
+    {{ super() }}
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.vertical-tabs.min.css') }}">     -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/c3.min.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.dataTables.css') }}"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dataTables.bootstrap.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/buttons.bootstrap.min.css') }}">    
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/nv.d3.css') }}"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-datepicker3.css') }}">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fileinput.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-toggle.min.css') }}">   
+<!--     <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.loadmask.css') }}">   -->      
+<!--     <link rel="stylesheet" href="{{ url_for('static', filename='css/normalize.css') }}">   -->
+<!--     <link rel="stylesheet" href="{{ url_for('static', filename='css/tabs.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tabstyles.css') }}">    -->         
+    <style>
+      .bars {
+                display: block;
+                width: 20px;
+                height: 3px;    
+                background-color: #333;
+                box-shadow: 0 5px 0 #333, 0 10px 0 #333;
+      }
+      .nav>li>a:hover, .nav>li>a:focus {
+                text-decoration: none;
+                background-color: #fff;
+      }
+      .nav .open>a, .nav .open>a:hover, .nav .open>a:focus {
+                background-color: #fff;
+                border-color: #428bca;
+      }
+
+      .ui-autocomplete-loading {
+          background: white url("/static/images/ui-anim_basic_16x16.gif") right center no-repeat;
+      }
+
+      .btn-custom {
+          width: 78px !important;
+      }
+
+      /*.btn-default.active {*/
+          /*background-color: #9bd668;*/
+        /*background-color: #337ab7;  */
+      /*}*/
+      /* No wrap for datatables */
+      /*th, td { white-space: nowrap; }      */
+      div.DTTT { margin-bottom: 0.5em; float: right; }
+      div.dt-buttons { margin-bottom: 0.5em; float: right; }
+      div.dataTables_wrapper { clear: both; }      
+
+/*      .btn-primary.active {
+          background-color: limegreen;
+      } */     
+      #tenisgstable, #tenisgsgentab2 {
+        display: none; // you're using display!
+      }
+/*      #tenisgsgraph, #tenisgsgengraph2 {
+        display: none; // you're using diaplay!
+      }*/
+/*      #tenisgsgentab{
+        visibility: hidden;
+      }*/
+
+      .ui-autocomplete {
+          max-height: 100px;
+          overflow-y: auto;
+          /* prevent horizontal scrollbar */
+          overflow-x: hidden;
+      }
+
+
+      body {
+        overflow-y:scroll;
+      }
+
+      text {
+        font: 12px sans-serif;
+      }
+
+      #chart3 svg {
+        height: 500px;
+        margin: 10px;
+        min-width: 100px;
+        min-height: 100px;
+      /*
+        Minimum height and width is a good idea to prevent negative SVG dimensions...
+        For example width should be =< margin.left + margin.right + 1,
+        of course 1 pixel for the entire chart would not be very useful, BUT should not have errors
+      */
+      }
+      .c3-region.foo {
+        fill: red;
+      }
+      select option {
+      color: black;
+      }
+      select option:first-child {
+      color: grey;
+      }
+      select.empty {
+      color: grey;
+      }
+      #chart2 .c3-line-Forecast {
+        stroke-width: 5px;
+      }
+
+
+      /* custom inclusion of right, left and below tabs */
+
+      .tabs-below > .nav-tabs,
+      .tabs-right > .nav-tabs,
+      .tabs-left > .nav-tabs {
+        border-bottom: 0;
+      }
+
+      .tab-content > .tab-pane,
+      .pill-content > .pill-pane {
+        display: none;
+      }
+
+      .tab-content > .active,
+      .pill-content > .active {
+        display: block;
+      }
+
+      .tabs-below > .nav-tabs {
+        border-top: 1px solid #ddd;
+      }
+
+      .tabs-below > .nav-tabs > li {
+        margin-top: -1px;
+        margin-bottom: 0;
+      }
+
+      .tabs-below > .nav-tabs > li > a {
+        -webkit-border-radius: 0 0 4px 4px;
+           -moz-border-radius: 0 0 4px 4px;
+                border-radius: 0 0 4px 4px;
+      }
+
+      .tabs-below > .nav-tabs > li > a:hover,
+      .tabs-below > .nav-tabs > li > a:focus {
+        border-top-color: #ddd;
+        border-bottom-color: transparent;
+      }
+
+      .tabs-below > .nav-tabs > .active > a,
+      .tabs-below > .nav-tabs > .active > a:hover,
+      .tabs-below > .nav-tabs > .active > a:focus {
+        border-color: transparent #ddd #ddd #ddd;
+      }
+
+      .tabs-left > .nav-tabs > li,
+      .tabs-right > .nav-tabs > li {
+        float: none;
+      }
+
+      .tabs-left > .nav-tabs > li > a,
+      .tabs-right > .nav-tabs > li > a {
+        min-width: 74px;
+        margin-right: 0;
+        margin-bottom: 3px;
+      }
+
+      .tabs-left > .nav-tabs {
+        float: left;
+        margin-right: 19px;
+        border-right: 1px solid #ddd;
+      }
+
+      .tabs-left > .nav-tabs > li > a {
+        margin-right: -1px;
+        -webkit-border-radius: 4px 0 0 4px;
+           -moz-border-radius: 4px 0 0 4px;
+                border-radius: 4px 0 0 4px;
+      }
+
+      .tabs-left > .nav-tabs > li > a:hover,
+      .tabs-left > .nav-tabs > li > a:focus {
+        border-color: #eeeeee #dddddd #eeeeee #eeeeee;
+      }
+
+      .tabs-left > .nav-tabs .active > a,
+      .tabs-left > .nav-tabs .active > a:hover,
+      .tabs-left > .nav-tabs .active > a:focus {
+        border-color: #ddd transparent #ddd #ddd;
+        *border-right-color: #ffffff;
+      }
+
+      .tabs-right > .nav-tabs {
+        float: right;
+        margin-left: 19px;
+        border-left: 1px solid #ddd;
+      }
+
+      .tabs-right > .nav-tabs > li > a {
+        margin-left: -1px;
+        -webkit-border-radius: 0 4px 4px 0;
+           -moz-border-radius: 0 4px 4px 0;
+                border-radius: 0 4px 4px 0;
+      }
+
+      .tabs-right > .nav-tabs > li > a:hover,
+      .tabs-right > .nav-tabs > li > a:focus {
+        border-color: #eeeeee #eeeeee #eeeeee #dddddd;
+      }
+
+      .tabs-right > .nav-tabs .active > a,
+      .tabs-right > .nav-tabs .active > a:hover,
+      .tabs-right > .nav-tabs .active > a:focus {
+        border-color: #ddd #ddd #ddd transparent;
+        *border-left-color: #ffffff;
+      }
+      /*Custom INclusion for Circular Tabs*/
+      .wizard {
+          margin: 10px auto;
+          background: #fff;
+      }
+
+      .wizard .nav-tabs {
+          position: relative;
+          margin: 10px auto;
+          margin-bottom: 0;
+          border-bottom-color: #e0e0e0;
+      }
+
+      .wizard > div.wizard-inner {
+          position: relative;
+      }
+
+      .connecting-line {
+          height: 2px;
+          background: #e0e0e0;
+          position: absolute;
+          width: 80%;
+          margin: 0 auto;
+          left: 0;
+          right: 0;
+          top: 50%;
+          z-index: 1;
+      }
+
+      .wizard .nav-tabs > li.active > a, .wizard .nav-tabs > li.active > a:hover, .wizard .nav-tabs > li.active > a:focus {
+          color: #555555;
+          cursor: default;
+          border: 0;
+          border-bottom-color: transparent;
+      }
+
+      span.round-tab {
+          width: 70px;
+          height: 70px;
+          line-height: 70px;
+          display: inline-block;
+          border-radius: 100px;
+          background: #fff;
+          border: 2px solid #e0e0e0;
+          z-index: 2;
+          position: absolute;
+          left: 0;
+          text-align: center;
+      /*     font-size: 25px; */
+      }
+      span.round-tab i{
+          color:#555555;
+      }
+      .wizard li.active span.round-tab {
+          background: #fff;
+          /*border: 2px solid #5bc0de;*/
+          border: 2px solid #337ab7;
+      }
+      .wizard li.active span.round-tab i{
+          /*color: #5bc0de;*/
+          color: #337ab7;
+      }
+
+      span.round-tab:hover {
+          color: #333;
+          border: 2px solid #333;
+      }
+
+      .wizard .nav-tabs > li {
+          width: 25%;
+      }
+
+      .wizard li:after {
+          content: " ";
+          position: absolute;
+          left: 46%;
+          opacity: 0;
+          margin: 0 auto;
+          bottom: 0px;
+          border: 5px solid transparent;
+          /*border-bottom-color: #5bc0de;*/
+          border-bottom-color: #337ab7;
+          transition: 0.1s ease-in-out;
+      }
+
+      .wizard li.active:after {
+          content: " ";
+          position: absolute;
+          left: 46%;
+          opacity: 1;
+          margin: 0 auto;
+          bottom: 0px;
+          border: 10px solid transparent;
+          /*border-bottom-color: #5bc0de;*/
+          border-bottom-color: #337ab7;
+      }
+
+      .wizard .nav-tabs > li a {
+          width: 70px;
+          height: 70px;
+          margin: 20px auto;
+          border-radius: 100%;
+          padding: 0;
+      }
+
+      .wizard .nav-tabs > li a:hover {
+          background: transparent;
+      }
+
+      .wizard .tab-pane {
+          position: relative;
+          padding-top: 50px;
+      }
+
+      .wizard h3 {
+          margin-top: 0;
+      }
+
+      @media( max-width : 585px ) {
+
+          .wizard {
+              width: 90%;
+              height: auto !important;
+          }
+
+          span.round-tab {
+              font-size: 16px;
+              width: 50px;
+              height: 50px;
+              line-height: 50px;
+          }
+
+          .wizard .nav-tabs > li a {
+              width: 50px;
+              height: 50px;
+              line-height: 50px;
+          }
+
+          .wizard li.active:after {
+              content: " ";
+              position: absolute;
+              left: 35%;
+          }
+      }                                                                             
+    </style>
+    <script src="{{ url_for('static', filename='js/jquery.bootstrap.wizard.min.js') }}"></script>     
+    <script src="{{ url_for('static', filename='js/jquery.dataTables.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dataTables.tableTools.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dataTables.bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dataTables.buttons.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/buttons.bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jszip.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/pdfmake.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/vfs_fonts.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/buttons.html5.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/buttons.print.min.js') }}"></script>
+    <!-- // <script src="{{ url_for('static', filename='js/buttons.flash.min.js') }}"></script>                                       -->
+    <script src="{{ url_for('static', filename='js/require.js') }}"></script>
+    <!-- // <script src="{{ url_for('static', filename='js/d3.v3.js') }}"></script> -->
+    <!-- // <script src="{{ url_for('static', filename='js/nv.d3.min.js') }}"></script>  -->
+    <script src="{{ url_for('static', filename='js/bootstrap-datepicker.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/nanobar.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/fileinput.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap-toggle.min.js') }}"></script>
+    <!-- // <script src="{{ url_for('static', filename='js/spin.min.js') }}"></script>     -->
+<!--     // <script src="{{ url_for('static', filename='js/jquery.loadmask.min.js') }}"></script> 
+    // <script src="{{ url_for('static', filename='js/bootstrap-remote-tabs.min.js') }}"></script> -->            
+<!--     // <script src="{{ url_for('static', filename='js/modernizr.custom.js') }}"></script> -->
+
+    <script>  
+      $(document).ready(function(){   
+
+          $( '#dateselector' ).datepicker({
+              format: "dd-mm-yyyy",
+              todayBtn: "linked",
+              todayHighlight: true,
+              autoclose: true
+          }); 
+          // $( '#dateselector' ).datepicker("setDate", new Date());
+          $( '#dateselector' ).datepicker("update", "{{ dayaheaddate }}");
+
+          function DoValidate(){
+           return $('input[name="date"]').val() != "";
+          };
+
+          function calldovalidate(){
+              if(DoValidate()){
+                drawchart($('input[name="date"]').val());
+                setTimeout(function() {
+                    tenisgsgen($('input[name="date"]').val());
+                }, 100);
+                // $.when(
+                //         drawchart($('input[name="date"]').val())).then(
+                //         tenisgsgen($('input[name="date"]').val())
+                //         ); 
+                forecasttwo($('input[name="date"]').val());               
+              };            
+          };          
+          calldovalidate();
+          $( '#Select,input[name="date"]' ).bind({
+            click: function(){
+              calldovalidate();
+              },            
+            focusout: function(){
+              calldovalidate();
+              },
+            keydown: function(){
+              calldovalidate();
+              },
+            change: function(){
+              calldovalidate();
+              }                               
+          });     
+          // $( '#dateselector' ).datepicker({
+          //     onSelect: function(date, instance) {
+          //       console.log(date);
+          //       drawchart(date);  
+          //      }
+          // });  
+          $('a[data-toggle="tab"]').on( 'shown.bs.tab', function (e) {
+              $.fn.dataTable.tables( {visible: true, api: true} ).columns.adjust();
+          } );
+          
+          function tenisgsgen(dateval){     
+            console.log("Tenisgsgencd");            
+            if ( $.fn.dataTable.isDataTable( '#tenisgs' ) ) {
+                table = $('#tenisgs').DataTable();
+                console.log("Tenisgsgencd1:" + table); 
+                table.destroy();
+                table.ajax.reload( null, false ); 
+                console.log("Tenisgsgencd2"); 
+            }
+
+            var table = $('#tenisgs').DataTable( {      
+              "scrollY": 404,
+              "deferRender": true,
+              "lengthMenu": [[96, 80, 64, 48, 32, 16], [96, 80, 64, 48, 32, 16]],
+              "iDisplayLength": 96,
+              "order": [[0, 'desc'], [1, 'desc'], [2, 'desc'], [3, 'asc']],
+              "ajax": {
+                "url": "{{ url_for('get_tengenisgs_data') }}",
+                "type": "POST",
+                "data": function ( d ) {
+                            d.date = dateval;
+                            d.discom = 'BSEB';
+                        }
+              }
+            });
+            new $.fn.dataTable.Buttons( table, {
+              buttons: [
+                  {
+                      extend: 'csvHtml5',
+                      title: 'Tentative ISGS'
+                  },              
+                  {
+                      extend: 'excelHtml5',
+                      title: 'Tentative ISGS'
+                  },
+                  {
+                      extend: 'pdfHtml5',
+                      title: 'Tentative ISGS'
+                  },
+                  {
+                      extend: 'print',
+                      title: 'Tentative ISGS'
+                  },
+              ]                   
+            } );           
+                
+            table.buttons().container(0, null)
+                .insertBefore('div#tenisgs_wrapper.dataTables_wrapper');
+          };  
+
+          function forecasttwo(dateval){     
+            console.log("forecasttwo");            
+            if ( $.fn.dataTable.isDataTable( '#forecasttwo' ) ) {
+                table = $('#forecasttwo').DataTable();
+                console.log("forecasttwo:" + table); 
+                table.destroy();
+                table.ajax.reload( null, false ); 
+                console.log("forecasttwo2"); 
+            }
+
+            var table = $('#forecasttwo').DataTable( {
+              "destroy": true,      
+              "scrollY": 404,
+              //"scrollX": true,
+              // "scrollCollapse": true,
+              //"responsive": true,
+              // "paging": true,
+              "deferRender": true,
+              "lengthMenu": [[96, 80, 64, 48, 32, 16], [96, 80, 64, 48, 32, 16]],
+              "iDisplayLength": 96,
+              "order": [[0, 'asc'], [1, 'asc']],
+              // "sAjaxSource": "{{ url_for('get_erschedule_data') }}",
+              // "processing": true,
+              // "serverSide": true,
+              "ajax": {
+                "url": "{{ url_for('get_bforecast_data2') }}", // + "/BSEB/" + dateval,
+                "type": "POST",
+                "data": function ( d ) {
+                            d.date = dateval;
+                            d.model = 'HYBRID';
+                            // d.discom = 'BSEB';
+                        }
+              },
+              // "lengthChange": false,
+              // "dom": 'lfrtip',
+              // "buttons": ['copy', 'csv', 'excel', 'pdf', 'print']
+              // "buttons": true
+              // "deferLoading": 96
+              // ,                  
+              // "fnServerParams": function ( aoData ) {
+              //       aoData.push( { "name": "date", "value": dateval });
+              // }
+            } );
+            // var tt = new $.fn.dataTable.TableTools( table );
+            // $( tt.fnContainer() ).insertAfter('div.middle');
+            // var tt = new $.fn.dataTable.TableTools( table, {
+            //                 "sSwfPath": "{{ url_for('static', filename='swf/copy_csv_xls_pdf.swf') }}"
+            //                 } );
+            // $( tt.fnContainer() ).insertBefore('div#tenisgs_wrapper.dataTables_wrapper');
+            // table.buttons().container()
+            //     .prependTo('div#tenisgs_wrapper.dataTables_wrapper');
+            new $.fn.dataTable.Buttons( table, {
+              // buttons: ['csv', 'excel', 'pdf', 'print']
+              buttons: [
+                  {
+                      extend: 'csvHtml5',
+                      title: 'Tentative_ISGS_' + dateval
+                  },              
+                  {
+                      extend: 'excelHtml5',
+                      title: 'Tentative_ISGS_' + dateval
+                  },
+                  {
+                      extend: 'pdfHtml5',
+                      title: 'Tentative_ISGS_' + dateval
+                  },
+                  {
+                      extend: 'print',
+                      title: 'Tentative_ISGS_' + dateval
+                  },
+              ]                   
+            } );           
+            // table.buttons().container(0, null).prependTo(
+            //     table.table().container()
+            // );     
+          $.fn.dataTable.tables( {visible: true, api: true} ).columns.adjust();                                   
+            table.buttons().container(0, null)
+                .insertBefore('div#forecasttwo_wrapper.dataTables_wrapper');
+          };
+
+
+          /*Spinner parameters*/
+          var opts = {
+            lines: 13 // The number of lines to draw
+          , length: 28 // The length of each line
+          , width: 14 // The line thickness
+          , radius: 42 // The radius of the inner circle
+          , scale: 1 // Scales overall size of the spinner
+          , corners: 1 // Corner roundness (0..1)
+          , color: '#000' // #rgb or #rrggbb or array of colors
+          , opacity: 0.25 // Opacity of the lines
+          , rotate: 0 // The rotation offset
+          , direction: 1 // 1: clockwise, -1: counterclockwise
+          , speed: 1 // Rounds per second
+          , trail: 60 // Afterglow percentage
+          , fps: 20 // Frames per second when using setTimeout() as a fallback for CSS
+          , zIndex: 2e9 // The z-index (defaults to 2000000000)
+          , className: 'spinner' // The CSS class to assign to the spinner
+          , top: '50%' // Top position relative to parent
+          , left: '50%' // Left position relative to parent
+          , shadow: false // Whether to render a shadow
+          , hwaccel: false // Whether to use hardware acceleration
+          , position: 'absolute' // Element positioning
+          };
+          var target = document.getElementById('chart');
+
+                
+          // define(['spin'], function(Spinner){ 
+          //   var spinner = new Spinner(opts).spin(target); 
+          //   // target.appendChild(mySpinner.el);
+          // } );
+
+
+          var pos_data = [];
+          var pos_data2 = {};          
+          function drawchart( date ) {
+            var dt = new Date();
+            console.log(dt + "drawchart***" + date);
+            require.config({
+              baseUrl: "{{ url_for('static', filename='js') }}", 
+              waitSeconds: 0,
+              paths: {
+                spin: "spin.min"
+              }
+            });            
+
+            require(['spin'], function(Spinner) { 
+              var spinner = new Spinner(opts); 
+
+              $.ajax( {url: "get_isgser_data/BSEB/" + date ,
+                       dataType: "json",
+                       contentType: "application/json; charset=utf-8",
+                       beforeSend: function() {
+                            console.log(dt + "drawchart***beforesend**"+ date);
+                            spinner.spin(target);
+                            console.log(spinner);
+                       },
+                       complete: function() {
+                          console.log(dt + "drawchart***complete**"+ date);
+                          spinner.stop();
+                       }, 
+                       cache: false,                                       
+                       // dataFilter: function(data) { return data; },
+                       success: function(data) {
+                                  // spinner.stop();
+                                  $('#chart').empty();
+                                  console.log(data);
+                                  console.log(dt + "success***"+ date);
+                                  // for nvd3.js
+                                  //pos_data.push({'key':message, 'values':data});
+                                  //for c3js
+                                  //pos_data.push({'key': message, message : data});
+                                  //pos_data2['x']=data.map(function(a){return a.x});
+                                  //pos_data2=data.map(function(a){return pos_data2[a.station_name]=a.y});
+                                  var y = [];
+                                  var x = [];
+                                  var drawl_type = [];
+                                  var length = Object.keys(data).length;
+                                  //var length = 384;
+                                  var starttime = new Date();
+                                  for (var i = 0; i < length; i++){
+                                    var temp_drawl;
+                                    if ((i != 0 && temp_drawl != data[i]['drawl_type']) || (i == length - 1)){
+                                        //console.log("Inside String");
+                                        //console.log(temp_station);
+                                        //console.log(i);
+                                        pos_data2['x'] = x;
+                                        pos_data2[temp_drawl] = y;
+                                        y = [];
+                                        x = [];
+                                        drawl_type.push(temp_drawl);
+                                    }
+                                    //console.log(item.y);
+                                    y.push(data[i]['y']);
+                                    x.push(data[i]['x']);
+                                    //console.log(y);
+                                    temp_drawl = data[i]['drawl_type'];
+                                  } 
+                                  var stoptime = new Date();
+                                  console.log((stoptime.getTime() - starttime.getTime())/1000);
+                                  //len = Object.keys(pos_data2).length;
+                                  //keys = Object.keys(pos_data2);
+                                  types = {};
+                                  axes = {};
+                                  //console.log(pos_data2[]);
+                                  console.log([drawl_type]);
+                                  //console.log(pos_data2['x']);
+                                  // d3cht(data);
+                                  console.log(dt + "success***2"+date);
+                                  c3cht(types, axes, [drawl_type]);
+                                  console.log(dt + "success***3"+date);
+                        },
+                       error: function(XMLHttpRequest, textStatus, errorThrown) {
+                                  alert(textStatus);
+                                  spinner.stop();
+                        }
+                   });
+                });
+                function c3cht(type_arg, axes_arg, group_arg){
+                    require.config({
+                      baseUrl: "{{ url_for('static', filename='js') }}",         
+                       paths: {d3: "d3.min",
+                               c3: "c3.min"}
+
+                    });
+                    require(["d3", "c3"], function(d3, c3) {             
+                        var chart = c3.generate({
+                                    bindto: "#chart",
+                                    size: {
+                                          height: 480 - 50,
+                                          width: 960 + 150
+                                    },
+                                    data: {
+                                      x : 'x',
+                                      json : pos_data2,
+                                      type: "area-spline",
+                                      groups: group_arg,
+                                        //keys: {
+                                        //          x: 'x',
+                                        //          value: ['y']
+                                        //}
+                                      types: type_arg,
+                                      axes: axes_arg//,
+                                        //labels: true
+                                    },
+                                    axis: {
+                                            x: {
+                                          //    type: 'categorized'
+                                                label: {
+                                                         text: 'Block No',
+                                                         position: 'outer-center'
+                                                },
+                                                tick: {
+                                                        //fit: true
+                                                        //count: 96//,
+                                                        //format: 
+                                                }
+                                            },
+                                            y: {
+                                                label: {
+                                                         text: 'Quantum (MW)',
+                                                         position: 'outer-middle'
+                                                }
+                                            }                  
+                                    },
+                                    grid: {
+                                            y: {
+                                              show: true
+                                            },
+                                            x: {
+                                              show: true
+                                            },
+                                            focus: {
+                                              show: true
+                                            }
+                                    },
+                                    legend: {
+                                              //position: 'right',
+                                              show: true
+                                    },
+                                    point: {
+                                              show: false
+                                    },
+                                    transition: {
+                                                  duration: 100
+                                    },
+                                    tooltip: {
+                                                format: {
+                                                          title: function (d) { return 'Block_No ' + d; }
+                                                }
+                                    },
+                                    regions: [
+                                    //{axis: 'x', start: 76, end: 88, class: 'foo'}
+                                    ],
+                                    color: {
+                                            // pattern: classic9
+                                    }
+                                });
+                      });
+                      
+                };                
+          };
+      })
+     
+    </script> 
+{% endblock %}
+{% block header %}
+    <form id="defaultForm" method="post" class="navbar-form navbar-left form-inline" role="form">   
+      <!-- <div class='col-sm-2'>     -->
+        <div class="form-group">
+          <!-- <div class="input-group date"> -->
+            <input  class="form-control" type="text" placeholder="dd-mm-yyyy"  id="dateselector" name="date">
+<!--             <span class="input-group-addon">
+                <span class="glyphicon glyphicon-calendar"></span>
+            </span>    -->    
+          <!-- </div>                    -->
+        </div>
+      <!-- </div>       -->
+<!--                   <div class="form-group">
+          <button type="submit" class="btn btn-primary">Go</button>
+        </div>  -->
+      <div class="form-group">
+        <!-- <label for="disabledSelect">select menu</label> -->
+        <select id="selectmodel" class="form-control" placeholder="Select Model" name="modelname">
+          <option selected disabled>Select Model</option>
+          <option>NNET</option>
+          <option>MLP</option>
+          <option>GLM</option>
+          <option>HYBRID</option>
+        </select>
+      </div>                          
+    </form>     
+{% endblock %}
+{% block content %}
+      <div role="tabpanel">
+        <ul id="myTab" class="nav nav-tabs" role="tablist">
+          <li role="presentation"><a href="#tenisgsgentab" aria-controls="#tenisgsgengraph" role="tab" data-toggle="tab"><span id="tenisgsgraph" class="glyphicon glyphicon-stats"></span><span id="tenisgstable" class="glyphicon glyphicon-list"></span> Tentative ISGS</a></li>
+          <li role="presentation"><a href="#forecasttab2" aria-controls="#forecasttab2" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-stats"></span> Forecast 2</a></li>          
+        </ul>      
+        <div class="tab-content">
+    <div role="tabpanel" class="tab-pane active" id="tenisgsgentab">
+      <div class="container">    
+        <div id="tenisgsgengraph2">
+          <div class="container">
+            <div class="col-md-12 content">
+              <div id="chart"></div>
+            </div>
+          </div>
+        </div>
+          <div class="container">
+            <div class="col-md-12 content">    
+              <table id="tenisgs" class="display nowrap table table-striped table-bordered table-condensed table-hover" cellspacing="0" width="100%">
+                <thead>
+                  <tr>
+                    {% for col in tenisgs_columns %}
+                    <th>{{ col }}</th>
+                    {% endfor %}
+                  </tr>
+                </thead>
+              </table>            
+            </div>
+          </div>
+      </div>
+    </div>
+    <div role="tabpanel" class="tab-pane" id="forecasttab2">
+      <div id="forecasttabtwo">
+        <div class="container">
+          <div class="col-md-12 content">    
+            <table id="forecasttwo" class="display nowrap table table-striped table-bordered table-condensed table-hover" cellspacing="0" width="100%">
+              <thead>
+                <tr>
+                  {% for col in forecast_columns %}
+                  <th>{{ col }}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+            </table>            
+          </div>
+        </div>              
+      </div>
+    </div> 
+  </div>
+  </div>   
+{% endblock %}

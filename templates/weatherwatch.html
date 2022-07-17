@@ -1,0 +1,437 @@
+{% extends "basetemplate.html" %}
+{% block title %}Weather Watch{% endblock %}
+{% block script %}
+    {{ super() }}
+    <style>
+        .ui-autocomplete-loading {
+            background: white url("/static/images/ui-anim_basic_16x16.gif") right center no-repeat;
+        }
+
+        .ui-autocomplete {
+            max-height: 100px;
+            overflow-y: auto;
+            /* prevent horizontal scrollbar */
+            overflow-x: hidden;
+        }
+
+        html, body{
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            z-index: 10;
+        }
+
+        #map-canvas {
+            width: 100%;
+            height: 650px;
+            /*z-index: 6;*/
+        }
+
+        .gm-style-iw {
+            text-align: center;
+        }
+
+/*        #panel {
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            margin-left: -180px;
+            z-index: 5;
+            background-color: #fff;
+            padding: 5px;
+            border: 1px solid #999;
+        }*/
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/ion.rangeSlider.css') }}"> 
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/ion.rangeSlider.skinModern.css') }}">          
+    </style>
+    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDwVA8ANu6c-Zw3KLTbZQH1B9d1r-FrGQw">
+    </script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/ion.rangeSlider.min.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/moment.min.js') }}"></script>
+    <script>
+        // client=266719423029-88n3rncq6b26p8eddmk929odmotm7ouj.apps.googleusercontent.com&v=3.19
+        var map;
+        var request;
+        var gettingData = false;
+        var openWeatherMapKey = "30909626e890cad7b367246057f815a5"
+        var geocoder;
+        var coords;
+
+        /**
+        * The CenterControl adds a control to the map that recenters the map on
+        * Chicago.
+        * This constructor takes the control DIV as an argument.
+        * @constructor
+        */
+        function DateControl(controlDiv, map) {
+            var control = this;
+            control.isOpen = true;
+            // Set CSS for the control border.
+            var controlUI = document.createElement('div');
+            controlUI.id = 'datecontrol'; 
+            controlUI.style.backgroundColor = '#fff';
+            controlUI.style.border = '2px solid #fff';
+            controlUI.style.borderRadius = '3px';
+            controlUI.style.boxShadow = '0 2px 6px rgba(0,0,0,.3)';
+            controlUI.style.cursor = 'pointer';
+            controlUI.style.marginBottom = '22px';
+            // controlUI.style.textAlign = 'center';
+            controlUI.style.position = 'relative';
+            // controlUI.style.padding = '200px';              
+            controlDiv.appendChild(controlUI);
+
+           // Set CSS for the control interior.
+            // var controlText = document.createElement('div');
+            // controlText.style.color = 'rgb(25,25,25)';
+            // controlText.style.fontFamily = 'Roboto,Arial,sans-serif';
+            // controlText.style.fontSize = '16px';
+            // controlText.style.lineHeight = '38px';
+            // controlText.style.paddingLeft = '5px';
+            // controlText.style.paddingRight = '5px';
+            // controlText.innerHTML = 'Center';
+            // controlUI.appendChild(controlText);
+
+            // var controlSlider = document.createElement('div');
+            // controlSlider.id = 'datecontrolslider';
+            // controlUI.appendChild(controlSlider);
+
+            // var controlSlider = document.createElement('div');
+            // controlSlider.innerHTML = '<input id="range" />';
+            // controlUI.appendChild(controlSlider);
+            var controlSlider = document.createElement('input');
+            controlSlider.id = 'dateslider';
+            controlUI.appendChild(controlSlider);        
+        }
+
+        function initialize() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(success, failure);
+                console.log("In Geolocation");
+            } else {
+                console.log('Geo Location is not supported');
+            }
+
+            function success(position){
+                coords = new google.maps.LatLng(position.coords.latitude, position.coords.longitude); 
+                console.log("In Success" + position);
+                console.log(coords);
+                load();
+            }
+
+            function failure(){
+                coords = new google.maps.LatLng(20,78);
+                console.log("In Failure");
+                load();
+            }
+        }
+
+        function load() {
+            console.log("Load...");
+            geocoder = new google.maps.Geocoder();
+            // var coords = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+            var mapOptions = {
+                zoom: 8,
+                // center: new google.maps.LatLng(20,78),
+                center: coords,
+                mapTypeId: google.maps.MapTypeId.HYBRID
+            };
+
+            map = new google.maps.Map(document.getElementById('map-canvas'),
+                mapOptions);
+            // agri = new google.maps.Data();
+            // Add interaction listeners to make weather requests
+            // map.data.addGeoJSON(data);
+            google.maps.event.addListener(map, 'idle', checkIfDataRequested);
+            codeAddress("{{ state }}");
+            // Sets up and populates the info window with details
+            map.data.addListener('click', function(event) {
+                infowindow.setContent(
+                    "<img src=" + event.feature.getProperty("icon") + ">"
+                    + "<br /><strong>" + event.feature.getProperty("city") + "</strong>"
+                    + "<br />" + event.feature.getProperty("temperature") + "&deg;C"
+                    + "<br />" + event.feature.getProperty("windSpeed") + "&nbsp;" + "Kmph" + "&nbsp;"
+                    +  event.feature.getProperty("windDegrees") + "&deg;"
+                    + "<br />" + event.feature.getProperty("conditions")
+                );
+                infowindow.setOptions({
+                    position:{
+                        lat: event.latLng.lat(),
+                        lng: event.latLng.lng()
+                    },
+                    pixelOffset: {
+                        width: 0,
+                        height: -15
+                    }
+                });
+                infowindow.open(map);
+            });
+            // Create the DIV to hold the control and call the CenterControl()
+            // constructor passing in this DIV.
+            var dateControlDiv = document.createElement('div');
+            var dateControl = new DateControl(dateControlDiv, map);
+
+            dateControlDiv.index = 1;
+            map.controls[google.maps.ControlPosition.BOTTOM_LEFT].push(dateControlDiv);                           
+        } 
+
+        function codeAddress(address) {
+            // var address = document.getElementById('address').value;
+            var geocoderl = new google.maps.Geocoder();
+            geocoderl.geocode( {'address': address}, function(results, status) {
+                if (status == google.maps.GeocoderStatus.OK) {
+                    map.setCenter(results[0].geometry.location);
+                    map.setTilt(0);
+                    map.setZoom(8);
+                    // var marker = new google.maps.Marker({
+                    //     map: map,
+                    //     position: results[0].geometry.location
+                    // });
+                } else {
+                    alert('Geocode was not successful for the following reason: ' + status);
+                }
+            });
+        }
+        // Enter key implementation but gives CRSF error
+        // $('#address').keypress(function(e){
+        //     if ( e.which == 13 && document.getElementById("address").value.length > 0){
+        //       codeAddress();
+        //     }
+        // });
+
+        var checkIfDataRequested = function() {
+            // Stop extra requests being sent
+            while (gettingData === true) {
+                request.abort();
+                gettingData = false;
+            }
+            getCoords();
+        };
+
+        // Get the coordinates from the Map bounds
+        var getCoords = function() {
+            var bounds = map.getBounds();
+            var NE = bounds.getNorthEast();
+            var SW = bounds.getSouthWest();
+            getWeather(NE.lat(), NE.lng(), SW.lat(), SW.lng());
+        };
+
+        // Make the weather request
+        var getWeather = function(northLat, eastLng, southLat, westLng) {
+            gettingData = true;
+            // var requestString = "http://api.openweathermap.org/data/2.5/box/city?bbox="
+            //                     + westLng + "," + northLat + "," //left top
+            //                     + eastLng + "," + southLat + "," //right bottom
+            //                     + map.getZoom()
+            //                     + "&cluster=yes&format=json"
+            //                     + "&APPID=" + openWeatherMapKey;
+            var requestString = "weatherwatchdata/"
+                            + westLng + "/" + northLat + "/" //left top
+                            + eastLng + "/" + southLat  //right bottom 
+            request = new XMLHttpRequest();
+            request.onload = proccessResults;
+            request.open("get", requestString, true);
+            request.send();
+        };
+
+        // Take the JSON results and proccess them
+        var proccessResults = function() {
+            console.log('This:', this);
+            var results = JSON.parse(this.responseText);
+            if (results.length > 0) {
+                console.log('Results:', results);
+                resetData();
+                for (var i = 0; i < results.length; i++) {
+                    geoJSON.features.push(jsonToGeoJson(results[i]));
+                }
+                drawIcons(geoJSON);
+            }
+        };
+
+        var infowindow = new google.maps.InfoWindow();
+
+        // For each result that comes back, convert the data to geoJSON
+        var jsonToGeoJson = function (weatherItem) {
+            var feature = {
+                type: "Feature",
+                properties: {
+                    date: weatherItem.date,
+                    hour: weatherItem.hour,
+                    city: weatherItem.city,
+                    // weather: weatherItem.weather[0].main,
+                    temperature: weatherItem.temperature,
+                    // min: weatherItem.main.temp_min,
+                    // max: weatherItem.main.temp_max,
+                    // humidity: weatherItem.main.humidity,
+                    // pressure: weatherItem.main.pressure,
+                    conditions: weatherItem.conditions,
+                    windSpeed: weatherItem.windspeed,
+                    windDegrees: weatherItem.winddir_deg,
+                    // windGust: weatherItem.wind.gust,
+                    icon: "/static/images/wunderground/"
+                          + weatherItem.conditions  + ".gif",
+                    coordinates: [weatherItem.longitude, weatherItem.latitude]
+                },
+                geometry: {
+                    type: "Point",
+                    coordinates: [weatherItem.longitude, weatherItem.latitude]
+                }
+            };
+            // Set the custom marker icon
+            map.data.setStyle(function(feature) {
+                return {
+                    icon: {
+                        url: feature.getProperty('icon'),
+                        anchor: new google.maps.Point(25, 25)
+                    }
+                };
+            });
+
+            // returns object
+            return feature;
+        };
+
+        // Add the markers to the map
+        var drawIcons = function (geoJSON) {
+            map.data.addGeoJson(geoJSON);
+            // map.data.addGeoJson(ind);
+            // agri.data.addGeoJson(ind);
+            // agri.setMap(map);
+            // Set the flag to finished
+            gettingData = false;
+        };
+
+        // Clear data layer and geoJSON
+        var resetData = function () {
+            geoJSON = {
+                type: "FeatureCollection",
+                features: []
+            };
+            map.data.forEach(function(feature) {
+                map.data.remove(feature);
+            });
+        };
+
+      // function loadGeoJsonString(geoString) {
+      //   console.log(geoString);
+      //   console.log('Geo');
+      //   var geojson = JSON.parse(geoString);
+      //   console.log('Geo2');
+      //   console.log(geojson);
+      //   map.data.addGeoJson(geojson);
+      //   console.log('Geo3');
+      //   zoom(map);
+      // }
+
+      /**
+       * Update a map's viewport to fit each geometry in a dataset
+       * @param {google.maps.Map} map The map to adjust
+       */
+      // function zoom(map) {
+      //   var bounds = new google.maps.LatLngBounds();
+      //   map.data.forEach(function(feature) {
+      //     processPoints(feature.getGeometry(), bounds.extend, bounds);
+      //   });
+      //   map.fitBounds(bounds);
+      // }
+
+      /**
+       * Process each point in a Geometry, regardless of how deep the points may lie.
+       * @param {google.maps.Data.Geometry} geometry The structure to process
+       * @param {function(google.maps.LatLng)} callback A function to call on each
+       *     LatLng point encountered (e.g. Array.push)
+       * @param {Object} thisArg The value of 'this' as provided to 'callback' (e.g.
+       *     myArray)
+       */
+      // function processPoints(geometry, callback, thisArg) {
+      //   if (geometry instanceof google.maps.LatLng) {
+      //     callback.call(thisArg, geometry);
+      //   } else if (geometry instanceof google.maps.Data.Point) {
+      //     callback.call(thisArg, geometry.get());
+      //   } else {
+      //     geometry.getArray().forEach(function(g) {
+      //       processPoints(g, callback, thisArg);
+      //     });
+      //   }
+      // }
+
+
+
+      // function handleDrop() {
+      //   // e.preventDefault();
+      //   // e.stopPropagation();
+      //   // hidePanel(e);
+
+      //   var files = geo;
+      //   loadGeoJsonString(files);
+      //   // if (files.length) {
+      //   //   // process file(s) being dropped
+      //   //   // grab the file data from each file
+      //   //   for (var i = 0, file; file = files[i]; i++) {
+      //   //     var reader = new FileReader();
+      //   //     reader.onload = function(e) {
+      //   //       loadGeoJsonString(e.target.result);
+      //   //     };
+      //   //     reader.onerror = function(e) {
+      //   //       console.error('reading failed');
+      //   //     };
+      //   //     reader.readAsText(file);
+      //   //   }
+      //   // } else {
+      //   //   // process non-file (e.g. text or html) content being dropped
+      //   //   // grab the plain text version of the data
+      //   //   var plainText = e.dataTransfer.getData('text/plain');
+      //   //   if (plainText) {
+      //   //     loadGeoJsonString(plainText);
+      //   //   }
+      //   // }
+
+      //   // prevent drag event from bubbling further
+      //   // return false;
+      // }        
+      
+        google.maps.event.addDomListener(window, 'load', function () {
+            initialize();
+            // codeAddress("{{ state }}");
+            // handleDrop();
+            // loadGeoJsonString(geo); 
+        });
+
+    </script>    
+{% endblock %}
+{% block header %}
+    <form id="defaultForm" method="post" class="navbar-form navbar-left form-inline" role="form">
+        <div class="row">                          
+            <div class="form-group">
+                <input class="form-control" id="address" type="textbox" value="{{ state }}">
+                <input type="button" class="btn btn-primary" value="Geocode" onclick="codeAddress(document.getElementById('address').value)">
+            </div>
+        </div>
+    </form>    
+{% endblock %}
+{% block content %}
+    <div id="panel">
+        <input id="opacitySlider">
+    </div>
+    <div id="map-canvas"></div>
+<script type="text/javascript" src="{{ url_for('static', filename='js/ion.rangeSlider.min.js') }}"></script>
+<script>
+
+    $(function () {
+
+        $("#opacitySlider").ionRangeSlider({
+            hide_min_max: true,
+            keyboard: true,
+            min: 0,
+            max: 5000,
+            from: 1000,
+            to: 4000,
+            type: 'double',
+            step: 1,
+            prefix: "$",
+            grid: true
+        });
+
+    });
+</script>     
+{% endblock %}

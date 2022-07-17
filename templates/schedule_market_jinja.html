@@ -1,0 +1,483 @@
+{% extends "basetemplate.html" %}
+{% block title %}Schedule and Market{% endblock %}
+{% block script %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dataTables.bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/buttons.bootstrap.min.css') }}"> 
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fixedColumns.bootstrap.min.css') }}">     
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-datepicker3.css') }}">
+    <link href="https://cdn.datatables.net/colreorder/1.3.2/css/colReorder.dataTables.min.css" rel="stylesheet" />
+    <style>
+      .bars {
+              display: block;
+              width: 20px;
+              height: 3px;    
+              background-color: #333;
+              box-shadow: 0 5px 0 #333, 0 10px 0 #333;
+            }
+      .nav>li>a:hover, .nav>li>a:focus {
+              text-decoration: none;
+              background-color: #fff;
+            }
+      .nav .open>a, .nav .open>a:hover, .nav .open>a:focus {
+              background-color: #fff;
+              border-color: #428bca;
+            }
+      div.DTTT { margin-bottom: 0.5em; float: right; }
+      div.dt-buttons { margin-bottom: 0.5em; float: right; }
+      div.dataTables_wrapper { clear: both; }    
+      td.highlight {
+          background-color: whitesmoke !important;
+      }                                                            
+    </style> 
+    <script src="{{ url_for('static', filename='js/jquery.bootstrap.wizard.min.js') }}"></script>     
+    <script src="{{ url_for('static', filename='js/jquery.dataTables.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dataTables.tableTools.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dataTables.bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dataTables.fixedColumns.min.js') }}"></script>   
+    <script src="{{ url_for('static', filename='js/dataTables.buttons.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/buttons.bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jszip.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/pdfmake.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/vfs_fonts.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/buttons.html5.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/buttons.print.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap-datepicker.min.js') }}"></script>
+    <script src="https://cdn.datatables.net/colreorder/1.3.2/js/dataTables.colReorder.min.js"></script>
+    <script>
+        var quenext_logo = "data:image/png;base64,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";     
+      $(document).ready(function(){
+          var csrftoken = $('meta[name=csrf-token]').attr('content');
+          $.ajaxSetup({
+              beforeSend: function(xhr, settings) {
+                  if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type)) {
+                      xhr.setRequestHeader("X-CSRFToken", csrftoken)
+                  }
+              }
+          });        
+          $("a[data-toggle=\"tab\"]").on("shown.bs.tab", function (e) {
+              console.log( 'show tab' , $("shown.bs.tab"));
+              $($.fn.dataTable.tables(true)).DataTable()
+                .columns.adjust();
+                // .responsive.recalc();
+          });        
+
+          $( '#dateselector' ).datepicker({
+              format: "dd-mm-yyyy",
+              todayBtn: "linked",
+              todayHighlight: true,
+              autoclose: true
+          }); 
+          $( '#dateselector' ).datepicker("update", "{{ serverdate }}");
+          function DoValidate(){
+            return $('input[name="date"]').val() != "";
+          }; 
+          function calldovalidate(){
+              if(DoValidate()){
+                switch ($('.nav-tabs .active > a').attr('href')) {
+                  // case "#schedule":
+                  //   schduledata($('input[name="date"]').val());
+                  //   // $( '#schedule' ).show();
+                  //   // $( '#powermarket' ).hide();   
+                  //   break;
+                  case "#powermarket":
+                    marketdata($('input[name="date"]').val());
+                    // $( '#schedule' ).hide(); 
+                    // $( '#powermarket' ).show();             
+                    break;
+                  default:
+                    break;
+                };
+              };            
+          };
+          calldovalidate(); //Default
+          $( '#Select,input[name="date"]' ).bind({
+            click: function(){
+              calldovalidate();
+              },            
+            focusout: function(){
+              calldovalidate();
+              },
+            keydown: function(){
+              calldovalidate();
+              },
+            change: function(){
+              calldovalidate();
+              }                               
+          });
+          // function schduledata(dateval){                 
+          //   if ( $.fn.dataTable.isDataTable( '#schedule' ) ) {
+          //       var table = $('#schedule').DataTable();
+          //       table.destroy();
+          //   }
+
+          //   table = $('#schedule').dataTable( {
+          //     "fnRowCallback": function( nRow, aData, iDisplayIndex ) {
+          //             $('td', nRow).attr('nowrap','nowrap');
+          //             return nRow;
+          //             },                    
+          //     // "dom": 'Tlfrtip',
+          //     // "sDom": "<'row-fluid'<'span6 toolbar'><'span6'>r>t<'row-fluid'<'span6'f><'span6'p>>",
+          //     // "tableTools": {
+          //  //                 "sSwfPath": "/static/swf/copy_csv_xls_pdf.swf"
+          //   //                },        
+          //     // "scrollY": true,
+          //     //"scrollX": true,
+          //     // "scrollCollapse": true,
+          //     "responsive": true,
+          //     //"paging": true,
+          //     // "deferRender": true,
+          //     // "bProcessing":true,
+          //     // "bRetrieve":true,
+          //     "aLengthMenu": [[96, 182], [96, 182]],
+          //     "iDisplayLength": 96,
+          //     "aaSorting": [[0,'desc'],[1,'desc']],
+          //     // "bServerSide": true,
+          //     // "sAjaxSource": "{#{ url_for('get_erschedule_data') }#}",
+          //     "ajax": {
+          //       "url": "{{ url_for('ems.get_schedule_data') }}",
+          //       "type": "POST"
+          //     },
+          //     // "fnPreDrawCallback":function(){
+          //     //     $("#schedule").hide();
+          //     //     // $("#loading").show();
+          //     //     //alert("Pre Draw");
+          //     // }, 
+          //     // "fnInitComplete":function(){
+          //     //     $("#schedule").show();
+          //     // },                                            
+          //     "fnServerParams": function ( aoData ) {
+          //           aoData.push( { "name": "date", "value": dateval });
+          //     }
+          //   } );
+          //   // var tt = new $.fn.dataTable.TableTools( table );
+          //   // $( tt.fnContainer() ).insertAfter('div.middle');
+          //   var tt = new $.fn.dataTable.TableTools( table, {
+          //                   "sSwfPath": "{{ url_for('static', filename='swf/copy_csv_xls_pdf.swf') }}"
+          //                   } );
+          //   $( tt.fnContainer() ).insertBefore('div#schedule_wrapper.dataTables_wrapper');     
+          // }; 
+
+          function schduledata(dateval){     
+            console.log("schduledata");            
+            if ( $.fn.dataTable.isDataTable( '#scheduletable' ) ) {
+                table = $('#scheduletable').DataTable();
+                console.log("schduledata:" + table); 
+                table.destroy();
+                table.ajax.reload( null, false ); 
+                console.log("schduledata1.1"); 
+            }
+            console.log("schduledata2", "{{ url_for('ems.get_schedule_data') }}"); 
+            var table = $('#scheduletable').DataTable( {     
+              "scrollY": 404,
+              //"scrollX": true,
+              // "scrollCollapse": true,
+              //"responsive": true,
+              // "paging": true,
+              "deferRender": true,
+              "lengthMenu": [[96, 80, 64, 48, 32, 16], [96, 80, 64, 48, 32, 16]],
+              "iDisplayLength": 96,
+              "order": [[0, 'asc'], [1, 'asc']],
+              // "sAjaxSource": "{#{ url_for('get_erschedule_data') }#}",
+              // "processing": true,
+              // "serverSide": true,
+              "ajax": {
+                "url": "{{ url_for('ems.get_schedule_data') }}", // + "/BSEB/" + dateval,
+                "type": "POST",
+                "data": function ( d ) {
+                            d.date = dateval;
+                            // d.discom = $('#discomselector').val();
+                        }
+              }
+            } );
+            new $.fn.dataTable.Buttons( table, {
+              buttons: [
+                  {
+                      extend: 'csvHtml5',
+                      title: 'Schedule_' + dateval
+                  },              
+                  {
+                      extend: 'excelHtml5',
+                      title: 'Schedule_' + dateval
+                  },
+                  {
+                      extend: 'pdfHtml5',
+                      title: 'Schedule_' + dateval
+                  },
+                  {
+                      extend: 'print',
+                      title: 'Schedule_' + dateval
+                  },
+              ]                   
+            } );                                    
+            table.buttons().container(0, null)
+                .insertBefore('div#scheduletable_wrapper.dataTables_wrapper');
+          };
+
+          // $('#myTab a[href="#erschedule"]').click(function(e){
+          //   e.preventDefault();
+          //   $(this).tab('show');
+          //   console.log(this);
+          //   if ( $.fn.dataTable.isDataTable( '#schedule' ) ) {
+          //       table = $('#schedule').DataTable();
+          //   }
+          //   else {
+          //       var table = $('#schedule').DataTable( {
+          //         "fnRowCallback": function( nRow, aData, iDisplayIndex ) {
+          //                 $('td', nRow).attr('nowrap','nowrap');
+          //                 return nRow;
+          //                 },                    
+          //         // "dom": 'Tlfrtip',
+          //         // "sDom": "<'row-fluid'<'span6 toolbar'><'span6'>r>t<'row-fluid'<'span6'f><'span6'p>>",
+          //         // "tableTools": {
+          //      //                 "sSwfPath": "/static/swf/copy_csv_xls_pdf.swf"
+          //       //                },        
+          //         // "scrollY": true,
+          //         //"scrollX": true,
+          //         // "scrollCollapse": true,
+          //         //"responsive": true,
+          //         //"paging": true,
+          //         //"deferRender": true,
+          //         "aLengthMenu": [[96, 182], [96, 182]],
+          //         "iDisplayLength": 96,
+          //         "aaSorting": [[0,'desc'],[1,'desc']],
+          //         "sAjaxSource": "{#{ url_for('get_erschedule_data') }#}"
+          //       } );
+          //       // var tt = new $.fn.dataTable.TableTools( table );
+          //       // $( tt.fnContainer() ).insertAfter('div.middle');
+          //       var tt = new $.fn.dataTable.TableTools( table, {
+          //                       "sSwfPath": "/static/swf/copy_csv_xls_pdf.swf"
+          //                       } );
+          //       $( tt.fnContainer() ).insertBefore('div.dataTables_wrapper');     
+          //   }                   
+          // });
+          // function marketdata(dateval){
+          //  if ( $.fn.dataTable.isDataTable( '#market' ) ) {
+          //       table = $('#market').DataTable();
+          //       table.destroy();
+          //   }
+
+          //   var table = $('#market').dataTable( {
+          //     "fnRowCallback": function( nRow, aData, iDisplayIndex ) {
+          //             $('td', nRow).attr('nowrap','nowrap');
+          //             return nRow;
+          //             },            
+          //     // dom: 'T<"clear">lfrtip',
+          //     // "sDom": "<'row-fluid'<'span6 toolbar'><'span6'>r>t<'row-fluid'<'span6'f><'span6'p>>",
+          //     // "tableTools": {
+          //     //              "sSwfPath": "/static/swf/copy_csv_xls_pdf.swf"
+          //     //              },        
+          //     // "scrollY": "600px",
+          //      "scrollX": "600px",
+          //     // "scrollCollapse": true,
+          //     //"responsive": true,
+          //     //"paging": true,
+          //     //"deferRender": true,
+          //     "aLengthMenu": [[96, 182], [96, 182]],
+          //     "aaSorting": [[0,'desc'],[1,'asc']],
+          //     "iDisplayLength": 96,
+          //     // "sAjaxSource": "{#{ url_for('get_market_data') }#}"
+          //     "ajax": {
+          //       "url": "{{ url_for('ems.get_market_data') }}",
+          //       "type": "POST"
+          //     },                  
+          //     "fnServerParams": function ( aoData ) {
+          //           aoData.push( { "name": "date", "value": dateval });
+          //     }              
+          //   } );
+          //   // var tt = new $.fn.dataTable.TableTools( table );
+          //   // $( tt.fnContainer() ).insertAfter('div.middle');
+          //   var tt = new $.fn.dataTable.TableTools( table, {
+          //                   "sSwfPath": "{{ url_for('static', filename='swf/copy_csv_xls_pdf.swf') }}"
+          //                   } );
+          //   $( tt.fnContainer() ).insertBefore('div#market_wrapper.dataTables_wrapper');
+          // };
+
+          function marketdata(dateval){     
+            console.log("marketdata***");            
+            if ( $.fn.dataTable.isDataTable( '#powermarkettable' ) ) {
+                table = $('#powermarkettable').DataTable();
+                console.log("marketdata:" + table); 
+                table.destroy();
+                table.ajax.reload( null, false ); 
+                console.log("marketdata1.1"); 
+            }
+            console.log("marketdata2", "{{ url_for('ems.get_market_data') }}"); 
+            var table = $('#powermarkettable').DataTable( {     
+              "scrollY": 404,
+              "scrollX": true,
+              // "scrollCollapse": true,
+              //"responsive": true,
+              // "paging": true,
+              "deferRender": true,
+              "lengthMenu": [[96, 80, 64, 48, 32, 16], [96, 80, 64, 48, 32, 16]],
+              "iDisplayLength": 96,
+              "order": [[0, 'asc'], [1, 'asc']],
+              // "sAjaxSource": "{#{ url_for('get_erschedule_data') }#}",
+              // "processing": true,
+              // "serverSide": true,
+              "ajax": {
+                "url": "{{ url_for('ems.get_market_data') }}", // + "/BSEB/" + dateval,
+                "type": "POST",
+                "data": function ( d ) {
+                            d.date = dateval;
+                            // d.discom = $('#discomselector').val();
+                        }
+              },
+              columnDefs: [
+                  { orderable: false, targets: 0 },
+                  { orderable: false, targets: 1 }
+              ],
+              colReorder: {
+                  fixedColumnsLeft: 2
+              },                        
+              fixedColumns:   {
+                  leftColumns: 2
+              }
+            });
+            // $(table.column( 2 ).nodes() ).addClass( 'highlight' );
+            new $.fn.dataTable.Buttons( table, {
+              buttons: [
+                  {
+                      extend: 'csvHtml5',
+                      title: 'Quenext_Power_Market_' + dateval,
+                      customize: function (csv) {
+                          var header = '"Quenext"' + ',' + '"Power Marker AreaPrice"' +"\n\n";
+                          // console.log('csv:', header + csv);
+                          return header +  csv;
+                      }                       
+                  },              
+                  {
+                      extend: 'excelHtml5',
+                      title: 'Quenext_Power_Market_' + dateval,
+                      customize: function (xlsx) {
+                              // console.log('xlsx:', xlsx);
+                              var sheet = xlsx.xl.worksheets['sheet1.xml'];
+                              var downrows = 1;
+                              var clRow = $('row', sheet);
+                              //update Row
+                              clRow.each(function () {
+                                  var attr = $(this).attr('r');
+                                  var ind = parseInt(attr);
+                                  ind = ind + downrows;
+                                  $(this).attr("r",ind);
+                              });
+                       
+                              // Update  row > c
+                              $('row c ', sheet).each(function () {
+                                  var attr = $(this).attr('r');
+                                  var pre = attr.substring(0, 1);
+                                  var ind = parseInt(attr.substring(1, attr.length));
+                                  ind = ind + downrows;
+                                  $(this).attr("r", pre + ind);
+                              });
+                       
+                              function Addrow(index,data) {
+                                  msg='<row r="'+index+'">'
+                                  for(i=0;i<data.length;i++){
+                                      var key=data[i].k;
+                                      var value=data[i].v;
+                                      msg += '<c t="inlineStr" r="' + key + index + '" s="2">';
+                                      msg += '<is>';
+                                      msg +=  '<t>'+value+'</t>';
+                                      msg+=  '</is>';
+                                      msg+='</c>';
+                                  }
+                                  msg += '</row>';
+                                  return msg;
+                              }
+                       
+                              //insert
+                              var r1 = Addrow(1, [{ k: 'A', v: 'Quenext' }, { k: 'B', v: '' }, { k: 'C', v: 'Power Marker AreaPrice' }]);
+                              // var r2 = Addrow(2, [{ k: 'A', v: '' }, { k: 'B', v: 'ColB' }, { k: 'C', v: '' }]);
+                              // var r3 = Addrow(3, [{ k: 'A', v: '' }, { k: 'B', v: '' }, { k: 'C', v: 'ColC' }]);
+                              // var img = document.createElement('img');
+                              // img.src = "{{ url_for('static', filename='images/logo_large-Gray.png') }}";
+                              // console.log(img.src);
+                              sheet.childNodes[0].childNodes[1].innerHTML = r1 + sheet.childNodes[0].childNodes[1].innerHTML;
+                          }                      
+                  },
+                  {
+                      extend: 'pdfHtml5',
+                      title: 'Quenext_Power_Market_' + dateval,
+                      customize: function ( doc ) {
+                          // Splice the image in after the header, but before the table
+                          doc.content.splice( 0, 0, {
+                              margin: [ 0, 0, 0, 5 ],
+                              alignment: 'center',
+                              image: quenext_logo,
+                              // Data URL generated by http://dataurl.net/#dataurlmaker
+                              width: 100,
+                              height: 29
+                          });
+                      }                       
+                  },
+                  {
+                      extend: 'print',
+                      title: 'Power_Market_' + dateval
+                  },
+              ]                   
+            } );                                    
+            table.buttons().container(0, null)
+                .insertBefore('div#powermarkettable_wrapper.dataTables_wrapper');               
+          };          
+
+          $('#myTab a[href="#powermarket"]').click(function(e){
+            e.preventDefault();
+            $(this).tab('show');
+            console.log(this);
+            marketdata($('input[name="date"]').val());   
+          });
+          // $('#myTab a[href="#schedule"]').click(function(e){
+          //   e.preventDefault();
+          //   $(this).tab('show');
+          //   console.log(this);
+          //   schduledata($('input[name="date"]').val());
+          // });                                                          
+      });
+    </script> 
+{% endblock %}
+{% block header %}
+    <form id="defaultForm" method="post" class="navbar-form navbar-left form-inline" role="form">
+      <!-- <div class='col-sm-2'>     -->
+        <div class="form-group">
+          <!-- <div class="input-group date"> -->
+            <input  class="form-control" type="text" placeholder="dd-mm-yyyy"  id="dateselector" name="date">
+<!--             <span class="input-group-addon">
+                <span class="glyphicon glyphicon-calendar"></span>
+            </span>    -->    
+          <!-- </div>                    -->
+        </div>
+      <!-- </div>       -->
+<!--                   <div class="form-group">
+          <button type="submit" class="btn btn-primary">Go</button>
+        </div>  -->                 
+    </form>     
+{% endblock %}
+{% block content %}
+    <div class="container">
+      <div role="tabpanel">
+        <ul id="myTab" class="nav nav-tabs" role="tablist">
+<!--           <li role="presentation"  class="active"><a href="#schedule" aria-controls="schedule" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-list"></span> Schedule</a></li> -->
+          <li role="presentation" class="active"><a href="#powermarket" aria-controls="powermarket" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-list"></span> Market</a></li> 
+        </ul>      
+        <div class="tab-content">
+          <div role="tabpanel" class="tab-pane active" id="powermarket">
+            <div class="container">
+              <div class="col-md-12 content">
+                <table id="powermarkettable" class="display nowrap table table-striped table-bordered table-condensed table-hover" cellspacing="0" width="100%">              
+                  <thead>
+                    <tr>
+                      {% for col in market_columns %}
+                      <th>{{ col }}</th>
+                      {% endfor %}
+                    </tr>
+                  </thead>
+                </table>            
+              </div>
+            </div>
+          </div>                                
+        </div>
+      </div>        
+    </div><!-- /.container -->
+{% endblock %}

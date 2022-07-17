@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Editable Spline</title>
+    <meta name="description" content="This is a d3js ediatble spline test">
+    <meta name="author" content="biswadip">
+    <link rel="stylesheet" href="../static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../static/css/sticky-footer-navbar.css">
+    <style type="text/css">
+      body { font: 13px sans-serif; }
+
+      table, th, td {
+         border: 1px solid black;
+      };
+
+/*      .axis path,
+      .axis line {
+        fill: none;
+        stroke: #000;
+        shape-rendering: crispEdges;
+      }
+
+     .x.axis path {
+        display: none;
+      }
+
+      .line {
+        fill: none;
+        stroke: steelblue;
+        stroke-width: 1.5px;
+      }
+
+      rect {
+        fill: none;
+        pointer-events: all;
+      }
+
+      circle,
+      .line {
+        fill: none;
+        stroke: steelblue;
+        stroke-width: 1.5px;
+      }
+
+      circle {
+        fill: #fff;
+        fill-opacity: .2;
+        cursor: move;
+      }
+
+      .selected {
+        fill: #ff7f0e;
+        stroke: #ff7f0e;*/
+
+      .chart {
+        font: 10px sans-serif;
+        margin: 50px;
+      }
+       
+      .grid .tick {
+        stroke: lightgrey;
+        opacity: 0.7;
+        shape-rendering: crispEdges;
+      }
+       
+      .grid path {
+        stroke-width: 0;
+      }
+       
+      .axis path {
+        fill: none;
+        stroke: #bbb;
+        shape-rendering: crispEdges;
+      }
+       
+      .axis text {
+        fill: #555;
+      }
+       
+      .axis line {  
+        stroke: #e7e7e7;
+        shape-rendering: crispEdges;
+      }
+       
+      .axis .axis-label {
+        font-size: 14px;
+      }
+       
+      .line {
+        fill: none;
+        stroke-width: 1.5px;
+      }
+       
+      .dot {
+        /* consider the stroke-with the mouse detect radius? */
+        stroke: transparent;
+        stroke-width: 10px;  
+        cursor: pointer;
+      }
+       
+      .dot:hover {
+        stroke: rgba(68, 127, 255, 0.3);
+      }        
+}                
+    </style>    
+    <script src="../static/js/jquery-2.1.3.min.js"></script>
+    <script src="../static/js/bootstrap.min.js"></script>
+    <script src="../static/js/d3.min.js"></script>
+    <script src="../static/js/knockout-3.4.0.js"></script> 
+    <script src="../static/js/knockout.mapping.js"></script>
+    <script>
+
+        var ChartModel = function(data) {
+            var self = this;
+
+            self.id = data.id;
+            self.x = ko.observable(data.x);
+            self.y = ko.observable(data.y);
+            self.bias = ko.observable(0);
+            self.bias_y = ko.computed({
+              read: function () {
+                if (self.bias() != undefined && !isNaN(parseFloat(self.bias()))) {
+                  return parseFloat(self.y()) + parseFloat(self.bias());
+                }
+                else {
+                  return 0;
+                }                
+              },
+              write: function (value) {
+                if (value != undefined && !isNaN(parseFloat(value))) {
+                  self.bias(parseFloat(value) - parseFloat(self.y()));
+                }
+                else {
+                  self.bias(0);
+                }
+              }
+            });
+            // .extend({ throttle: 100 });
+            // Create a computed observable that watches the members of a ChartRow for change.
+            self.chartrow = ko.computed(function () {
+                  return { x: self.x(), y: self.y,
+                      bias: self.bias(), bias_y: self.bias_y() };
+              });
+                                 
+          };
+
+        var ChartViewModel = function() {
+            var self = this;
+            self.chart = ko.observableArray([]);
+            self.addRow = function () {
+                self.chart.push(new ChartModel(self));
+            };            
+        };
+
+                                                    
+    </script> 
+</head>   
+<body>
+    <div id="chart1" class="chart"></div>
+    <div>
+        <table data-bind="visible: chart().length > 0">
+            <thead>
+                <tr>
+                    <th>
+                        Index
+                    </th>
+                    <th>
+                        X
+                    </th>
+                    <th>
+                        Y
+                    </th>
+                    <th>
+                        Bias
+                    </th>
+                    <th>
+                        Bias_Y
+                    </th>                    
+                </tr>
+            </thead>
+            <tbody data-bind="foreach: chart">
+                <!-- <tr data-bind="css: {'selected': selected}" class=""> -->
+                <tr>
+                    <td>
+                        <input name="'id' + $data.id()" style="width: 50px" data-bind="value: id" readonly="true">
+                    </td>
+                    <td>
+                        <input name="'X' + $data.id()" style="width: 50px" data-bind="value: x" readonly="true">
+                    </td>
+                    <td>
+                       <input name="'Y' + $data.id()" style="width: 50px" data-bind="value: y" readonly="true">
+                    </td>
+                    <td>
+                       <input  name="'Bias' + $data.id()" style="width: 50px" data-bind="value: bias , valueUpdate: 'afterkeydown'">
+                    </td> 
+                    <td>
+                       <input name="'Bias_Y' + $data.id()" style="width: 50px" data-bind="value: bias_y , valueUpdate: 'onkeyup'">
+                    </td>                                         
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <script type="text/javascript">
+        // d3 code
+
+        //************************************************************
+        // Data notice the structure
+        //************************************************************
+        var data =  [
+          [{'x':1,'y':0},{'x':2,'y':5},{'x':3,'y':10},{'x':4,'y':0},{'x':5,'y':6},{'x':6,'y':11},{'x':7,'y':9},{'x':8,'y':4},{'x':9,'y':11},{'x':10,'y':2}],
+          [{'x':1,'y':1},{'x':2,'y':6},{'x':3,'y':11},{'x':4,'y':1},{'x':5,'y':7},{'x':6,'y':12},{'x':7,'y':8},{'x':8,'y':3},{'x':9,'y':13},{'x':10,'y':3}],
+          [{'x':1,'y':2},{'x':2,'y':7},{'x':3,'y':12},{'x':4,'y':2},{'x':5,'y':8},{'x':6,'y':13},{'x':7,'y':7},{'x':8,'y':2},{'x':9,'y':4},{'x':10,'y':7}],
+          [{'x':1,'y':3},{'x':2,'y':8},{'x':3,'y':13},{'x':4,'y':3},{'x':5,'y':9},{'x':6,'y':14},{'x':7,'y':6},{'x':8,'y':1},{'x':9,'y':7},{'x':10,'y':9}],
+          [{'x':1,'y':4},{'x':2,'y':9},{'x':3,'y':14},{'x':4,'y':4},{'x':5,'y':10},{'x':6,'y':15},{'x':7,'y':5},{'x':8,'y':0},{'x':9,'y':8},{'x':10,'y':5}]
+        ];
+
+        // var data =  [
+        //   [{'x':1,'y':0},{'x':2,'y':5},{'x':3,'y':10},{'x':4,'y':0},{'x':5,'y':6},{'x':6,'y':11},{'x':7,'y':9},{'x':8,'y':4},{'x':9,'y':11},{'x':10,'y':2}],
+        //   [{'x':1,'y':1},{'x':2,'y':6},{'x':3,'y':11},{'x':4,'y':1},{'x':5,'y':7},{'x':6,'y':12},{'x':7,'y':8},{'x':8,'y':3},{'x':9,'y':13},{'x':10,'y':3}],
+        //   [{'x':1,'y':2},{'x':2,'y':7},{'x':3,'y':12},{'x':4,'y':2},{'x':5,'y':8},{'x':6,'y':13},{'x':7,'y':7},{'x':8,'y':2},{'x':9,'y':4},{'x':10,'y':7}]
+        //   ];
+
+        var data2 =[  [{'x':1,'y':3},{'x':2,'y':8},{'x':3,'y':13},{'x':4,'y':3},{'x':5,'y':9},{'x':6,'y':14},{'x':7,'y':6},{'x':8,'y':1},{'x':9,'y':7},{'x':10,'y':9}],
+          [{'x':1,'y':4},{'x':2,'y':9},{'x':3,'y':14},{'x':4,'y':4},{'x':5,'y':10},{'x':6,'y':15},{'x':7,'y':5},{'x':8,'y':0},{'x':9,'y':8},{'x':10,'y':5}]
+        ];         
+        var colors = [
+          'steelblue',
+          'green',
+          'red',
+          'purple'
+        ];
+         
+         
+        //************************************************************
+        // Create Margins and Axis and hook our zoom function
+        //************************************************************
+        var margin = {top: 20, right: 30, bottom: 30, left: 50},
+            width = 960 - margin.left - margin.right,
+            height = 500 - margin.top - margin.bottom;
+          
+        var x = d3.scale.linear()
+            .domain([0, 12])
+            .range([0, width]);
+         
+        var y = d3.scale.linear()
+            .domain([-1, 16])
+            .range([height, 0]);
+          
+        var xAxis = d3.svg.axis()
+            .scale(x)
+          .tickSize(-height)
+          .tickPadding(10)  
+          .tickSubdivide(true)  
+            .orient("bottom");  
+          
+        var yAxis = d3.svg.axis()
+            .scale(y)
+          .tickPadding(10)
+          .tickSize(-width)
+          .tickSubdivide(true)  
+            .orient("left");
+          
+        var zoom = d3.behavior.zoom()
+            .x(x)
+            .y(y)
+            .scaleExtent([1, 10])
+            .on("zoom", zoomed);  
+          
+        // //************************************************************
+        // // Generate our SVG object
+        // //************************************************************  
+        var svg = d3.select("#chart1").append("svg")
+          .call(zoom)
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+         
+        // svg.append("g")
+        //     .attr("class", "x axis")
+        //     .attr("transform", "translate(0," + height + ")")
+        //     .call(xAxis);
+         
+        // svg.append("g")
+        //     .attr("class", "y axis")
+        //     .call(yAxis);
+         
+        // svg.append("g")
+        //   .attr("class", "y axis")
+        //   .append("text")
+        //   .attr("class", "axis-label")
+        //   .attr("transform", "rotate(-90)")
+        //   .attr("y", (-margin.left) + 10)
+        //   .attr("x", -height/2)
+        //   .text('Axis Label');  
+         
+        // svg.append("clipPath")
+        //   .attr("id", "clip")
+        //   .append("rect")
+        //   .attr("width", width)
+        //   .attr("height", height);
+          
+          
+        //************************************************************
+        // Create D3 line object and draw data on our SVG object
+        //************************************************************
+        var line = d3.svg.line()
+            .interpolate("monotone")  
+            .x(function(d) { return x(d.x); })
+            .y(function(d) { return y(d.y); });  
+
+
+        // svg.selectAll('.line')
+        //   .data(data)
+        //   .enter()
+        //   .append("path")
+        //     .attr("class", "line")
+        //   .attr("clip-path", "url(#clip)")
+        //   .attr('stroke', function(d,i){      
+        //     return colors[i%colors.length];
+        //   })
+        //     .attr("d", line);   
+          
+          
+        //************************************************************
+        // Draw points on SVG object based on the data given
+        //************************************************************
+
+        // var points = svg.selectAll('.dots')
+        //   .data(data)
+        //   .enter()
+        //   .append("g")
+        //     .attr("class", "dots")
+        //   .attr("clip-path", "url(#clip)"); 
+         
+        // points.selectAll('.dot')
+        //   .data(function(d, index){     
+        //     var a = [];
+        //     // console.log(index);
+        //     // console.log(d);
+        //     d.forEach(function(point,i){
+        //       // console.log("point");
+        //       // console.log(point);
+        //       // console.log(i);              
+        //       a.push({'index': index, 'point': point});
+        //     });   
+        //     console.log(a);
+        //     return a;
+        //   })
+        //   .enter()
+        //   .append('circle')
+        //   .attr('class','dot')
+        //   .attr("r", 2.5)
+        //   .attr('fill', function(d,i){  
+        //     return colors[d.index%colors.length];
+        //   })  
+        //   .attr("transform", function(d) { 
+        //     return "translate(" + x(d.point.x) + "," + y(d.point.y) + ")"; }
+        //   );
+          
+          // ** Update data section (Called from the onclick)
+          var points;
+          function updateData(data) {
+            // var svg; 
+          
+            //************************************************************
+            // Generate our SVG object
+            //************************************************************  
+            // if (d3.select("#chart1").select("svg")[0].length < 1){
+            //   svg = d3.select("#chart1").append("svg")
+            //     .call(zoom)
+            //       .attr("width", width + margin.left + margin.right)
+            //       .attr("height", height + margin.top + margin.bottom)
+            //     .append("g")
+            //       .attr("transform", "translate(" + margin.left + "," + margin.top + ")");              
+            // } else {
+            //   svg = d3.select("#chart1").transition();
+            // };
+
+
+            // if no axis exists, create one, otherwise update it
+            if (svg.selectAll(".y.axis")[0].length < 1 ){
+              console.log('1st call');
+              svg.append("g")
+                  .attr("class","y axis")
+                  .call(yAxis);
+
+              svg.append("g")
+                .attr("class", "y axis")
+                .append("text")
+                .attr("class", "axis-label")
+                .attr("transform", "rotate(-90)")
+                .attr("y", (-margin.left) + 10)
+                .attr("x", -height/2)
+                .text('Axis Label'); 
+
+            } else {
+              console.log('2st call');
+              svg.selectAll(".y.axis").transition().duration(1500).call(yAxis);
+            }
+
+            if (svg.selectAll(".x.axis")[0].length < 1 ){
+              svg.append("g")
+                  .attr("class", "x axis")
+                  .attr("transform", "translate(0," + height + ")")
+                  .call(xAxis);
+            } else {
+              svg.selectAll(".x.axis").transition().duration(1500).call(xAxis);
+            }
+       
+            svg.append("clipPath")
+              .attr("id", "clip")
+              .append("rect")
+              .attr("width", width)
+              .attr("height", height);
+
+            // generate line paths
+            var lines = svg.selectAll(".line")
+                          .data(data)
+                          .attr("class","line")
+                          .attr("clip-path", "url(#clip)");
+
+            console.log(data);
+
+            // transition from previous paths to new paths
+            lines.transition().duration(1500)
+              .attr("d",line)
+              .attr("clip-path", "url(#clip)")
+              .style("stroke", function(d,i){    
+                return colors[i%colors.length];
+              });
+
+            // enter any new data
+            lines.enter()
+              .append("path")
+              .attr("class","line")
+              .attr("d",line)
+              .attr("clip-path", "url(#clip)")
+              .style("stroke", function(d,i){    
+                return colors[i%colors.length];
+              });
+
+            // exit
+            lines.exit()
+              .remove();
+              
+
+              
+            // ************************************************************
+            // Draw points on SVG object based on the data given
+            // ************************************************************
+
+            points = svg.selectAll('.dots')
+              .data(data);
+
+              points.exit().remove();
+
+              points.enter()
+              .append("g")
+                .attr("class", "dots")
+              .attr("clip-path", "url(#clip)"); 
+
+            var points2 = points.selectAll('.dot')
+              .data(function(d, index){     
+                var a = [];
+                // console.log(index);
+                // console.log(d);
+                d.forEach(function(point,i){
+                  // console.log("point");
+                  // console.log(point);
+                  // console.log(i);              
+                  a.push({'index': index, 'point': point});
+                });   
+                // console.log(a);
+                // z=a;
+                return a;
+              }).attr('class','dot');
+            // transition from previous paths to new paths
+            points2.transition().duration(1500)
+              .attr('class','dot')
+              .attr("r", 2.5)
+              .attr('fill', function(d,i){  
+                return colors[d.index%colors.length];
+              })
+              .attr("transform", function(d) { 
+                return "translate(" + x(d.point.x) + "," + y(d.point.y) + ")"; }
+              );               
+
+            points2
+              .enter()
+              .append('circle')
+              .attr('class','dot')
+              .attr("r", 2.5)
+              .attr('fill', function(d,i){  
+                return colors[d.index%colors.length];
+              })  
+              .attr("transform", function(d) { 
+                return "translate(" + x(d.point.x) + "," + y(d.point.y) + ")"; }
+              );  
+
+            points2.exit().remove();
+
+            //************************************************************
+            // Zoom specific updates
+            //************************************************************
+
+          };          
+          function zoomed() {
+            // svg.selectAll(".x.axis").transition().duration(10).call(xAxis);
+            // svg.selectAll(".y.axis").transition().duration(10).call(yAxis);
+            svg.selectAll(".x.axis").call(xAxis);
+            svg.selectAll(".y.axis").call(yAxis);   
+            svg.selectAll('path.line').attr('d', line);  
+           
+            points.selectAll('circle').attr("transform", function(d) { 
+              // console.log(d);
+              return "translate(" + x(d.point.x) + "," + y(d.point.y) + ")"; 
+            });
+            // svg.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")");  
+          }; 
+
+      // updateData(data2);
+      updateData(data);
+
+      // console.log(data);
+      var vm = new ChartViewModel();
+      ko.applyBindings(vm);
+      // updateData(data);
+
+
+      var subs = [];       
+
+
+      // Register subscription to observableArray.
+      vm.chart.subscribe(function (newValue) {
+        // Call the updateStories function, which uses D3 to draw objects representing stories.
+        updateData(newValue);
+
+        // Dispose of any existing subscriptions.
+        ko.utils.arrayForEach(subs, function (sub) {
+          sub.dispose();
+        });
+
+        // Register subscriptions for each story.
+        ko.utils.arrayForEach(newValue, function (item) {
+            // Register to call the updateStories function whenever a stories 'story' computed observable changes.
+          subs.push(item.chartrow.subscribe(function () {
+              updateData(newValue);
+          }));
+        });        
+    });
+
+      // vm.chart.push(new ChartModel({ id: 0, x: 5, y: 7 }));
+      // vm.chart.push(new ChartModel({ id: 1, x: 15, y: 10 }));
+      // vm.chart.push(new ChartModel({ id: 2, x: 30, y: 15 }));
+      // vm.chart.push(new ChartModel({ id: 3, x: 60, y: 30 }));          
+    </script>
+</body>
+<footer class="footer">
+    <div class="container">
+    <ul class="footer-links">
+        <li>© 2013</li>
+        <li><a href='https://github.com/imwilsonxu/flask-datatables'>About</a></li>
+    </ul>
+    </div>
+</footer>
+
+</html>

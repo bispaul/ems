@@ -1,0 +1,936 @@
+{% extends "basetemplate.html" %}
+{% block title %}Weather Watch{% endblock %}
+{% block script %}
+    {{ super() }}
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/normalize.css') }}">     -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ion.rangeSlider.css') }}"> 
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/ion.rangeSlider.skinModern.css') }}">  -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/ion.rangeSlider.skinFlat.css') }}">      -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ion.rangeSlider.skinHTML5.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/weather-icons.min.css') }}">  -->
+    <style>
+        html, body{
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            z-index: 10;
+        }
+        #map-canvas {
+            width: 100%;
+            height: 650px;
+            /*z-index: 6;*/
+        }
+        #panel {
+            position: relative;
+            /*top: 5px;*/
+            /*left: 50%;*/
+            /*margin-left: -180px;*/
+            z-index: 5;
+            background-color: #fff;
+            padding: 5px;
+            /*border: 1px solid #999;*/
+        }
+        .popup-link {
+            transition: opacity ease-in-out .5s;
+            display: block;
+            position: relative;
+            color: white;
+            padding: 4px 0 0 8px;
+            line-height: 1.5;
+            width: 130px;
+        }
+/*        .slider {
+            -webkit-transition: .7s height ease-in-out 10s;
+            transition: .7s height ease-in-out 10s;
+            background-color: #9d0300;
+            height: 6px;
+            border-radius: 3px;
+            position: relative;
+        }*/
+        .irs-min, .irs-max {
+            display: none;
+        }
+        .irs-grid-text {
+            bottom: 10px;
+            background: #428bca;
+            border-radius: 1px;
+            padding: 1px 2px;
+            color: #fff;
+        }
+        .irs-grid-pol{
+            /*color: #428bca;*/
+            opacity: 1;
+            background: #428bca;
+            width: 2px;
+        }
+        .irs-slider {
+            top: 33px;
+            width: 20px;
+            height: 10px;
+            border: 1px solid #AAA;
+            background: #DDD;
+            background: linear-gradient(to bottom, rgba(255,255,255,1) 0%,rgba(220,220,220,1) 20%,rgba(255,255,255,1) 100%);
+            border-radius: 27px;
+            -moz-border-radius: 27px;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+            cursor: pointer;
+        }
+        .irs-bar {
+            height: 10px;
+            top: 33px;
+            border-top: 1px solid #428bca;
+            border-bottom: 1px solid #428bca;
+            background: #428bca;
+            background: linear-gradient(to top, rgba(66,139,202,1) 0%,rgba(127,195,232,1) 100%);
+        }
+/*        #checkboxes { 
+            position: absolute; 
+            top: 80px; 
+            right: 10px;
+            font-family: 'arial', 'sans-serif'; 
+            font-size: 14px;
+            background-color: white;
+            border: 1px solid black;
+            padding: 10px 10px 0px 10px;
+        }   */     
+    </style> 
+    <!-- All JS -->
+    <script src="{{ url_for('static', filename='js/jquery-2.1.3.min.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/ion.rangeSlider.min.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/moment.min.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/wicket.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/turf.min.js') }}"></script>
+    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDwVA8ANu6c-Zw3KLTbZQH1B9d1r-FrGQw">
+    </script>
+    <script>
+        var map;
+        var request;
+        var gettingData = false;
+        var geocoder;
+        var coords;
+        var allDateTime = [];
+        var cur_date, cur_time_block;
+        var myslider;
+        var json_results;
+        var shownLayer, 
+            layer_weather, 
+            layer_powergrid;
+        // var activeevent, activeinfowindow;
+        var myStyles =[
+            {
+                featureType: "poi",
+                elementType: "labels",
+                stylers: [
+                      { visibility: "off" }
+                ]
+            }
+        ];        
+
+        function DateControl(controlDiv, map) {
+            // Set CSS for the control border.
+            var controlUI = document.createElement('div');
+            controlUI.setAttribute("style", "position:relative; padding:5px;overflow-x:hidden;overflow-y:hidden;width:700px;height:80px;cursor:pointer;");
+            // controlUI.style.backgroundColor = '#fff';
+            // controlUI.style.border = '2px solid #fff';
+            // controlUI.style.borderRadius = '3px';
+            // controlUI.style.boxShadow = '0 2px 6px rgba(0,0,0,.3)';
+            // controlUI.style.cursor = 'pointer';
+            // controlUI.style.marginBottom = '22px';
+            // controlUI.style.textAlign = 'center';
+            // controlUI.title = 'Click to recenter the map';
+            controlDiv.appendChild(controlUI);
+            
+            // Set CSS for the control interior.
+            var controlText = document.createElement('input');
+            controlText.id = 'range'; 
+            // controlText.style.color = 'rgb(25,25,25)';
+            // controlText.style.fontFamily = 'Roboto,Arial,sans-serif';
+            // controlText.style.fontSize = '16px';
+            // controlText.style.lineHeight = '38px';
+            // controlText.style.paddingLeft = '5px';
+            // controlText.style.paddingRight = '5px';
+            // controlText.innerHTML = 'Center Map';
+            controlUI.appendChild(controlText);
+
+           //  var control = this;
+           //  control.isOpen = true;
+           //  // Set CSS for the control border.
+           //  var controlUI = document.createElement('input');
+           //  controlUI.id = 'range'; 
+           //  // controlUI.style.backgroundColor = '#fff';
+           //  // controlUI.style.border = '2px solid #fff';
+           //  // controlUI.style.borderRadius = '3px';
+           //  // controlUI.style.boxShadow = '0 2px 6px rgba(0,0,0,.3)';
+           //  // controlUI.style.cursor = 'pointer';
+           //  // controlUI.style.marginBottom = '22px';
+           //  // controlUI.style.textAlign = 'center';
+           //  controlUI.style.position = 'relative';
+           //  // controlUI.style.padding = '200px';              
+           //  controlDiv.appendChild(controlUI);
+
+           // // Set CSS for the control interior.
+           //  // var controlText = document.createElement('div');
+           //  // controlText.style.color = 'rgb(25,25,25)';
+           //  // controlText.style.fontFamily = 'Roboto,Arial,sans-serif';
+           //  // controlText.style.fontSize = '16px';
+           //  // controlText.style.lineHeight = '38px';
+           //  // controlText.style.paddingLeft = '5px';
+           //  // controlText.style.paddingRight = '5px';
+           //  // controlText.innerHTML = 'Center';
+           //  // controlUI.appendChild(controlText);
+
+           //  // var controlSlider = document.createElement('div');
+           //  // controlSlider.id = 'datecontrolslider';
+           //  // controlUI.appendChild(controlSlider);
+
+           //  // var controlSlider = document.createElement('div');
+           //  // controlSlider.innerHTML = '<input id="range" />';
+           //  // controlUI.appendChild(controlSlider);
+           //  // var controlSlider = document.createElement('input');
+           //  // controlSlider.id = 'dateslider';
+           //  // controlUI.appendChild(controlSlider);
+           //  console.log($(controlUI));
+            // $(controlText).ionRangeSlider({
+            //     min: +moment().subtract(12, "hours").format("X"),
+            //     max: +moment().format("X"),
+            //     from: +moment().subtract(6, "hours").format("X"),
+            //     grid: true,
+            //     force_edges: true,
+            //     prettify: function (num) {
+            //         var m = moment(num, "X");
+            //         return m.format("Do MMMM, HH:mm");
+            //     }
+            // });
+            $(controlText).ionRangeSlider({
+                type: "single",
+                // min : +moment(moment(arrayMin(allDateTime)).format('DD-MM-YYYY') + 0, "DD-MM-YYYYh").format('X'),
+                // max : +moment(moment(arrayMax(allDateTime)).format('DD-MM-YYYY') + 24, "DD-MM-YYYYh").format('X'),
+                // min: +moment("14-10-2016" + 1, "DD-MM-YYYYh").format('X'),
+                // max: +moment("20-10-2016" + 24, "DD-MM-YYYYh").format('X'),
+                // values: allDateTime,
+                grid: true,
+                // grid_num: +moment(arrayMax(allDateTime)).diff(moment(arrayMin(allDateTime)), 'days') + 1,
+                // grid_num: 7,
+                // grid_snap: true,
+                force_edges: true,
+                prettify: function (num) {
+                    var m = moment(num, "x");
+                    return m.format("DoMMMYY, HH");
+                }
+            });
+            myslider = $(controlText).data("ionRangeSlider");                                             
+        }
+
+        function sliderUpdate() {
+            myslider.update({
+                min: +moment(arrayMin(allDateTime)).startOf('hour').add(0, 'hours').format('x'),
+                max: +moment(arrayMax(allDateTime)).startOf('hour').add(24, 'hours').format('x'),
+                grid_num: +moment(arrayMax(allDateTime)).diff(moment(arrayMin(allDateTime)), 'days') + 1,
+                from: +moment(cur_date).startOf('hour').add(cur_time_block, 'hours').format('x'),
+                from_min: +moment(arrayMin(allDateTime)).startOf('hour').add(1, 'hours').format('x'),
+                keyboard: true,
+                step: 100,
+                // onStart: function (data) {
+                //     console.log("onStart", data);
+                //     saveResult(data);
+                // },
+                onChange: function (data) {
+                    console.log("onChange", data);
+                    saveResult(data);
+                },
+                // onFinish: function (data) {
+                //     console.log("onFinish", data);
+                //     saveResult(data);
+                // },
+                onUpdate: function (data) {
+                    console.log("onUpdate", data);
+                    saveResult(data);
+                }                              
+            });           
+        };
+
+        var saveResult = function (data) {
+            // console.log('Slider Value', data.from, moment(data.from).format('DD-MM-YYYY'), moment(data.from).format('H'));
+            //filter the json data
+            if (json_results.length > 0) {
+                console.log('Results json_results:', json_results);
+                resetData();
+                for (var i = 0; i < json_results.length; i++) {
+                    // console.log('json_results i: ', i, typeof json_results[i]['date'], typeof json_results[i]['hour'], typeof moment(data.from).format('DD-MM-YYYY'), typeof moment(data.from).format('H'));
+                    hour = parseInt(moment(data.from).format('H')) === 0 ? 24 : parseInt(moment(data.from).format('H'));
+                    date = parseInt(moment(data.from).format('H')) === 0 ? moment(data.from).startOf('hour').subtract(1, 'hours').format('DD-MM-YYYY') : moment(data.from).format('DD-MM-YYYY');
+                    // console.log('date : hour', date, hour); 
+                    if (json_results[i]['date'] ===  date && json_results[i]['hour'] === hour){
+                        geoJSON.features.push(jsonToGeoJson(json_results[i]));
+                    }  
+                    
+                }
+                //populate the geojson
+                drawIcons(geoJSON);
+                // updateInfo();
+            }            
+        };
+
+        // var updateInfo = function () {
+        //     if (activeevent && activeinfowindow){
+        //         activeinfowindow.setContent(
+        //             "<img src=" + activeevent.feature.getProperty("icon") + ">"
+        //             + "<br /><strong>" + activeevent.feature.getProperty("city") + "</strong>"
+        //             + "<br />" + activeevent.feature.getProperty("temperature") + "&deg;C"
+        //             + "<br />" + activeevent.feature.getProperty("windSpeed") + "&nbsp;" + "Kmph" + "&nbsp;"
+        //             +  activeevent.feature.getProperty("windDegrees") + "&deg;"
+        //             + "<br />" + activeevent.feature.getProperty("conditions")
+        //             + "<br />" + activeevent.feature.getProperty("date")
+        //             + "<br />" + activeevent.feature.getProperty("hour")
+        //         );
+        //         activeinfowindow.setOptions({
+        //             position:{
+        //                 lat: activeevent.latLng.lat(),
+        //                 lng: activeevent.latLng.lng()
+        //             },
+        //             pixelOffset: {
+        //                 width: 0,
+        //                 height: -15
+        //             }
+        //         });
+        //         activeinfowindow.open(map);
+        //     }
+        // };
+
+        function initialize() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(success, failure);
+                console.log("In Geolocation");
+            } else {
+                console.log('Geo Location is not supported');
+            }
+
+            function success(position){
+                coords = new google.maps.LatLng(position.coords.latitude, position.coords.longitude); 
+                console.log("In Success" + position);
+                console.log(coords);
+                load();
+            }
+
+            function failure(){
+                coords = new google.maps.LatLng(20,78);
+                console.log("In Failure");
+                load();
+            }
+        }
+
+        var infowindow = new google.maps.InfoWindow();
+
+        // var station = {"type": "FeatureCollection",
+        //     "features": [
+        //         {
+        //             "type": "Feature",
+        //             "geometry": {
+        //                 "type": "Point",
+        //                 "coordinates": [
+        //                     30.086928,
+        //                     78.267612
+        //                 ]
+        //             },
+        //             "properties": {
+        //                 "name": "400_KV_S/S_Rishikesh",
+        //                 "division": "Garhwal"
+        //             }
+        //         },
+        //         {
+        //             "type": "Feature",
+        //             "geometry": {
+        //                 "type": "Point",
+        //                 "coordinates": [
+        //                     29.854263,
+        //                     77.888
+        //                 ]
+        //             },
+        //             "properties": {
+        //                 "name": "220KV_S/S_Roorkee",
+        //                 "division": "Garhwal"
+        //             }
+        //         },        
+        //     ]
+        // };
+
+        function load() {
+            console.log("Load...");
+            var myOptions = {
+                zoom: 12,
+                // center: new google.maps.LatLng(20,78),
+                center: coords,
+                mapTypeId: google.maps.MapTypeId.ROADMAP,
+                styles: myStyles,
+                clickableIcons: false
+            };            
+            geocoder = new google.maps.Geocoder();
+            // var coords = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+            var mapOptions = {
+                zoom: 8,
+                // center: new google.maps.LatLng(20,78),
+                center: coords,
+                zoomControl: true,
+                mapTypeId: google.maps.MapTypeId.HYBRID
+            };
+
+            map = new google.maps.Map(document.getElementById('map-canvas'),
+                myOptions);
+            layer_powergrid = new google.maps.Data();
+            layer_powergrid.setStyle(function(feature) {
+                var color = 'gray';
+                if (feature.getProperty('color')) {
+                    color = feature.getProperty('color');
+                }
+                if (feature.getProperty('ringoff')) {
+                    // size = 24;
+                    // point = 12;
+                    size = 16;
+                    point = 8;                    
+                } else {
+                    size = 16;
+                    point = 8;
+                }                 
+                return /** @type {google.maps.Data.StyleOptions} */({
+                    icon: {
+                        url: feature.getProperty('icon'),
+                        anchor: new google.maps.Point(point, point),
+                        scaledSize : new google.maps.Size(size, size),
+
+                    },                
+                    fillColor: color,
+                    strokeColor: color,
+                    strokeWeight: 2,
+                    visible: feature.getProperty('visible')
+                });
+            });            
+            // layer_powergrid.loadGeoJson("{{ url_for('ems.grid_data') }}");
+            // layer_powergrid.setMap(map);
+
+            // shownLayer = layer_powergrid;            
+            // map.data.addGeoJSON(data);
+            // Add interaction listeners to make weather requests
+            google.maps.event.addListener(map, 'idle', checkIfDataRequested);
+            codeAddress("{{ state }}");
+            // Sets up and populates the info window with details
+            layer_powergrid.addListener("click", function(event) {
+                infowindow.setContent(
+                    "<strong>" + event.feature.getProperty("name") + "</strong>"
+                    // + "<br />" + event.feature.getProperty("code")
+                    // + "<br />" + "Parent:" + event.feature.getProperty("parent")
+                    // + "<br />" + "Child:" + event.feature.getProperty("child")
+                    // + "<br />" + event.feature.getProperty("capacity")
+                );
+                infowindow.setOptions({
+                    position:{
+                        lat: event.latLng.lat(),
+                        lng: event.latLng.lng()
+                    },
+                    pixelOffset: {
+                        width: 0,
+                        height: -15
+                    }
+                });
+                infowindow.open(map);
+            });            
+            map.data.addListener('click', function(event) {
+                activeevent = event;
+                // activeinfowindow = infowindow;
+                infowindow.setContent(
+                    "<img src=" + event.feature.getProperty("icon") + " height='50' width='50'>"
+                    + "<br /><strong>" + event.feature.getProperty("city") + "</strong>"
+                    + "<br /><strong>" + 'Temp: ' + "</strong>" + event.feature.getProperty("temperature") + "&deg;C"
+                    + "<br /><strong>" + 'Wind Speed: ' + "</strong>" + event.feature.getProperty("windSpeed") + "&nbsp;" + "Kmph" + "&nbsp;"
+                    + "<br /><strong>" + 'Wind Dir: ' + "</strong>" + event.feature.getProperty("windDegrees") + "&deg;"
+                    + "<br /><strong>" + 'Condition: ' + "</strong>" + event.feature.getProperty("conditions")
+                    + "<br /><strong>" + 'Date: ' + "</strong>"  + event.feature.getProperty("date")
+                    + "<br /><strong>" + 'Hour: ' + "</strong>" + event.feature.getProperty("hour")
+                );
+                infowindow.setOptions({
+                    position:{
+                        lat: event.latLng.lat(),
+                        lng: event.latLng.lng()
+                    },
+                    pixelOffset: {
+                        width: 0,
+                        height: -15
+                    }
+                });
+                infowindow.open(map);
+            });
+            // Create the DIV to hold the control and call the CenterControl()
+            // constructor passing in this DIV.
+            var dateControlDiv = document.createElement('div');
+            var dateControl = new DateControl(dateControlDiv, map);
+
+            dateControlDiv.index = 1;
+            map.controls[google.maps.ControlPosition.BOTTOM_LEFT].push(dateControlDiv);  
+
+            // Color each letter gray. Change the color when the isColorful property
+            // is set to true.
+            // map.data.setStyle(function(feature) {
+            //   var color = 'gray';
+            //   if (feature.getProperty('isColorful')) {
+            //     color = feature.getProperty('color');
+            //   }
+            //   return /** @type {google.maps.Data.StyleOptions} */({
+            //     fillColor: color,
+            //     strokeColor: color,
+            //     strokeWeight: 2
+            //   });
+            // });
+
+            // When the user clicks, set 'isColorful', changing the color of the letters.
+            // layer_powergrid.addListener('click', function(event) {
+            //   event.feature.setProperty('isColorful', true);
+            // });
+            layer_powergrid.setMap(map);
+            // layer_powergrid.setStyle(function(feature) {  
+
+            //     console.log(feature.getProperty('name'), feature.getProperty('type'),feature.getProperty('type') >= 220 ? 'visible' : 'hidden');
+            //   return /** @type {google.maps.Data.StyleOptions}*/ ({
+            //     fillColor: feature.getProperty('color'),
+            //     strokeColor: feature.getProperty('color'),
+            //     strokeWeight: 2,
+            //     visible: feature.getProperty('type') >= 400 ? true : false
+            //   });
+            // });                                            
+        } 
+
+
+        function codeAddress(address) {
+            // var address = document.getElementById('address').value;
+            var geocoderl = new google.maps.Geocoder();
+            geocoderl.geocode( {'address': address}, function(results, status) {
+                if (status == google.maps.GeocoderStatus.OK) {
+                    map.setCenter(results[0].geometry.location);
+                    map.setTilt(0);
+                    map.setZoom(8);
+                    // var marker = new google.maps.Marker({
+                    //     map: map,
+                    //     position: results[0].geometry.location
+                    // });
+                } else {
+                    alert('Geocode was not successful for the following reason: ' + status);
+                }
+            });
+        }
+        // Enter key implementation but gives CRSF error
+        // $('#address').keypress(function(e){
+        //     if ( e.which == 13 && document.getElementById("address").value.length > 0){
+        //       codeAddress();
+        //     }
+        // });
+        function inArray(needle, haystack) {
+            var length = haystack.length;
+            for (var i = 0; i < length; i++) {
+                if (haystack[i] == needle)
+                return true;
+            }
+            return false;
+        };
+
+        function arrayMin(arr) {
+            var len = arr.length, min = Infinity;
+            while (len--) {
+                if (arr[len] < min) {
+                  min = arr[len];
+                }
+            }
+            return min;
+        };
+
+        function arrayMax(arr) {
+            var len = arr.length, max = -Infinity;
+                while (len--) {
+                if (arr[len] > max) {
+                  max = arr[len];
+                }
+            }
+            return max;
+        };
+
+        var checkIfDataRequested = function() {
+            // Stop extra requests being sent
+            while (gettingData === true) {
+                request.abort();
+                gettingData = false;
+            }
+            getSubstation();
+            getCoords();
+            // layer_powergrid.setMap(map);
+        };
+
+        // Get the coordinates from the Map bounds
+        var getCoords = function() {
+            var bounds = map.getBounds();
+            var NE = bounds.getNorthEast();
+            var SW = bounds.getSouthWest();
+            getWeather(NE.lat(), NE.lng(), SW.lat(), SW.lng());
+        };
+
+        // Make the weather request
+        var getWeather = function(northLat, eastLng, southLat, westLng) {
+            gettingData = true;
+            // var requestString = "http://api.openweathermap.org/data/2.5/box/city?bbox="
+            //                     + westLng + "," + northLat + "," //left top
+            //                     + eastLng + "," + southLat + "," //right bottom
+            //                     + map.getZoom()
+            //                     + "&cluster=yes&format=json"
+            //                     + "&APPID=" + openWeatherMapKey;
+            var requestString = "weatherwatchdata/"
+                            + westLng + "/" + northLat + "/" //left top
+                            + eastLng + "/" + southLat  //right bottom 
+            request = new XMLHttpRequest();
+            request.onload = proccessResults;
+            request.open("get", requestString, true);
+            request.send();
+        };
+
+        // Take the JSON results and proccess them
+        var proccessResults = function() {
+            console.log('This:', this);
+            var results = JSON.parse(this.responseText);
+            json_results = results;
+            if (results.length > 0) {
+                console.log('Results:', results);
+                // resetData();
+                for (var i = 0; i < results.length; i++) {
+                    var datetime = +moment(results[i]['date'], "DD-MM-YYYY");
+                    cur_date = +moment(results[i]['cur_date'], "DD-MM-YYYY");
+                    cur_time_block = results[i]['cur_block_hour_no'];
+                    if (!inArray(datetime, allDateTime)){
+                        allDateTime.push(datetime);
+                    };
+                    // geoJSON.features.push(jsonToGeoJson(results[i]));
+                }
+                console.log(allDateTime);
+                sliderUpdate();                
+                // drawIcons(geoJSON);
+            }
+        };
+
+
+        // For each result that comes back, convert the data to geoJSON
+        var jsonToGeoJson = function (weatherItem) {
+            var conditions = weatherItem.conditions ? weatherItem.conditions.replace(/ +/g, ""): weatherItem.conditions;
+            // var icon = {
+            //     url: "/static/images/weather/png/cloud.png", // url
+            //     scaledSize: new google.maps.Size(50, 50), // scaled size
+            //     origin: new google.maps.Point(0,0), // origin
+            //     anchor: new google.maps.Point(0, 0) // anchor
+            // };            
+            var feature = {
+                type: "Feature",
+                properties: {
+                    date: weatherItem.date,
+                    hour: weatherItem.hour,
+                    city: weatherItem.city,
+                    // weather: weatherItem.weather[0].main,
+                    temperature: weatherItem.temperature,
+                    // min: weatherItem.main.temp_min,
+                    // max: weatherItem.main.temp_max,
+                    // humidity: weatherItem.main.humidity,
+                    // pressure: weatherItem.main.pressure,
+                    conditions: weatherItem.conditions,
+                    windSpeed: weatherItem.windspeed,
+                    windDegrees: weatherItem.winddir_deg,
+                    // windGust: weatherItem.wind.gust,
+                    // icon: "/static/images/wunderground/"
+                    //       + conditions + ".gif",
+                    icon: "/static/images/weather_flat_colorful/svg/" + conditions + ".svg",
+                    coordinates: [weatherItem.longitude, weatherItem.latitude]
+                },
+                geometry: {
+                    type: "Point",
+                    coordinates: [weatherItem.longitude, weatherItem.latitude]
+                }
+            };
+            // Set the custom marker icon
+            map.data.setStyle(function(feature) {
+                // var iconSize = new google.maps.Size(50, 50);
+                var iconAnchor = new google.maps.Point(25, 25);
+                var iconScaledSize = new google.maps.Size(50, 50);
+                return {
+                    icon: {
+                        // url: feature.getProperty('icon'),
+                        // anchor: new google.maps.Point(25, 25)
+                        url: feature.getProperty('icon'),
+                        // size: iconSize,
+                        // strokeColor: '#FFD700',
+                        // strokeWeight: 20,
+                        anchor: iconAnchor,
+                        scaledSize: iconScaledSize,
+                        zIndex: -1                        
+                    }
+                };
+            });
+            // console.log('Geojson obj', JSON.stringify(feature));
+            // returns object
+            return feature;
+        };
+
+
+        // Add the markers to the map
+        var drawIcons = function (geoJSON) {
+            map.data.addGeoJson(geoJSON);           
+            // Set the flag to finished
+            gettingData = false;
+        };
+
+        // Clear data layer and geoJSON
+        var resetData = function () {
+            geoJSON = {
+                type: "FeatureCollection",
+                features: []
+            };
+            map.data.forEach(function(feature) {
+                map.data.remove(feature);
+            });
+        };
+
+        // make sure your map is a global
+        function toggleLayer(this_layer){
+           if( this_layer.getMap() ){
+                this_layer.setMap(null);
+           }else{
+                this_layer.setMap(map);
+           }
+        };
+
+        // Set the stroke width, and fill color for each polygon
+        // Add some style.
+        // layer_powergrid.setStyle(function(feature) {
+        //     console.log('xxx', feature);
+        //   return /** @type {google.maps.Data.StyleOptions} */({
+        //     fillColor: feature.getProperty('color'),
+        //     strokeColor: feature.getProperty('color'),
+        //     strokeWeight: 2
+        //   });
+        // });
+        // map.data.setStyle({
+        //   fillColor: 'green',
+        //   strokeWeight: 2
+        // });
+        var getSubstation = function() {
+            console.log('getSubstation called ****');
+            gettingData = true;
+            requestString = "{{ url_for('ems.grid_data') }}";
+            // requestString = "get_substation/" + "D";
+            request = new XMLHttpRequest();
+            request.onload = proccessResultsSubSt;
+            request.open("get", requestString, true);
+            request.send();
+        };
+        // Take the JSON results and proccess them
+        var proccessResultsSubSt = function() {
+            // console.log('This:', this);
+            var results = JSON.parse(this.responseText);
+            if (results.length > 0) {
+                // console.log('Results:', results);
+                resetData();
+                for (var i = 0; i < results.length; i++) {
+                    if (results[i].parent_flag === 1){
+                        addPts(jsonToGeoJsonParPt(results[i]));
+                        addPts(jsonToGeoJsonCldPt(results[i]));                        
+                    } else {
+                        addPts(jsonToGeoJsonCldPt(results[i]));  
+                    }
+
+                    if (results[i].child_lat != null){
+                        geoJSON.features.push(jsonToGeoJsonLine(results[i]));
+                        // drawRingOffCircle(results[i]);
+                    }
+                }
+                setGeojsonLayer(geoJSON);
+            }
+            console.log('geoJSON', JSON.stringify(geoJSON));
+        };
+
+        var setGeojsonLayer = function (geoJSON) {
+            // map.data.addGeoJson(geoJSON);
+            layer_powergrid.addGeoJson(geoJSON);
+            // Set the flag to finished
+            gettingData = false;
+        };
+
+        function addPts(point) {
+            // console.log('point', point);
+            var found = false;
+            for(var i = 0; i < geoJSON.features.length; i++) {
+                if (geoJSON.features[i].properties.name === point.properties.name && geoJSON.features[i].properties.type === point.properties.type) {
+                    found = true;
+                    break;
+                }
+            }
+            // if (geoJSON.features.indexOf(point) === -1) {
+            //     geoJSON.features.push(point);
+            // }
+            if (!found) {
+                geoJSON.features.push(point);
+            }
+            // console.log(geoJSON.features, point);
+        };        
+        // For each result that comes back, convert the data to geoJSON
+        var jsonToGeoJsonParPt = function (rowItem) {
+            var icon;
+            if (rowItem.parent_flag === 1){
+                icon = "start_substation_" + "green" + ".svg";
+            } else {
+                icon = "substation_" + "green" + ".svg";
+            }            
+            var feature = {
+                type: "Feature",
+                geometry: {
+                    type: "Point",
+                    coordinates: [rowItem.par_long, rowItem.par_lat]
+                },
+                properties: {
+                    name: rowItem.parent_name,
+                    code: rowItem.parent_code,
+                    // capacity: rowItem.output_rating,
+                    // parent: rowItem.parent,
+                    // child: rowItem.child,
+                    ringoff: rowItem.ringoff_ind,
+                    type: rowItem.substation_type_name,                    
+                    icon: "/static/images/substation/" + icon,
+                    visible: true,
+                    id: rowItem.parent,
+                    loop_no: rowItem.loop_no
+                }                
+            };
+            return feature;
+        };
+
+        var jsonToGeoJsonCldPt = function (rowItem) {
+            var icon = "substation_" + "green" + ".svg";
+            if (rowItem.ringoff_ind === 1){
+                // icon = "ringoff_substation_" + "south" + "_energized.svg";  
+                icon = "substation_" + "ringoff" + ".svg";              
+            } else {
+                icon = "substation_" + "green" + ".svg";
+            }             
+            var feature = {
+                type: "Feature",
+                geometry: {
+                    type: "Point",
+                    coordinates: [rowItem.child_long, rowItem.child_lat]
+                },
+                properties: {
+                    name: rowItem.child_name,
+                    code: rowItem.child_code,
+                    // capacity: rowItem.output_rating,
+                    // parent: rowItem.parent,
+                    // child: rowItem.child,
+                    ringoff: rowItem.ringoff_ind,
+                    type: rowItem.substation_type_name,
+                    icon: "/static/images/substation/" + icon,
+                    visible: true,
+                    id: rowItem.child,
+                    loop_no: rowItem.loop_no
+                }                
+            };            
+            return feature;
+        };
+
+        var jsonToGeoJsonLine = function (rowItem) {
+            // console.log('connection', rowItem.connection);
+            if (rowItem.connection === null){
+                var feature = {
+                    type: "Feature",
+                    geometry: {
+                        type: "LineString",
+                        coordinates: [[rowItem.par_long, rowItem.par_lat],
+                                      [rowItem.child_long, rowItem.child_lat]]
+                    },
+                    properties: {
+                        color: "red",
+                        type: rowItem.substation_type_name,  
+                        visible: true,
+                        ringoff: rowItem.ringoff_ind,
+                        normally_open: rowItem.normally_open_ind,
+                        loop_no: rowItem.loop_no,
+                        from: rowItem.parent_code,
+                        to: rowItem.child_code,
+                        from_id: rowItem.parent,
+                        to_id: rowItem.child                          
+                    }                
+                };                
+            } else {
+                // Converting WKT to JSON
+                wkt = new Wkt.Wkt();
+                // Create a geometry object, ready to be mapped!
+                wkt.read(rowItem.connection)
+                var geometry = wkt.toJson(); // Outputs an object
+                var feature = {
+                    type: "Feature",
+                    geometry,
+                    properties: {
+                        color: "red",
+                        type: rowItem.substation_type_name,
+                        visible: true,
+                        ringoff: rowItem.ringoff_ind,
+                        normally_open: rowItem.normally_open_ind,
+                        loop_no: rowItem.loop_no,
+                        from: rowItem.parent_code,
+                        to: rowItem.child_code,
+                        from_id: rowItem.parent,
+                        to_id: rowItem.child                                     
+                    }                
+                };                                                
+            }
+            // console.log('linefeature', JSON.stringify(feature));                      
+            return feature;
+        };                        
+
+        function changeLayer(layerselection) {
+            console.log(layerselection);            
+            if (layerselection === "weather"){
+                if (document.getElementById(layerselection).checked == true) {
+                   if (layer_weather.getMap() == null) layer_weather.setMap(map); 
+                }
+                else if (document.getElementById(layerselection).checked == false) {
+                     layer_weather.setMap(null); /*layersetoff*/
+                }
+            }
+            else if (layerselection === "powergrid"){
+                if (document.getElementById(layerselection).checked == true) {
+                   if (layer_powergrid.getMap() == null) layer_powergrid.setMap(map); 
+                }
+                else if (document.getElementById(layerselection).checked == false) {
+                     layer_powergrid.setMap(null); /*layersetoff*/
+                }                
+            }
+        }        
+
+        google.maps.event.addDomListener(window, 'load', function () {
+            initialize();
+        });
+    </script>          
+{% endblock %}
+{% block header %}
+<!--     <form id="defaultForm" method="post" class="navbar-form navbar-left form-inline" role="form">
+        <div class="row">                          
+            <div class="form-group">
+                <input class="form-control" id="address" type="textbox" value="UTTARAKHAND">
+                <input type="button" class="btn btn-primary" value="Geocode" onclick="codeAddress(document.getElementById('address').value)">
+            </div>
+        </div>
+    </form>  -->   
+{% endblock %}
+{% block content %}
+<!-- Page contents -->
+<!--     <div id="panel">
+        <div>
+            <input id="range"/>
+        </div>
+    </div> -->
+    <div id="map-canvas"></div>
+<!--     <div id="checkboxes">
+        <form>
+            <input type="checkbox" value="weather" id="weather" onclick="changeLayer(this.value);" checked="checked">Weather<br>
+            <input type="checkbox" value="powergrid" id="powergrid" onclick="changeLayer(this.value);" checked="checked">Powergrid<br>
+        </form>
+    </div>   -->     
+{% endblock %}

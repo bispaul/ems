@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="description" content="Navigation Page.">
+    <meta name="author" content="">
+    <!-- <link rel="icon" href="../../favicon.ico"> -->
+    <title>Zeerone Landing</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/datepicker.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/minisubmenu.css') }}"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sticky-footer-navbar.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.css') }}"> -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/c3.css') }}"> -->
+     <style>
+      .bars {
+        display: block;
+        width: 20px;
+        height: 3px;    
+        background-color: #333;
+        box-shadow: 0 5px 0 #333, 0 10px 0 #333;
+      }
+      .nav>li>a:hover, .nav>li>a:focus {
+        text-decoration: none;
+        background-color: #fff;
+      }
+      .nav .open>a, .nav .open>a:hover, .nav .open>a:focus {
+        background-color: #fff;
+        border-color: #428bca;
+      } 
+      /* disable text selection */
+      svg *::selection {
+         background : transparent;
+      }
+     
+      svg *::-moz-selection {
+         background:transparent;
+      } 
+     
+      svg *::-webkit-selection {
+         background:transparent;
+      }
+      rect.selection {
+        stroke          : #333;
+        stroke-dasharray: 4px;
+        stroke-opacity  : 0.5;
+        fill            : transparent;
+      }
+
+      rect.cell-border {
+        stroke: #eee;
+        stroke-width:0.3px;   
+      }
+
+      rect.cell-selected {
+        stroke: rgb(51,102,153);
+        stroke-width:0.5px;   
+      }
+
+      rect.cell-hover {
+        stroke: #F00;
+        stroke-width:0.3px;   
+      }
+
+      text.mono {
+        font-size: 9pt;
+        font-family: Consolas, courier;
+        fill: #aaa;
+      }
+
+      text.text-selected {
+        fill: #000;
+      }
+
+      text.text-highlight {
+        fill: #c00;
+      }
+      text.text-hover {
+        fill: #00C;
+      }
+      #tooltip {
+        position: absolute;
+        width: 200px;
+        height: auto;
+        padding: 10px;
+        background-color: white;
+        -webkit-border-radius: 10px;
+        -moz-border-radius: 10px;
+        border-radius: 10px;
+        -webkit-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        -moz-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        pointer-events: none;
+      }
+
+      #tooltip.hidden {
+        display: none;
+      }
+
+      #tooltip p {
+        margin: 0;
+        font-family: sans-serif;
+        font-size: 12px;
+        line-height: 20px;
+      }
+      .ui-datepicker-calendar {
+          display: none;
+          }      
+    </style>
+    <script src="{{ url_for('static', filename='js/jquery-2.1.3.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/d3.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap-datepicker.js') }}"></script>
+    <script type="text/javascript">    
+        $(document).ready( function () {
+          $( '#example2' ).datepicker({
+              // startView: 1,
+              format: "mm-yyyy", // Notice the Extra space at the beginning
+              viewMode: "months", 
+              minViewMode: "months",
+              todayHighlight: true,
+              autoclose: true
+          });
+          $( '#chart' ).hide();          
+          function DoValidate(){
+          // check your validate here, 
+          // if all field pass: return true, if not : return false;
+          // ex: return $('input[name="part_barcode"]).val().length>10;
+          // alert($('input[name="model"]').val().length);
+          // alert($('input[name="date"]').val().length);
+           return $('#Select').val() !== null && $('input[name="date"]').val() != "";
+           // return true;
+          }; 
+          function calldovalidate(){
+              if(DoValidate()){
+                console.log("Here" + $('input[name="date"]').val());
+                drawHeatMap($('input[name="date"]').val());
+                $( '#chart' ).show();
+              };            
+          };
+          $( '#Select,input[name="date"]' ).bind({
+            click: function(){
+              calldovalidate();
+              },            
+            focusout: function(){
+              calldovalidate();
+              },
+            keydown: function(){
+              calldovalidate();
+              },
+            change: function(){
+              calldovalidate();
+              }                               
+          });           
+
+      function drawHeatMap(month){
+      var margin = { top: 150, right: 10, bottom: 50, left: 150 },
+        cellSize=12,
+        colorBuckets = 21,
+        colors = ['#005824','#1A693B','#347B53','#4F8D6B','#699F83','#83B09B','#9EC2B3','#B8D4CB','#D2E6E3','#EDF8FB','#FFFFFF','#F1EEF6','#E6D3E1','#DBB9CD','#D19EB9','#C684A4','#BB6990','#B14F7C','#A63467','#9B1A53','#91003F'];    
+
+
+      // d3.json("/get_bsebheatmap_data/" + month,
+      /* Hack learbed from https://stackoverflow.com/questions/10314800/flask-url-for-urls-in-javascript
+       better way is to use https://stewartpark.github.io/Flask-JSGlue/*/
+      d3.json("{{ url_for('get_bsebheatmap_data', month='month') }}".replace('month',month),                
+      function(error, data) {
+        var parseDate = d3.time.format("%d-%m-%Y").parse;
+        data.forEach(function(d) {
+            d.row =   parseDate(d.date);
+            d.col =   +d.block_no;
+            d.value = +d.total_drawl;
+          });
+        var min_date = d3.min(data, function (d) { return d.row; });
+        var max_date = d3.max(data, function (d) { return d.row; });
+        // var test = d3.max(data, function (d) { return d.col; });
+
+        // console.log(min_date);
+        // console.log(max_date);
+        // console.log(max_date.getDate() -min_date.getDate());
+        console.log(data);
+        var row_number = max_date.getDate() - min_date.getDate() + 1;
+        var col_number = d3.max(data, function (d) { return d.col; });
+        var width = cellSize*col_number; // - margin.left - margin.right,
+        var height = cellSize*row_number;
+
+        console.log(height +":"+ row_number);
+        // console.log(col_number + "," +cellSize);
+        var colorScale = d3.scale.quantile()
+            .domain([d3.min(data, function (d) { return d.value; }), d3.max(data, function (d) { return d.value; }) * .80 , d3.max(data, function (d) { return d.value; })])
+            .range(colors);
+
+        d3.select("#chart").select("svg").remove();
+
+        var svg = d3.select("#chart").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+            ;
+
+        var rowSortOrder=false;
+        var colSortOrder=false;
+        var x_domain = d3.extent(data, function(d) { return d.col; }),
+            y_domain = d3.extent(data, function(d) { return d.row; });
+        console.log(x_domain);
+        console.log(y_domain);
+        // var yScale = d3.time.scale().domain([min_date, max_date]).range([height, 0]),    
+        //     xScale = d3.scale.linear().domain([d3.min(data, function (d) { return d.col; }), col_number])
+        //                               .range([d3.min(data, function (d) { return d.col; }) - 1, col_number - 1]);
+        // var yScale = d3.time.scale().domain(y_domain).range([height, 0]),    
+        //     xScale = d3.scale.linear().domain(x_domain)
+        //                               .range([d3.min(data, function (d) { return d.col; }) - 1, col_number - 1]);
+        // Cannot use range of dates as it needs to be converted to integer
+        var yScale = d3.time.scale().domain([1, row_number]).range([row_number - 1, 0]),    
+            xScale = d3.scale.linear().domain(x_domain)
+                                      .range([d3.min(data, function (d) { return d.col; }) - 1, col_number - 1]);
+        // console.log(yScale(new Date(2013,1,11)) + ":" + xScale(1));
+        console.log(yScale(1) + ":" + yScale(30) + ":" + xScale(1));
+        var rowLabels = svg.append("g")
+            .selectAll(".rowLabelg")
+            // .data(rowLabel)
+            // .data(function(){
+            //   var block = [];
+            //   for (i=1; i <= d3.max(data, function (d) { return d.row; }); i++){
+            //     block[i] = i;
+            //   };
+            //   return block;
+            // })
+            .data(function(){
+              // console.log(d3.time.format("%d-%m-%Y")(data[0]['row']));
+              var date = [];
+              for (i=0; i < data.length; i++){
+                date[i] = d3.time.format("%d-%m-%Y")(data[i].row);
+                // console.log(date[i]);
+              };
+              return d3.set(date).values();})
+            .enter()
+            .append("text")
+            .text(function (d) {/*console.log(d);*/ return d; })
+            .attr("x", 0)
+            // .attr("y", function (d, i) { return hcrow.indexOf(i+1) * cellSize; })
+            .attr("y", function (d, i) { return yScale(i+1) * cellSize; })
+            .style("text-anchor", "end")
+            .attr("transform", "translate(-6," + cellSize / 1.5 + ")")
+            .attr("class", function (d,i) { return "rowLabel mono r"+(i+1);} ) 
+            .on("mouseover", function(d) {d3.select(this).classed("text-hover",true);})
+            .on("mouseout" , function(d) {d3.select(this).classed("text-hover",false);})
+            // .on("click", function(d,i) {rowSortOrder=!rowSortOrder; sortbylabel("r",i,rowSortOrder);d3.select("#order").property("selectedIndex", 4).node().focus();;})
+            ;
+
+        var colLabels = svg.append("g")
+            .selectAll(".colLabelg")
+            // .data(colLabel)
+            .data(function(){
+              var block = [];
+              for (i=d3.min(data, function (d) { return d.col; }); i <= d3.max(data, function (d) { return d.col; }); i++){
+                block[i] = i;
+              };
+              return block;
+            })
+            .enter()
+            .append("text")
+            .text(function (d) { return d; })
+            .attr("x", -(height + 2 * cellSize))
+            // .attr("x", function (d, i) {console.log(d); return xScale(i+1) * cellSize; })
+            // .attr("y", function (d, i) { return hccol.indexOf(i+1) * cellSize; })
+            .attr("y", function (d, i) { return xScale(i) * cellSize })
+            .style("text-anchor", "middle")
+            .attr("transform", "translate("+cellSize/1.5 + ",-6) rotate (-90)")
+            // .attr("transform", "translate("+cellSize/2 + ",-6)")
+            .attr("class",  function (d,i) { return "colLabel mono c"+(i+1);} )
+            .on("mouseover", function(d) {d3.select(this).classed("text-hover",true);})
+            .on("mouseout" , function(d) {d3.select(this).classed("text-hover",false);})
+            // .on("click", function(d,i) {colSortOrder=!colSortOrder;  sortbylabel("c",i,colSortOrder);d3.select("#order").property("selectedIndex", 4).node().focus();;})
+            ;
+
+
+        var heatMap = svg.append("g").attr("class","g3")
+              .selectAll(".cellg")
+              .data(data,function(d){/*console.log(d.row+":"+d.col);*/return d.row+":"+d.col;})
+              .enter()
+              .append("rect")
+              // .attr("x", function(d) { return hccol.indexOf(d.col) * cellSize; })
+              // .attr("y", function(d) { return hcrow.indexOf(d.row) * cellSize; })
+              .attr("x", function(d) { return xScale(d.col) * cellSize; })
+              .attr("y", function(d) { return yScale(d.row.getDate()) * cellSize; })        
+              .attr("class", function(d, i){return "cell cell-border cr"+yScale(d.row.getDate()-1)+" cc"+xScale(d.col-1);})
+              .attr("width", cellSize)
+              .attr("height", cellSize)
+              .style("fill", function(d) { return colorScale(d.value); })
+              /* .on("click", function(d) {
+                     var rowtext=d3.select(".r"+(d.row-1));
+                     if(rowtext.classed("text-selected")==false){
+                         rowtext.classed("text-selected",true);
+                     }else{
+                         rowtext.classed("text-selected",false);
+                     }
+              })*/
+              .on("mouseover", function(d){
+                     //highlight text
+                     d3.select(this).classed("cell-hover",true);
+                     d3.selectAll(".rowLabel").classed("text-highlight",function(r,ri){ return ri==(d.row.getDate()-1);});
+                     d3.selectAll(".colLabel").classed("text-highlight",function(c,ci){ return ci==(d.col);});
+              
+                     //Update the tooltip position and value
+                     d3.select("#tooltip")
+                       .style("left", (d3.event.pageX+10) + "px")
+                       .style("top", (d3.event.pageY-10) + "px")
+                       .select("#value")
+                       // .text("lables:"+rowLabel[d.row-1]+","+colLabel[d.col-1]+"\ndata:"+d.value+"\nrow-col-idx:"+d.col+","+d.row+"\ncell-xy "+this.x.baseVal.value+", "+this.y.baseVal.value);
+                       // .text("lables:"+d.date+","+d.col+"\ndata:"+d.value+"\nrow-col-idx:"+d.col+","+d.row.getDate()+"\ncell-xy "+this.x.baseVal.value+", "+this.y.baseVal.value);
+                       .text("Date:"+d.date+" "+"Block No:"+d.col+"\nDrawl:"+d.value);
+                     //Show the tooltip
+                     d3.select("#tooltip").classed("hidden", false);
+              })
+              .on("mouseout", function(){
+                     d3.select(this).classed("cell-hover",false);
+                     d3.selectAll(".rowLabel").classed("text-highlight",false);
+                     d3.selectAll(".colLabel").classed("text-highlight",false);
+                     d3.select("#tooltip").classed("hidden", true);
+              })
+              ;
+           // }
+
+      // var legend = svg.selectAll(".legend")
+      //     .data([-10,-9,-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10])
+      //     .enter().append("g")
+      //     .attr("class", "legend");
+     
+      // legend.append("rect")
+      //   .attr("x", function(d, i) { return legendElementWidth * i; })
+      //   .attr("y", height+(cellSize*2))
+      //   .attr("width", legendElementWidth)
+      //   .attr("height", cellSize)
+      //   .style("fill", function(d, i) { return colors[i]; });
+     
+      // legend.append("text")
+      //   .attr("class", "mono")
+      //   .text(function(d) { return d; })
+      //   .attr("width", legendElementWidth)
+      //   .attr("x", function(d, i) { return legendElementWidth * i; })
+      //   .attr("y", height + (cellSize*4));
+
+    // Change ordering of cells
+
+      function sortbylabel(rORc,i,sortOrder){
+           var t = svg.transition().duration(3000);
+           var log2r=[];
+           var sorted; // sorted is zero-based index
+           d3.selectAll(".c"+rORc+i) 
+             .filter(function(ce){
+                log2r.push(ce.value);
+              })
+           ;
+           if(rORc=="r"){ // sort log2ratio of a gene
+             sorted=d3.range(col_number).sort(function(a,b){ if(sortOrder){ return log2r[b]-log2r[a];}else{ return log2r[a]-log2r[b];}});
+             t.selectAll(".cell")
+               .attr("x", function(d) { return sorted.indexOf(d.col-1) * cellSize; })
+               ;
+             t.selectAll(".colLabel")
+              .attr("y", function (d, i) { return sorted.indexOf(i) * cellSize; })
+             ;
+           }else{ // sort log2ratio of a contrast
+             sorted=d3.range(row_number).sort(function(a,b){if(sortOrder){ return log2r[b]-log2r[a];}else{ return log2r[a]-log2r[b];}});
+             t.selectAll(".cell")
+               .attr("y", function(d) { return sorted.indexOf(d.row-1) * cellSize; })
+               ;
+             t.selectAll(".rowLabel")
+              .attr("y", function (d, i) { return sorted.indexOf(i) * cellSize; })
+             ;
+           }
+      }
+
+      d3.select("#order").on("change",function(){
+        order(this.value);
+      });
+      
+      function order(value){
+       if(value=="hclust"){
+        var t = svg.transition().duration(3000);
+        t.selectAll(".cell")
+          // .attr("x", function(d) { return hccol.indexOf(d.col) * cellSize; })
+          // .attr("y", function(d) { return hcrow.indexOf(d.row) * cellSize; })
+          .attr("x", function(d) { return d.col * cellSize; })
+          .attr("y", function(d) { return d.row * cellSize; })      
+          ;
+
+        t.selectAll(".rowLabel")
+          // .attr("y", function (d, i) { return hcrow.indexOf(i+1) * cellSize; })
+          .attr("y", function (d, i) { return i * cellSize; })
+          ;
+
+        t.selectAll(".colLabel")
+          // .attr("y", function (d, i) { return hccol.indexOf(i+1) * cellSize; })
+          .attr("y", function (d, i) { return i * cellSize; })
+          ;
+
+       }else if (value=="probecontrast"){
+        var t = svg.transition().duration(3000);
+        t.selectAll(".cell")
+          .attr("x", function(d) { return (d.col - 1) * cellSize; })
+          .attr("y", function(d) { return (d.row - 1) * cellSize; })
+          ;
+
+        t.selectAll(".rowLabel")
+          .attr("y", function (d, i) { return i * cellSize; })
+          ;
+
+        t.selectAll(".colLabel")
+          .attr("y", function (d, i) { return i * cellSize; })
+          ;
+
+       }else if (value=="probe"){
+        var t = svg.transition().duration(3000);
+        t.selectAll(".cell")
+          .attr("y", function(d) { return (d.row - 1) * cellSize; })
+          ;
+
+        t.selectAll(".rowLabel")
+          .attr("y", function (d, i) { return i * cellSize; })
+          ;
+       }else if (value=="contrast"){
+        var t = svg.transition().duration(3000);
+        t.selectAll(".cell")
+          .attr("x", function(d) { return (d.col - 1) * cellSize; })
+          ;
+        t.selectAll(".colLabel")
+          .attr("y", function (d, i) { return i * cellSize; })
+          ;
+       }
+      }
+      
+      var sa=d3.select(".g3")
+          .on("mousedown", function() {
+              if( !d3.event.altKey) {
+                 d3.selectAll(".cell-selected").classed("cell-selected",false);
+                 d3.selectAll(".rowLabel").classed("text-selected",false);
+                 d3.selectAll(".colLabel").classed("text-selected",false);
+              }
+             var p = d3.mouse(this);
+             sa.append("rect")
+             .attr({
+                 rx      : 0,
+                 ry      : 0,
+                 class   : "selection",
+                 x       : p[0],
+                 y       : p[1],
+                 width   : 1,
+                 height  : 1
+             })
+          })
+          .on("mousemove", function() {
+             var s = sa.select("rect.selection");
+          
+             if(!s.empty()) {
+                 var p = d3.mouse(this),
+                     d = {
+                         x       : parseInt(s.attr("x"), 10),
+                         y       : parseInt(s.attr("y"), 10),
+                         width   : parseInt(s.attr("width"), 10),
+                         height  : parseInt(s.attr("height"), 10)
+                     },
+                     move = {
+                         x : p[0] - d.x,
+                         y : p[1] - d.y
+                     }
+                 ;
+          
+                 if(move.x < 1 || (move.x*2<d.width)) {
+                     d.x = p[0];
+                     d.width -= move.x;
+                 } else {
+                     d.width = move.x;       
+                 }
+          
+                 if(move.y < 1 || (move.y*2<d.height)) {
+                     d.y = p[1];
+                     d.height -= move.y;
+                 } else {
+                     d.height = move.y;       
+                 }
+                 s.attr(d);
+          
+                     // deselect all temporary selected state objects
+                 d3.selectAll('.cell-selection.cell-selected').classed("cell-selected", false);
+                 d3.selectAll(".text-selection.text-selected").classed("text-selected",false);
+
+                 d3.selectAll('.cell').filter(function(cell_d, i) {
+                     if(
+                         !d3.select(this).classed("cell-selected") && 
+                             // inner circle inside selection frame
+                         (this.x.baseVal.value)+cellSize >= d.x && (this.x.baseVal.value)<=d.x+d.width && 
+                         (this.y.baseVal.value)+cellSize >= d.y && (this.y.baseVal.value)<=d.y+d.height
+                     ) {
+          
+                         d3.select(this)
+                         .classed("cell-selection", true)
+                         .classed("cell-selected", true);
+
+                         d3.select(".r"+(cell_d.row-1))
+                         .classed("text-selection",true)
+                         .classed("text-selected",true);
+
+                         d3.select(".c"+(cell_d.col-1))
+                         .classed("text-selection",true)
+                         .classed("text-selected",true);
+                     }
+                 });
+             }
+          })
+          .on("mouseup", function() {
+                // remove selection frame
+             sa.selectAll("rect.selection").remove();
+          
+                 // remove temporary selection marker class
+             d3.selectAll('.cell-selection').classed("cell-selection", false);
+             d3.selectAll(".text-selection").classed("text-selection",false);
+          })
+          .on("mouseout", function() {
+             if(d3.event.relatedTarget.tagName=='html') {
+                     // remove selection frame
+                 sa.selectAll("rect.selection").remove();
+                     // remove temporary selection marker class
+                 d3.selectAll('.cell-selection').classed("cell-selection", false);
+                 d3.selectAll(".rowLabel").classed("text-selected",false);
+                 d3.selectAll(".colLabel").classed("text-selected",false);
+             }
+          })
+          ;
+    });
+    }
+      } );    
+    </script>
+  </head>
+  <body>
+    <header class="top" role="header">
+      <div class="container">
+        <nav class="navbar" role="navigation">
+          <div class="container-fluid">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              <a href="#" class="navbar-brand">
+                <img style="margin-top:-20px;" src="/static/images/logo.png" alt="Z-matics">
+              </a>
+            </div>
+
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+              {% include "menu.html" %}
+  <!--             <form class="navbar-form navbar-left" role="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" placeholder="Search">
+                </div>
+                <button type="submit" class="btn btn-default">Submit</button>
+              </form> -->
+              <form id="defaultForm" method="post" class="navbar-form navbar-left form-inline" role="form">    
+                <div class="form-group">
+                  <input  class="form-control" type="text" placeholder="mm-yyyy"  id="example2" name="date">
+                </div>
+<!--                   <div class="form-group">
+                    <button type="submit" class="btn btn-primary">Go</button>
+                  </div>  -->                 
+              </form>                
+              <ul class="nav navbar-nav navbar-right">
+                <li><a href="http://zeerone.com/">About</a></li>
+                <li><a href="http://zeerone.com/contact_us.html">Contact</a></li>
+                <li>
+                  <a href="login.html">Logout </a>
+                </li>
+<!--                 <li><a href="#">Link</a></li>
+                <li class="dropdown">
+                  <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
+                  <ul class="dropdown-menu">
+                    <li><a href="#">Action</a></li>
+                    <li><a href="#">Another action</a></li>
+                    <li><a href="#">Something else here</a></li>
+                    <li class="divider"></li>
+                    <li><a href="#">Separated link</a></li>
+                  </ul>
+                </li> -->
+              </ul>
+            </div><!-- /.navbar-collapse -->
+          </div><!-- /.container-fluid -->
+        </nav>
+      </div>
+    </header>
+    <!-- <div class="container"> -->
+      <div class="col-md-6 content">
+        <div id="tooltip" class="hidden">
+                <p><span id="value"></p>
+        </div>      
+<!--         Order: 
+          <select id="order">
+            <option value="hclust">by cluster</option>
+            <option value="probecontrast">by probe name and contrast name</option>
+            <option value="probe">by probe name</option>
+            <option value="contrast">by contrast name</option>
+            <option value="custom">by log2 ratio</option>
+          </select> -->
+          <!-- <div id="chart" style='overflow:auto; width:960px; height:480px;'></div>     -->
+          <div id="chart"></div>
+      </div>
+    <!-- </div>     -->
+  </body>        
+  <footer class="footer">
+    <div class="container">
+      <p class="text-muted">
+          Zeerone © 2012
+          http://www.zeerone.com</p>
+      </div>
+    </div>      
+  </footer>
+</html>

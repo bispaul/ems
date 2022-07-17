@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+  <head>
+    <meta charset="utf-8">
+    <!-- <link type="text/css" rel="stylesheet" href="style.css"/> -->
+    <style type="text/css">
+		@import url("http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,700italic,400,300,700");
+
+		body {
+		font-family: 'Open Sans', 'Helvetica Neue', Helvetica, Helvetica, Arial, sans-serif;
+		}
+
+		h3 {
+		padding-left: 8px;
+		}
+
+		/*	header styling */
+		h3 span {
+		text-transform: uppercase;
+		}
+
+		h3 span.statusValue {
+		color: #aaa;
+		font-weight: normal;
+		text-transform: none;
+		}
+
+		span.nominal { color: #33b251 ;}
+		span.marginal { color: #f8ab2f ;}
+		span.failed { color: #ea565a ;}
+
+
+		/*	table styling */
+		table {
+		font-size: 13px;
+		width: 100%;
+		}
+
+		table th {
+		background: #e8e8e8;
+		padding: 4px;
+		text-align: left;
+		text-transform: uppercase;
+		}
+
+		table td {
+		border-bottom: #e9e9e9 1px solid;
+		font-size: 14px;
+		padding: 8px 4px;
+		}
+
+		table tr:nth-child(even) td {
+		background: #fafafa;
+		}
+	</style>
+  </head>
+  <body>
+    <h3 data-channel="SYSTEM_STATUS">Status:
+    	<span data-key="value" data-formatter="translateStatus" data-callback="statusCls"></span>
+    	<span class="statusValue" data-key="value" data-formatter="wrapParen"></span>
+    </h3>
+	<table>
+		<thead>
+			<tr>
+				<th>Channel</th>
+				<th>Value</th>
+				<th>Update Time</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr data-channels="RADIO_A,RADIO_B,THRUST,VELOCITY,G_FORCE,ENGINE_A_TEMP,ENGINE_B_TEMP">
+				<td data-key="channel"></td>
+				<td data-key="value" data-formatter="roundThree"></td>
+				<td data-key="time" data-formatter="iso"></td>
+			</tr>
+		</tbody>
+	</table>
+
+    <script src="../static/js/d3.min.js"></script>
+    <script>
+		//	run the demo
+		run(d3.select("body"), 1000);
+
+		/*
+		 *	build and bind elements, then set a timer to generate data and update
+		 */
+		function run($context, step) {
+			//	setup repeating elements
+			buildRepeatingElements($context);
+
+			//	grab bindable elements on the page
+			var $elements = d3.selectAll("[data-channel]"),
+				keyElements = d3.selectAll("[data-key]").text("-"),
+				channels = [];
+
+			//	get the specified channels
+			$elements.each(function() {
+				channels.push(d3.select(this).attr('data-channel'));
+			});
+
+			//	set data for all elements
+			//update($elements, generateData(channels, channels.length));
+
+			//	setup a timer to generate period, random updates, IRL this would be a socket message
+			window.setInterval(function() {
+				update($elements, generateData(channels));
+			}, step);
+		}
+
+		/*
+		 *	build out repeating channel elements
+		 */
+		function buildRepeatingElements($context) {
+			var repeatingElements = $context.selectAll("[data-channels]"),
+				elem,
+				clone,
+				fn;
+
+			repeatingElements.each(function() {
+				elem = d3.select(this),
+				fn = elem.attr("data-callback");
+
+				//	duplicate
+				elem.attr("data-channels").split(",").reverse().forEach(function(m, i) {
+					clone = cloneSelection(elem).attr("data-channels", null).attr("data-channel", m).selectAll("td").text("-");
+					if (typeof window[fn] === "function") clone.attr("data-callback", fn);
+				});
+
+				//	remove original
+				elem.remove();
+			});
+		}
+
+		/*
+		 *	update elements based on incoming data
+		 *	@debug make this more d3-like
+		 *	@debug cache the elements that require callbacks and formatters
+		 */
+		function update(elements, data) {
+			console.log(data);
+			var $this,
+				elem,
+				fn;
+
+			elements
+				.data(data, elemKeyFunc)
+				.each(function(d, i) {
+					$this = d3.select(this);
+
+					//	handle callbacks
+					fn = $this.attr("data-callback");
+					if (fn && (typeof window[fn] === "function")) window[fn]($this, d);
+
+					//	handle single-element updates
+					fmt = $this.attr("data-formatter");
+					if ($this.attr("data-key")) {
+						//	handle formatters
+						if (fmt && (typeof formatters[fmt] === "function")) {
+							$this.text(formatters[fmt](d[$this.attr("data-key")]));
+						} else {
+							$this.text(d[$this.attr("data-key")]);
+						}
+					}
+				})
+			//	@debug reselecting here is inefficient; better way?
+			.selectAll("[data-key]")
+				.each(function(d, i) {
+					elem = d3.select(this);
+					fn = elem.attr("data-callback"),
+					fmt = elem.attr("data-formatter");
+
+					//	handle callbacks; run before the value is set so callbacks can operate on data if necessary
+					if (fn && (typeof window[fn] === "function")) window[fn](elem, d3.select(this.parentNode).datum());
+
+					//	handle formatters
+					if (fmt && (typeof formatters[fmt] === "function")) {
+						elem.text(formatters[fmt](d3.select(this.parentNode).datum()[elem.attr("data-key")]));
+					} else {
+						elem.text(d3.select(this.parentNode).datum()[elem.attr("data-key")]);
+					}
+				});
+		}
+
+		/*
+		 *	Data join key function for elements
+		 */
+		function elemKeyFunc(d, i) {
+			return d ? d.channel : d3.select(this).attr("data-channel");
+		}
+
+		/*
+		 *	Return simulated data for some of the channels
+		 */
+		function generateData(channels, count) {
+			var data = [];
+			count = (typeof count == "undefined") ? Math.floor(Math.random() * channels.length) : count;
+
+			d3.shuffle(channels.slice(0)).slice(Math.floor(Math.random() * channels.length)).forEach(function(channel) {
+				data.push({
+					"channel": channel,
+					"value": Math.random() * 1000,
+					"time": new Date().valueOf()
+				});
+			});
+
+			return data;
+		}
+
+		/*
+		 *	simple selection cloning function
+		 */
+		function cloneSelection($elem) {
+			var node = $elem.node();
+			return d3.select(node.parentNode.insertBefore(node.cloneNode(true), node.nextSibling));
+		}
+
+		/**
+		 *	callback to set system status class
+		 */
+		function statusCls($elem, data) {
+			$elem.attr("class", (data.value > 500) ? "nominal" : (data.value > 300) ? "marginal" : "failed");
+		}
+
+		/**
+		 *	custom formatters
+		 */
+		var formatters = {
+			"iso": function(value, data) {
+				return d3.time.format.iso(new Date(value));
+			},
+			"roundThree": function(value, data) {
+				return d3.round(value, 3);
+			},
+			"translateStatus": function(value, data) {
+				return (value > 500) ? "nominal" : (value > 300) ? "marginal" : "failed";
+			},
+			"wrapParen": function(value, data) {
+				return "(" + Math.floor(value) + ")";
+			}
+		}
+
+    </script>
+  </body>
+</html>

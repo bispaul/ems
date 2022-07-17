@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="description" content="Navigation Page.">
+    <meta name="author" content="">
+    <!-- <link rel="icon" href="../../favicon.ico"> -->
+    <title>Zeerone Position Supply Chart</title>
+     <!-- Meta -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sticky-footer-navbar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery-ui.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-tagsinput.css') }}"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/c3.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/style5.css') }}"> -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/tagit-simple-grey.css') }}"> -->
+    <style>
+      .bars {
+                display: block;
+                width: 20px;
+                height: 3px;    
+                background-color: #333;
+                box-shadow: 0 5px 0 #333, 0 10px 0 #333;
+      }
+      .nav>li>a:hover, .nav>li>a:focus {
+                text-decoration: none;
+                background-color: #fff;
+      }
+      .nav .open>a, .nav .open>a:hover, .nav .open>a:focus {
+                background-color: #fff;
+                border-color: #428bca;
+      }
+
+      .ui-autocomplete-loading {
+          background: white url("/static/images/ui-anim_basic_16x16.gif") right center no-repeat;
+      }
+
+      .ui-autocomplete {
+          max-height: 100px;
+          overflow-y: auto;
+          /* prevent horizontal scrollbar */
+          overflow-x: hidden;
+      }
+
+      body {
+        overflow-y:scroll;
+      }
+
+      text {
+        font: 12px sans-serif;
+      }
+
+      #chart3 svg {
+        height: 500px;
+        margin: 10px;
+        min-width: 100px;
+        min-height: 100px;
+      /*
+        Minimum height and width is a good idea to prevent negative SVG dimensions...
+        For example width should be =< margin.left + margin.right + 1,
+        of course 1 pixel for the entire chart would not be very useful, BUT should not have errors
+      */
+      }
+      .c3-region.foo {
+        fill: red;
+      }
+
+      #chart .c3-line-Forecast {
+        stroke-width: 3px;
+      }
+
+      select option {
+      color: black;
+      }
+      select option:first-child {
+      color: grey;
+      }
+      select.empty {
+      color: grey;
+      }      
+    </style>    
+    <script src="{{ url_for('static', filename='js/jquery-2.0.3.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <!-- // <script src="{{ url_for('static', filename='js/jquery.dataTables.min.js') }}"></script> -->
+    <script src="{{ url_for('static', filename='js/jquery-ui.js') }}"></script>
+    <!-- // <script src="{{ url_for('static', filename='js/bootstrap-tagsinput.min.js') }}"></script> -->
+    <!-- // <script src="{{ url_for('static', filename='js/tagit.js') }}"></script> -->
+    <!-- // <script src="{{ url_for('static', filename='js/typeahead.bundle.js') }}"></script>     -->
+    <script src="{{ url_for('static', filename='js/require.js') }}"></script>
+    <script>
+      // for nvd3.js
+      //var pos_data = [];
+      //for c3js
+      var pos_data = [];
+      var pos_data2 = {};
+      $(function() {
+
+        // function log() {
+        $.ajax( {url: "{{ url_for('get_possuply2_data') }}",
+                 dataType: "json",
+                 contentType: "application/json; charset=utf-8",
+                 dataFilter: function(data) { return data; },
+                 success: function(data) {
+                                          console.log(data);
+                                          console.log("success");
+                                          types = {};
+                                          axes = {};
+                                          group_arg = []
+                                          pos_data2 = data
+                                          c3cht(types, axes, group_arg);
+                          },
+                 error: function(XMLHttpRequest, textStatus, errorThrown) {
+                          alert(textStatus);
+                        }
+        });
+        // };
+      });
+      function c3cht(type_arg, axes_arg, group_arg){
+        require.config({
+          baseUrl: '/static/js'
+        });
+        require(["d3", "c3"], function(d3, c3) {
+          var chart = c3.generate({
+                      bindto: "#chart",
+                      size: {
+                              height: 480 - 50,
+                              width: 960 + 150
+                      },
+                      data: {
+                        json : pos_data2,
+                        keys : {
+                                x: 'Block_no',
+                                value: ['ISGS', 'Bilateral', 'Wind', 'Solar', 'Internal_Generation', 'Forecast', 'Position_Gap']
+                              },
+                        type: "area-spline",
+                        types: {
+                                Forecast: 'line',
+                                Position_Gap: 'bar'
+                              },
+                        groups: [['ISGS', 'Bilateral', 'Wind', 'Solar', 'Internal_Generation']],
+                        colors: {
+                                  Forecast: d3.rgb('#ff0000').darker(2)
+                                },                              
+                        axes: axes_arg,
+                        labels: false
+                      },
+                      axis: {
+                              x: {
+                            //    type: 'categorized'
+                                  label: {
+                                           text: 'Block No',
+                                           position: 'outer-center'
+                                  },
+                                  tick: {
+                                          //fit: true
+                                          //count: 96//,
+                                          //format: 
+                                  }
+                              },
+                              y: {
+                                  label: {
+                                           text: 'Quantum (MW)',
+                                           position: 'outer-middle'
+                                  }
+                              }                  
+                      },
+                      grid: {
+                              y: {
+                                show: true
+                              },
+                              x: {
+                                show: true
+                              },
+                              focus: {
+                                show: true
+                              }
+                      },
+                      legend: {
+                                //position: 'right',
+                                show: true
+                      },
+                      point: {
+                                show: false
+                      },
+                      transition: {
+                                    duration: 100
+                      },
+                      tooltip: {
+                                  format: {
+                                            title: function (d) { return 'Block_No ' + d; }
+                                  }
+                      },
+                      regions: [
+                      //{axis: 'x', start: 76, end: 88, class: 'foo'}
+                      ],
+                      color: {
+                              // pattern: classic9
+                              patttern: [
+                                          '#ecb796',
+                                          '#dc8f70',
+                                          '#b2a470',
+                                          '#92875a',
+                                          '#716c49',
+                                          '#d2ed82',
+                                          '#bbe468',
+                                          '#a1d05d',
+                                          '#e7cbe6',
+                                          '#d8aad6',
+                                          '#a888c2',
+                                          '#9dc2d3',
+                                          '#649eb9',
+                                          '#387aa3'
+                                        ]                              
+                      }
+                  });
+          }); 
+        };                 
+    </script>
+  </head>
+  <body>
+    <header class="top" role="header">
+      <div class="container">
+        <nav class="navbar" role="navigation">
+          <div class="container-fluid">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              <a href="#" class="navbar-brand">
+                <img style="margin-top:-20px;" src="/static/images/logo.png" alt="Z-matics">
+              </a>
+            </div>
+
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+              <ul class="nav navbar-nav">
+                <li class="dropdown">
+                  <a href="#" class="dropdown-toggle" data-toggle="dropdown">Menu <b class="caret"></b></a>
+                  <ul class="dropdown-menu">
+                    <li><a href="{{ url_for('index') }}">NR Gen</a></li>
+                    <li><a href="{{ url_for('nrmarket') }}">NR Market</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('tenisgs') }}">ISGS Tentative Data</a></li>
+                    <li><a href="{{ url_for('tenint') }}">Internal Tentative Data</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('rajmislive') }}">Live MIS Data</a></li>
+                    <li><a href="{{ url_for('rajlive') }}">Live Data Breakup</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('forecast') }}">Forecast</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('possuply') }}">Position Map</a></li>
+                    <li><a href="{{ url_for('possuplychart') }}">Position Map Chart</a></li>                    
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('chart') }}">Comparison Report</a></li>
+                    <li><a href="{{ url_for('chart3') }}">ISGS Tentative Stack</a></li>
+                    <li><a href="{{ url_for('stacked') }}">Total Generation Stack</a></li>
+                    <li><a href="{{ url_for('treemap') }}">Treemap Report</a></li>
+                    <li><a href="{{ url_for('heat') }}">Heatmap Report</a></li>                    
+                  </ul>
+                </li>
+              </ul>
+              <!-- <div class="nav navbar-nav navbar-left" role="search"> -->
+                <!-- <label for="tags2"> Tag2: </label> -->
+<!--                 <select id="newtag" multiple data-role="tagsinput" ></select>
+                <option selected disabled>Search</option>
+              </div>  --> 
+<!--               <form id="defaultForm" class="navbar-form navbar-left form-inline" role="form">    
+                  <div class="form-group">
+                    <select id="newtag" multiple data-role="tagsinput" class="form-control" placeholder="Search"></select> -->
+                      <!-- <option selected disabled>Search</option> -->
+<!--                     </select>
+                  </div>                
+              </form>   -->                         
+<!--               <form class="navbar-form navbar-left" role="search">
+                <div class="form-group">
+                  <div class="ui-widget">
+                    <input id="tags" type="text" class="form-control" placeholder="Search e.g. 16-11-2009" maxlength="10" size="28"/>
+                  </div> -->
+                  <!-- <button type="submit" class="btn btn-default">Submit</button> -->
+                <!-- </div>               -->
+              <!-- </form>              -->
+              <ul class="nav navbar-nav navbar-right">
+                <li><a href="http://zeerone.com/">About</a></li>
+                <li><a href="http://zeerone.com/contact_us.html">Contact</a></li>
+                <li>
+                  <a href="login.html">Logout</a>
+                </li>
+<!--                 <li><a href="#">Link</a></li>
+                <li class="dropdown">
+                  <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
+                  <ul class="dropdown-menu">
+                    <li><a href="#">Action</a></li>
+                    <li><a href="#">Another action</a></li>
+                    <li><a href="#">Something else here</a></li>
+                    <li class="divider"></li>
+                    <li><a href="#">Separated link</a></li>
+                  </ul>
+                </li> -->
+              </ul>
+            </div><!-- /.navbar-collapse -->
+          </div><!-- /.container-fluid -->
+        </nav>
+      </div>
+    </header>
+    <!-- Site banner -->
+    <div class="banner">
+        <div class="container">
+          <div class="col-md-9 content">
+            <h1><small>Position Supply Chart</small></h1>
+          </div>
+        </div>
+    </div>     
+
+    <!-- Site banner -->
+    <!--
+    <div class="banner">
+        <div class="container">
+            <h1>Twitter Bootstrap 3: Responsive Design Tutorial</h1>
+            <p>A comprehensive tutorial showing you how to quickly create responsive designs using Twitter Bootstrap 3.</p>
+        </div>
+    </div>-->
+    <!-- Middle content section -->
+    <div class="middle">
+        <div class="container">
+            <div class="col-md-9 content">
+                <!--
+                <h2>Use Twitter Bootstrap to create responsive designs for desktop, tablet & mobile</h2>
+                <p>Twitter bootstrap allows web developers and designers to quickly create attractive and responsive website templates. This tutorial provided by <a href="http://www.revillweb.com/">RevillWeb.com</a> will show you how to use Twitter Bootstrap 3 to create this responsive website template.</p>
+                <div class="to-tutorial">
+                    <p><strong>Visit the tutorial now to learn more:</strong></p>
+                    <a href="http://www.revillweb.com/tutorials/bootstrap-tutorial/" class="btn btn-success">TO THE TUTORIAL</a>
+                </div>-->
+<!--                   <div class="ui-widget">
+                    <br>
+                    <label for="tags">Tags: </label>
+                    <input id="tags" size="50">
+                  </div>
+                  <div class="ui-widget" style="margin-top:2em; font-family:Arial; display: none;">
+                    Result:
+                    <div id="log" style="height: 200px; width: 300px; overflow: auto;"  class="ui-widget-content"></div>
+                  </div>
+                  <div class="ui-widget" style="margin-top:2em; ">
+                    <label for="tags2"> Tag2: </label>
+                    <select id = "newtag" multiple data-role="tagsinput" size ="50"></select>
+                    <input type="text" id="tagFilter" data-provide="typeahead">
+                  </div> -->                  
+            </div>
+
+            </div>
+            <!--
+            <div class="col-md-3">
+                <h2>Resources</h2>
+                <ul class="nav nav-pills nav-stacked">
+                    <li><a href="http://getbootstrap.com/" target="_blank">Download Twitter Bootstrap</a></li>
+                    <li><a href="https://www.bootstrapresponsivethemes.com/" target="_blank">Bootstrap Responsive Themes</a></li>
+                    <li><a href="http://amzn.to/1iO8NBg" target="_blank">UK: HTML & CSS: Design and Build Web Sites</a></li>
+                    <li><a href="http://amzn.to/1lESKDp" target="_blank">UK: Bootstrap Site Blueprints</a></li>
+                    <li><a href="http://amzn.to/1oXAbu6" target="_blank">US: HTML & CSS: Design and Build Web Sites</a></li>
+                    <li><a href="http://amzn.to/1lESF2w" target="_blank">US: Bootstrap Site Blueprints</a></li>
+                </ul>
+            </div>-->
+        </div>
+    </div>
+    <div class="container">
+      <div class="col-md-12 content">
+        <!-- <div id="chart1"></div> -->
+        <div id="chart"></div>
+      </div>
+    </div>  
+  </body>
+  <footer class="footer">
+    <div class="container">
+      <p class="text-muted">
+          Zeerone © 2012
+          http://www.zeerone.com</p>
+      </div>
+    </div>      
+  </footer>
+</html>

@@ -1,0 +1,42 @@
+{% extends "basetemplate.html" %}
+{% block title %}Real Time Demand and Forecast{% endblock %}
+{% block head %}
+  {{ super() }}        
+{% endblock %}
+{% block content %}
+    <div class="container">
+      <div role="tabpanel">
+        <ul class="nav nav-tabs" role="tablist">
+          <li role="presentation" class="active"><a href="#graph" aria-controls="graph" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-stats"></span> Graph</a></li>
+          <li role="presentation"><a href="#tabular" aria-controls="tabular" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-list"></span> Tabular</a></li>   
+        </ul>      
+        <div class="tab-content">
+          <div role="tabpanel" class="tab-pane active" id="graph">
+            <div class="container">
+              {% include "mislivegraph.html" %}
+<!--               <div class="col-md-12 content">
+                <div id="chart"></div>
+              </div> -->
+            </div>            
+          </div>
+          <!-- <div role="tabpanel" class="tab-pane" id="profile">Test</div> -->
+          <div role="tabpanel" class="tab-pane" id="tabular">
+            <div class="container">
+              {% include "mislivetable.html" %}
+<!--               <div class="col-md-12 content">    
+                <table id="example" class="table table-striped table-bordered table-condensed table-hover" cellspacing="0" width="100%">
+                  <thead>
+                    <tr>
+                      {% for col in columns %}
+                      <th>{{ col }}</th>
+                      {% endfor %}
+                    </tr>
+                  </thead>
+                </table>            
+              </div> -->
+            </div>
+          </div>          
+        </div>
+      </div>        
+    </div><!-- /.container -->
+{% endblock %}
